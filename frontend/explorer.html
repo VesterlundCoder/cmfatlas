@@ -135,6 +135,8 @@
         Select a CMF and click <strong style="color:#101010">Run Walk</strong> to begin.
       </div>
 
+      <div id="walk-note-card" style="display:none"></div>
+
       <div class="card p-5" id="chart-card" style="display:none">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
           <div style="font-size:12px;font-weight:600;color:#333">Convergence</div>
@@ -330,6 +332,15 @@ function renderResults(d) {
       ${d.primary_constant ? `<span class="badge badge-amber">Expected: ${d.primary_constant}</span>` : ''}
     </div>
   `;
+
+  // Walk note (3D warning)
+  const noteEl = document.getElementById('walk-note-card');
+  if (d.walk_note) {
+    noteEl.style.display = '';
+    noteEl.innerHTML = `<div style="background:#fef9e7;border:1px solid #fcd34d;border-radius:8px;padding:10px 14px;font-size:12px;color:#92400e">⚠ ${d.walk_note}</div>`;
+  } else {
+    noteEl.style.display = 'none';
+  }
 
   // Chart
   document.getElementById('chart-card').style.display = '';
