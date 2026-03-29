@@ -1266,7 +1266,9 @@ def walk_cmf(
     cmf_id: int,
     depth: int = Query(100, ge=10, le=500),
     m_fixed: int = Query(0, ge=0, le=50),
-    n_fixed: int = Query(1, ge=0, le=50),
+    n_fixed: int = Query(1, ge=1, le=50),
+    k_fixed: int = Query(1, ge=1, le=50),
+    direction: str = Query("x"),
 ):
     """
     K1 matrix walk for a CMF with polynomial form.
@@ -1293,28 +1295,53 @@ def walk_cmf(
         except Exception as exc:
             raise HTTPException(500, f"Polynomial parse error: {exc}")
 
-        Kx_fn, _, _, is_3d = walk_fns
+        Kx_fn, Ky_fn, Kz_fn, is_3d = walk_fns
 
         mpmath.mp.dps = 30
         P = mpmath.eye(2)
         sequence = []
 
-        # For 3D CMFs: b(k,n)=g(k,0,n)*gbar(k,0,n) has roots at small k (when fbar has
-        # falling-factorial factors). Skip degenerate steps where Kx[1,0]≈0.
+        dir_clean = direction.lower().strip() if direction else "x"
+        if dir_clean not in ("x", "y", "z"):
+            dir_clean = "x"
+
+        if dir_clean == "z" and not is_3d:
+            raise HTTPException(422, "Kz walk requires a 3D CMF")
+        if dir_clean == "y" and Ky_fn is None:
+            raise HTTPException(422, "Ky walk not available for this CMF")
+
+        # Determine step function and starting step
         k_start = 0
-        if is_3d:
-            for _k in range(30):
+        if dir_clean == "y":
+            def _K(step): return Ky_fn(k_fixed, step, n_fixed)
+            k_start = 1
+        elif dir_clean == "z":
+            def _K(step): return Kz_fn(k_fixed, m_fixed, step)
+            for _s in range(1, 30):
                 try:
-                    _b = abs(float(mpmath.re(Kx_fn(_k, 0, n_fixed)[1, 0])))
+                    _b = abs(float(mpmath.re(Kz_fn(k_fixed, m_fixed, _s)[1, 0])))
                     if _b > 1e-10:
-                        k_start = max(0, _k - 1)
+                        k_start = _s
                         break
                 except Exception:
                     pass
+            if k_start == 0:
+                k_start = 1
+        else:
+            def _K(step): return Kx_fn(step, m_fixed, n_fixed)
+            if is_3d:
+                for _k in range(30):
+                    try:
+                        _b = abs(float(mpmath.re(Kx_fn(_k, 0, n_fixed)[1, 0])))
+                        if _b > 1e-10:
+                            k_start = max(0, _k - 1)
+                            break
+                    except Exception:
+                        pass
 
         for _iter, step in enumerate(range(k_start, k_start + depth)):
             try:
-                K = Kx_fn(step, m_fixed, n_fixed)
+                K = _K(step)
                 P = P * K
                 # Normalize every 20 iterations to prevent overflow
                 if (_iter + 1) % 20 == 0:
@@ -1358,7 +1385,9 @@ def walk_cmf(
         return {
             "cmf_id":          cmf_id,
             "depth":           depth,
+            "direction":        dir_clean,
             "k_start":         k_start,
+            "k_fixed":         k_fixed if dir_clean != "x" else None,
             "m_fixed":         m_fixed,
             "n_fixed":         n_fixed,
             "is_3d":           is_3d,
