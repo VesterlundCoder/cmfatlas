@@ -235,21 +235,22 @@ def _build_walk_fns(f_poly_str: str, fbar_poly_str: str):
         n_s, z_s = _sym("n z")
         g_kmn    = f_expr.subs([(x_s, k_s), (y_s, m_s), (z_s, n_s)])
         gbar_kmn = fbar_expr.subs([(x_s, k_s), (y_s, m_s), (z_s, n_s)])
-        b_expr   = _expand(g_kmn.subs([(m_s, 0), (n_s, 0)]) *
-                           gbar_kmn.subs([(m_s, 0), (n_s, 0)]))
-        a_expr   = _expand(g_kmn - gbar_kmn.subs(k_s, k_s + 1))
+        # b(k,n) = g(k,0,n)*gbar(k,0,n) — keep n live so b≠0 for CMF Hunter 3D entries
+        # (g(k,0,0) = 0 for polynomials like (x+y)^4 * z*(z+1)*... so n=0 is always degenerate)
+        b_kn_expr = _expand(g_kmn.subs(m_s, 0) * gbar_kmn.subs(m_s, 0))
+        a_expr    = _expand(g_kmn - gbar_kmn.subs(k_s, k_s + 1))
 
-        g_fn    = _lambdify([k_s, m_s, n_s], g_kmn,    modules="mpmath")
-        gbar_fn = _lambdify([k_s, m_s, n_s], gbar_kmn, modules="mpmath")
-        b_fn    = _lambdify([k_s],            b_expr,   modules="mpmath")
-        a_fn    = _lambdify([k_s, m_s, n_s], a_expr,   modules="mpmath")
+        g_fn    = _lambdify([k_s, m_s, n_s], g_kmn,     modules="mpmath")
+        gbar_fn = _lambdify([k_s, m_s, n_s], gbar_kmn,  modules="mpmath")
+        b_fn    = _lambdify([k_s, n_s],       b_kn_expr, modules="mpmath")
+        a_fn    = _lambdify([k_s, m_s, n_s],  a_expr,    modules="mpmath")
 
         def Kx(k, m, n):
-            return mpmath.matrix([[0, 1], [b_fn(k + 1), a_fn(k, m, n)]])
+            return mpmath.matrix([[0, 1], [b_fn(k + 1, n), a_fn(k, m, n)]])
         def Ky(k, m, n):
-            return mpmath.matrix([[gbar_fn(k, m, n), 1], [b_fn(k), g_fn(k, m, n)]])
+            return mpmath.matrix([[gbar_fn(k, m, n), 1], [b_fn(k, n), g_fn(k, m, n)]])
         def Kz(k, m, n):
-            return mpmath.matrix([[gbar_fn(k, m, n), 1], [b_fn(k), g_fn(k, m, n)]])
+            return mpmath.matrix([[gbar_fn(k, m, n), 1], [b_fn(k, n), g_fn(k, m, n)]])
 
         return Kx, Ky, Kz, True
 
