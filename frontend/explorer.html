@@ -34,6 +34,13 @@
     input[type=number],input[type=text]{background:#fff;border:1px solid #e2e8f0;color:#101010;border-radius:8px;padding:8px 12px;font-size:13px;outline:none;width:100%;font-family:inherit}
     input:focus{border-color:#0bb4aa;box-shadow:0 0 0 3px rgba(11,180,170,.1)}
     .tooltip{font-size:11px;color:#aaa;margin-top:4px}
+    .dir-btn{flex:1;padding:7px 6px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid #e2e8f0;background:#fff;color:#888;font-family:inherit;transition:all .15s}
+    .dir-btn.active{background:#0bb4aa;color:#fff;border-color:#0bb4aa}
+    .dir-btn:disabled{opacity:.35;cursor:not-allowed}
+    .preset-chip{background:#fefce8;color:#b45309;border:1px solid #fde68a;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit}
+    .add-traj-btn{background:#f0fdfc;color:#0bb4aa;border:1px solid #b2ede9;border-radius:8px;padding:8px;font-size:12px;font-weight:600;cursor:pointer;width:100%;font-family:inherit;margin-bottom:6px}
+    .queue-row{display:flex;align-items:center;gap:6px;padding:3px 2px;border-radius:4px}
+    .queue-row:hover{background:#f8fafc}
     #cmf-search-results{position:absolute;top:100%;left:0;right:0;z-index:50;background:#fff;border:1px solid #e2e8f0;border-radius:8px;max-height:260px;overflow-y:auto;margin-top:4px;box-shadow:0 8px 24px rgba(0,0,0,.1)}
     #cmf-search-results .result-item{padding:10px 14px;cursor:pointer;border-bottom:1px solid #f1f5f9;font-size:12px;color:#333}
     #cmf-search-results .result-item:hover{background:#f0fdfc}
@@ -62,7 +69,7 @@
 <div style="background:linear-gradient(135deg,#f0fdfc 0%,#fff 60%);border-bottom:1px solid #e2e8f0;padding:28px 0 20px">
   <div class="max-w-7xl mx-auto px-6">
     <h1 style="font-size:1.8rem;font-weight:800;color:#101010;margin-bottom:4px;letter-spacing:-0.5px">Matrix Walk Explorer</h1>
-    <p style="font-size:13px;color:#666;max-width:600px">Select a CMF with polynomial form f(x,y), choose walk depth, and observe numerical convergence. Partial products are compared against 20+ known mathematical constants.</p>
+    <p style="font-size:13px;color:#666;max-width:660px">Choose a walk direction (Kx along k / Ky along m / Kz along n), queue multiple trajectories with different shifts, and overlay their convergence — Ramanujan Dreams style.</p>
   </div>
 </div>
 
@@ -84,41 +91,55 @@
           <div class="tooltip mt-1" id="selected-cmf-info" style="font-size:11px;color:#aaa;margin-top:4px">No CMF selected</div>
         </div>
 
+        <!-- Depth -->
         <div class="mb-4">
           <label class="control-label">Walk Depth</label>
           <select id="depth" class="control-select">
             <option value="100">100 steps</option>
-            <option value="200">200 steps</option>
+            <option value="200" selected>200 steps</option>
             <option value="500">500 steps</option>
           </select>
         </div>
 
-        <div class="mb-4">
-          <label class="control-label">Fixed m (row parameter)</label>
-          <select id="m_fixed" class="control-select">
-            <option value="0">m = 0</option>
-            <option value="1">m = 1</option>
-            <option value="2">m = 2</option>
-            <option value="3">m = 3</option>
-            <option value="5">m = 5</option>
-            <option value="10">m = 10</option>
-          </select>
-          <div class="tooltip">Walk along Kx(step,m,n) with m fixed</div>
+        <!-- Direction -->
+        <div class="mb-3">
+          <label class="control-label">Walk Direction</label>
+          <div style="display:flex;gap:4px">
+            <button class="dir-btn active" id="dir-btn-x" onclick="setDir('x')">K&#x2093; along k</button>
+            <button class="dir-btn" id="dir-btn-y" onclick="setDir('y')">K&#x1D67E; along m</button>
+            <button class="dir-btn" id="dir-btn-z" onclick="setDir('z')" style="display:none">K&#x1D467; along n</button>
+          </div>
+          <div class="tooltip" id="dir-tip" style="margin-top:4px">Fixed m, n — telescope along k (standard Ramanujan walk)</div>
         </div>
 
-        <div class="mb-4" id="n-fixed-row">
-          <label class="control-label">Fixed n <span style="font-size:9px;color:#0bb4aa;background:#e0faf8;padding:1px 5px;border-radius:9999px">3D only</span></label>
-          <select id="n_fixed" class="control-select">
-            <option value="1" selected>n = 1</option>
-            <option value="2">n = 2</option>
-            <option value="3">n = 3</option>
-            <option value="5">n = 5</option>
-            <option value="10">n = 10</option>
-          </select>
-          <div class="tooltip">For 3D CMFs: walk Kx(step,m,n) with both m,n fixed</div>
+        <!-- Parameters -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px" id="param-grid">
+          <div id="k-fixed-wrap" style="display:none">
+            <label class="control-label">k<sub>fixed</sub></label>
+            <input type="number" id="k_fixed" value="1" min="1" max="50"/>
+          </div>
+          <div id="m-fixed-wrap">
+            <label class="control-label">m</label>
+            <input type="number" id="m_fixed" value="0" min="0" max="50"/>
+          </div>
+          <div id="n-fixed-wrap" style="display:none">
+            <label class="control-label">n <span style="font-size:9px;color:#0bb4aa;background:#e0faf8;padding:1px 5px;border-radius:9999px">3D</span></label>
+            <input type="number" id="n_fixed" value="1" min="1" max="50"/>
+          </div>
         </div>
 
-        <button id="run-btn" class="run-btn" onclick="runWalk()" disabled>▶ Run Walk</button>
+        <!-- Queue -->
+        <div style="margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888">Trajectory Queue</span>
+            <button onclick="clearQueue()" style="font-size:10px;color:#aaa;background:none;border:none;cursor:pointer">Clear</button>
+          </div>
+          <div id="queue-list" style="min-height:28px;max-height:130px;overflow-y:auto;border:1px solid #f1f5f9;border-radius:6px;padding:4px 8px;font-size:11px"><span style="color:#bbb">Empty — add trajectories below</span></div>
+        </div>
+        <button class="add-traj-btn" onclick="enqueue()">+ Add to Queue</button>
+        <button class="preset-chip" onclick="addDreamsPresets()" style="width:100%;margin-bottom:6px">⚡ Dreams Grid (8 shifts)</button>
+
+        <button id="run-btn" class="run-btn" onclick="runAll()" disabled>▶ Run Queue</button>
         <button onclick="resetAll()" style="margin-top:8px;width:100%;border:1px solid #e2e8f0;color:#555;background:#fff;padding:10px;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit">Reset</button>
       </div>
 
@@ -174,9 +195,10 @@
 
       <div class="card p-4" id="method-note" style="display:none;font-size:12px;color:#666;line-height:1.7">
         <strong style="color:#333">Method:</strong>
-        The walk accumulates \(P_N = K_1(0,m)\cdot K_1(1,m)\cdots K_1(N{-}1,m)\) using 30-digit mpmath arithmetic.
-        Convergents read as \(P_N[0,1] / P_N[1,1]\). Normalized every 20 steps to prevent overflow.
-        Constant comparisons show absolute error only — small error is numerical evidence, not a symbolic identity proof.
+        Each trajectory accumulates \(P_N = K(s_0)\cdot K(s_0{+}1)\cdots K(s_0{+}N{-}1)\) (30-digit mpmath).
+        \(K\) is \(K_x\), \(K_y\), or \(K_z\) depending on walk direction.
+        Convergents read as \(P_N[0,1]/P_N[1,1]\). Normalized every 20 steps.
+        Small error against a known constant is numerical evidence only — not a symbolic proof.
       </div>
     </div>
   </div>
@@ -184,9 +206,79 @@
 
 <script>
 const API = 'https://cmfatlas-production.up.railway.app';
-let selectedCmfId = null;
-let chartInstance = null;
-let searchTimeout = null;
+let selectedCmfId = null, selectedDim = 2;
+let chartInstance = null, searchTimeout = null;
+let currentDir = 'x';
+let queue = [];
+const COLORS = ['#0bb4aa','#f59e0b','#8b5cf6','#059669','#ef4444','#3b82f6','#ec4899','#10b981','#f97316','#6366f1'];
+
+// ── Direction control ────────────────────────────────────────────────────────
+const DIR_TIPS = {
+  x: 'Fixed m, n — telescope along k (standard Ramanujan walk: Kx(k, m, n))',
+  y: 'Fixed k, n — telescope along m rows (Ky(k_fixed, m, n))',
+  z: 'Fixed k, m — telescope along n depth (Kz(k, m, n_fixed) — 3D only)'
+};
+
+function setDir(d) {
+  currentDir = d;
+  ['x','y','z'].forEach(dd => {
+    const b = document.getElementById(`dir-btn-${dd}`);
+    if (b) b.classList.toggle('active', dd === d);
+  });
+  document.getElementById('dir-tip').textContent = DIR_TIPS[d] || '';
+  document.getElementById('k-fixed-wrap').style.display = d !== 'x' ? '' : 'none';
+  document.getElementById('m-fixed-wrap').style.display = d !== 'y' ? '' : 'none';
+  const show3dN = selectedDim === 3 && d !== 'z';
+  document.getElementById('n-fixed-wrap').style.display = show3dN ? '' : 'none';
+}
+
+// ── Queue management ─────────────────────────────────────────────────────────
+function enqueue() {
+  const k = parseInt(document.getElementById('k_fixed')?.value) || 1;
+  const m = parseInt(document.getElementById('m_fixed')?.value) || 0;
+  const n = parseInt(document.getElementById('n_fixed')?.value) || 1;
+  queue.push({dir: currentDir, k, m, n, id: Date.now()});
+  renderQueue();
+}
+
+function addDreamsPresets() {
+  const base = [
+    {dir:'x',k:1,m:0,n:1},{dir:'x',k:1,m:1,n:1},{dir:'x',k:1,m:0,n:2},
+    {dir:'x',k:1,m:1,n:2},{dir:'x',k:1,m:2,n:1},{dir:'x',k:1,m:0,n:3},
+    {dir:'x',k:1,m:2,n:2},{dir:'x',k:1,m:3,n:1},
+  ];
+  base.forEach((p,i) => queue.push({...p, id: Date.now()+i}));
+  renderQueue();
+}
+
+function removeFromQueue(id) {
+  queue = queue.filter(t => t.id !== id);
+  renderQueue();
+}
+
+function clearQueue() {
+  queue = [];
+  renderQueue();
+}
+
+function renderQueue() {
+  const el = document.getElementById('queue-list');
+  if (!queue.length) {
+    el.innerHTML = '<span style="color:#bbb">Empty — add trajectories above</span>';
+    document.getElementById('run-btn').disabled = !selectedCmfId;
+    return;
+  }
+  el.innerHTML = queue.map((t, i) => {
+    const c = COLORS[i % COLORS.length];
+    const lbl = t.dir==='x' ? `Kx  m=${t.m} n=${t.n}` : t.dir==='y' ? `Ky  k=${t.k} n=${t.n}` : `Kz  k=${t.k} m=${t.m}`;
+    return `<div class="queue-row">
+      <span style="width:8px;height:8px;border-radius:50%;background:${c};display:inline-block;flex-shrink:0"></span>
+      <span style="flex:1;color:#333;font-family:monospace">${lbl}</span>
+      <button onclick="removeFromQueue(${t.id})" style="color:#bbb;background:none;border:none;cursor:pointer;font-size:13px;line-height:1">×</button>
+    </div>`;
+  }).join('');
+  document.getElementById('run-btn').disabled = !selectedCmfId;
+}
 
 function polyToLatex(s) {
   if (!s) return '';
@@ -248,11 +340,17 @@ function renderSearchResults(items) {
 
 function selectCmf(id, fPoly, primaryConst, dim) {
   selectedCmfId = id;
+  selectedDim = dim || 2;
   searchInput.value = `CMF #${id} — ${fPoly.substring(0,40)}`;
   searchResults.classList.add('hidden');
   document.getElementById('selected-cmf-info').textContent =
     `Selected: CMF #${id} (${dim}D)${primaryConst ? ' → ' + primaryConst : ''}`;
-  document.getElementById('run-btn').disabled = false;
+  // Show Kz button only for 3D
+  const zBtn = document.getElementById('dir-btn-z');
+  if (zBtn) zBtn.style.display = dim === 3 ? '' : 'none';
+  // Show n_fixed for 3D Kx/Ky walks
+  document.getElementById('n-fixed-wrap').style.display = (dim===3 && currentDir!=='z') ? '' : 'none';
+  if (queue.length) document.getElementById('run-btn').disabled = false;
 
   const detailCard = document.getElementById('cmf-detail-card');
   const detailContent = document.getElementById('cmf-detail-content');
@@ -279,179 +377,183 @@ function selectCmf(id, fPoly, primaryConst, dim) {
         selectCmf(d.id, d.f_poly, d.primary_constant, d.dimension);
       } else {
         document.getElementById('status-card').innerHTML =
-          `<div class="text-amber-400">CMF #${id} has no polynomial form — walk not available.</div>`;
+          `<div style="color:#b45309">CMF #${id} has no polynomial form — walk not available.</div>`;
       }
     } catch(e) {}
   } else {
-    // Load a few walkable CMFs for quick selection
     doSearch();
   }
 })();
 
-// ── Walk ─────────────────────────────────────────────────────────────────────
-async function runWalk() {
-  if (!selectedCmfId) return;
+// ── Run all queued trajectories ───────────────────────────────────────────────
+async function runAll() {
+  if (!selectedCmfId || !queue.length) return;
   const depth = document.getElementById('depth').value;
-  const m_fixed = document.getElementById('m_fixed').value;
-  const n_fixed = document.getElementById('n_fixed').value;
   const btn = document.getElementById('run-btn');
-  btn.disabled = true;
-  btn.textContent = '⏳ Computing…';
+  btn.disabled = true; btn.textContent = `⏳ Running ${queue.length} walk${queue.length!==1?'s':''}…`;
 
-  const statusCard = document.getElementById('status-card');
-  statusCard.innerHTML = `<span style="color:#0bb4aa">Running walk: CMF #${selectedCmfId}, depth=${depth}, m=${m_fixed}…</span>`;
+  document.getElementById('status-card').innerHTML =
+    `<span style="color:#0bb4aa">Running ${queue.length} trajectories for CMF #${selectedCmfId}…</span>`;
 
   try {
-    const res = await fetch(`${API}/cmfs/${selectedCmfId}/walk?depth=${depth}&m_fixed=${m_fixed}&n_fixed=${n_fixed}`);
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.detail || `HTTP ${res.status}`);
-    }
-    const d = await res.json();
-    renderResults(d);
+    const fetches = queue.map(t => {
+      const p = new URLSearchParams({
+        depth, direction: t.dir,
+        k_fixed: t.k, m_fixed: t.m, n_fixed: t.n
+      });
+      return fetch(`${API}/cmfs/${selectedCmfId}/walk?${p}`)
+        .then(r => r.json()).catch(e => ({detail: e.message}));
+    });
+    const results = await Promise.all(fetches);
+    renderResults(results);
   } catch(e) {
-    statusCard.innerHTML = `<span class="text-red-400">Error: ${e.message}</span>`;
+    document.getElementById('status-card').innerHTML =
+      `<span style="color:#ef4444">Error: ${e.message}</span>`;
   } finally {
-    btn.disabled = false;
-    btn.textContent = '▶ Run Walk';
+    btn.disabled = false; btn.textContent = '▶ Run Queue';
   }
 }
 
-function renderResults(d) {
-  const finite = d.sequence.filter(s => s.value !== null);
-  const best = d.best_estimate;
+function renderResults(results) {
+  // results is an array; filter valid
+  const valid = results.filter(r => r && !r.detail && r.sequence);
+  if (!valid.length) {
+    document.getElementById('status-card').innerHTML =
+      `<span style="color:#ef4444">All trajectories failed: ${results.map(r=>r?.detail||'unknown error').join('; ')}</span>`;
+    return;
+  }
 
-  // Status
-  const statusCard = document.getElementById('status-card');
-  statusCard.innerHTML = `
+  // Status bar
+  const primary = valid[0]?.primary_constant;
+  document.getElementById('status-card').innerHTML = `
     <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-size:13px">
-      <span class="badge badge-green">✓ Walk complete</span>
-      <span style="color:#666">CMF #${d.cmf_id} · depth=${d.depth} · m=${d.m_fixed}${d.is_3d ? ', n='+d.n_fixed : ''}${d.k_start > 0 ? ' · k_start='+d.k_start : ''}</span>
-      <span style="color:#666">${finite.length} finite values</span>
-      ${best !== null ? `<span style="color:#0bb4aa;font-family:monospace;font-weight:600">Best estimate: ${best.toPrecision(12)}</span>` : ''}
-      ${d.primary_constant ? `<span class="badge badge-amber">Expected: ${d.primary_constant}</span>` : ''}
+      <span class="badge badge-green">✓ ${valid.length} walk${valid.length!==1?'s':''} complete</span>
+      <span style="color:#666">CMF #${valid[0].cmf_id} · depth=${valid[0].depth}</span>
+      ${primary ? `<span class="badge badge-amber">Expected: ${primary}</span>` : ''}
+    </div>
+    <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:8px">
+      ${valid.map((d,i) => {
+        if (d.best_estimate === null) return '';
+        const c = COLORS[i % COLORS.length];
+        const lbl = d.direction==='x' ? `Kx m=${d.m_fixed}${d.is_3d?',n='+d.n_fixed:''}` :
+                    d.direction==='y' ? `Ky k=${d.k_fixed},n=${d.n_fixed}` :
+                                        `Kz k=${d.k_fixed},m=${d.m_fixed}`;
+        return `<span style="font-family:monospace;font-size:11px;color:${c}">` +
+               `<b>${lbl}</b> ≈ ${d.best_estimate.toPrecision(10)}</span>`;
+      }).join('')}
     </div>
   `;
 
-  // Walk note (3D warning)
+  // Walk notes (3D)
   const noteEl = document.getElementById('walk-note-card');
-  if (d.walk_note) {
-    noteEl.style.display = '';
-    noteEl.innerHTML = `<div style="background:#fef9e7;border:1px solid #fcd34d;border-radius:8px;padding:10px 14px;font-size:12px;color:#92400e">⚠ ${d.walk_note}</div>`;
-  } else {
-    noteEl.style.display = 'none';
-  }
+  const note = valid.find(d => d.walk_note)?.walk_note;
+  if (note) { noteEl.style.display=''; noteEl.innerHTML=`<div style="background:#fef9e7;border:1px solid #fcd34d;border-radius:8px;padding:10px 14px;font-size:12px;color:#92400e">⚠ ${note}</div>`; }
+  else noteEl.style.display='none';
 
-  // Chart
+  // Chart — one dataset per trajectory
   document.getElementById('chart-card').style.display = '';
-  document.getElementById('best-estimate-badge').textContent = best !== null ? `≈ ${best.toPrecision(10)}` : '';
-  const labels = finite.map(s => s.step);
-  const values = finite.map(s => s.value);
+  document.getElementById('best-estimate-badge').textContent = '';
+
+  const datasets = [];
+  valid.forEach((d, i) => {
+    const finite = d.sequence.filter(s => s.value !== null);
+    const c = COLORS[i % COLORS.length];
+    const lbl = d.direction==='x' ? `Kx m=${d.m_fixed}${d.is_3d?',n='+d.n_fixed:''}` :
+                d.direction==='y' ? `Ky k=${d.k_fixed},n=${d.n_fixed}` :
+                                    `Kz k=${d.k_fixed},m=${d.m_fixed}`;
+    datasets.push({
+      label: lbl,
+      data: finite.map(s => ({x: s.step, y: s.value})),
+      borderColor: c, backgroundColor: c+'18',
+      borderWidth: 1.5, pointRadius: finite.length > 100 ? 0 : 2,
+      tension: 0.1, fill: false,
+    });
+    if (d.best_estimate !== null) {
+      datasets.push({
+        label: `${lbl} best`,
+        data: finite.length ? [{x: finite[0].step, y: d.best_estimate},{x: finite[finite.length-1].step, y: d.best_estimate}] : [],
+        borderColor: c, borderWidth: 1, borderDash: [4,4],
+        pointRadius: 0, fill: false,
+      });
+    }
+  });
 
   if (chartInstance) chartInstance.destroy();
   chartInstance = new Chart(document.getElementById('conv-chart'), {
     type: 'line',
-    data: {
-      labels,
-      datasets: [{
-        label: 'P[0,1]/P[1,1]',
-        data: values,
-        borderColor: '#0bb4aa',
-        backgroundColor: 'rgba(11,180,170,0.07)',
-        borderWidth: 2,
-        pointRadius: values.length > 100 ? 0 : 2,
-        pointHoverRadius: 4,
-        tension: 0.1,
-        fill: true,
-      },
-      ...(best !== null ? [{
-        label: 'Best estimate',
-        data: labels.map(() => best),
-        borderColor: '#059669',
-        borderWidth: 1.5,
-        borderDash: [4, 4],
-        pointRadius: 0,
-        fill: false,
-      }] : [])
-      ]
-    },
+    data: { datasets },
     options: {
       responsive: true, maintainAspectRatio: true,
-      animation: { duration: 300 },
+      animation: { duration: 200 },
+      parsing: false,
       plugins: {
-        legend: { labels: { color: '#555', font: { size: 11 } } },
-        tooltip: {
-          callbacks: {
-            label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y?.toPrecision(10)}`
-          }
-        }
+        legend: { labels: { color:'#555', font:{size:10}, filter: item => !item.text.includes('best') } },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y?.toPrecision(10)}` } }
       },
       scales: {
-        x: { ticks: { color: '#888', maxTicksLimit: 10 }, grid: { color: '#f1f5f9' } },
-        y: { ticks: { color: '#888' }, grid: { color: '#f1f5f9' } }
+        x: { type:'linear', ticks:{color:'#888',maxTicksLimit:10}, grid:{color:'#f1f5f9'} },
+        y: { ticks:{color:'#888'}, grid:{color:'#f1f5f9'} }
       }
     }
   });
 
-  // Constant matches
-  if (d.constant_matches?.length && best !== null) {
+  // Constant matches — aggregate best per constant across all trajectories
+  const allM = {};
+  valid.forEach(d => (d.constant_matches||[]).forEach(m => {
+    if (!allM[m.name] || m.abs_error < allM[m.name].abs_error) allM[m.name] = m;
+  }));
+  const sorted = Object.values(allM).sort((a,b) => a.abs_error - b.abs_error).slice(0, 10);
+  if (sorted.length) {
     document.getElementById('matches-card').style.display = '';
-    document.getElementById('matches-list').innerHTML = d.constant_matches.map((m, i) => {
+    document.getElementById('matches-list').innerHTML = sorted.map(m => {
       const err = m.log10_abs_error;
       const clr = err < -8 ? '#059669' : err < -4 ? '#b45309' : '#aaa';
       const stars = err < -8 ? '★★★' : err < -5 ? '★★☆' : err < -3 ? '★☆☆' : '☆☆☆';
-      return `
-        <div class="match-row" style="display:flex;align-items:center;justify-content:space-between;gap:16px">
-          <div style="display:flex;align-items:center;gap:10px">
-            <span style="color:#f59e0b;font-family:monospace;font-size:11px;width:30px">${stars}</span>
-            <span style="color:#101010;font-weight:600;font-size:13px">${m.name}</span>
-            <span style="color:#888;font-family:monospace;font-size:11px">= ${m.constant?.toFixed(8)}</span>
-          </div>
-          <span style="color:${clr};font-family:monospace;font-size:11px">|err| = 10<sup>${err}</sup></span>
-        </div>`;
+      return `<div class="match-row" style="display:flex;align-items:center;justify-content:space-between;gap:16px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="color:#f59e0b;font-family:monospace;font-size:11px;width:30px">${stars}</span>
+          <span style="color:#101010;font-weight:600;font-size:13px">${m.name}</span>
+          <span style="color:#888;font-family:monospace;font-size:11px">= ${m.constant?.toFixed(8)}</span>
+        </div>
+        <span style="color:${clr};font-family:monospace;font-size:11px">|err| = 10<sup>${err}</sup></span>
+      </div>`;
     }).join('');
   }
 
-  // Table (last 20 + earlier sample)
+  // Convergents table — first valid trajectory
   document.getElementById('table-card').style.display = '';
-  const last20 = finite.slice(-20);
-  const tbody = document.getElementById('conv-table-body');
-  tbody.innerHTML = last20.map((s, i) => {
-    const delta = i > 0 && last20[i-1].value !== null
-      ? (s.value - last20[i-1].value).toExponential(2)
-      : '—';
-    const deltaClass = i > 0
-      ? (Math.abs(s.value - (last20[i-1]?.value||0)) < Math.abs((last20[i-1]?.value||0) - (last20[i-2]?.value||0))
-         ? 'text-emerald-600' : 'text-slate-500')
-      : 'text-slate-600';
-    return `
-      <tr style="border-bottom:1px solid #f1f5f9">
-        <td style="padding:6px 16px 6px 0;color:#888">${s.step}</td>
-        <td style="padding:6px 16px 6px 0;color:#333">${s.value?.toPrecision(14)}</td>
-        <td style="padding:6px 0;color:${deltaClass==='text-emerald-600'?'#059669':'#aaa'}">${delta}</td>
-      </tr>`;
+  const first = valid[0];
+  const f0 = first.sequence.filter(s => s.value !== null);
+  const last20 = f0.slice(-20);
+  document.getElementById('conv-table-body').innerHTML = last20.map((s, i) => {
+    const delta = i > 0 && last20[i-1].value !== null ? (s.value - last20[i-1].value).toExponential(2) : '—';
+    const dclr = i > 0 && Math.abs(s.value-(last20[i-1]?.value||0)) < Math.abs((last20[i-1]?.value||0)-(last20[i-2]?.value||0)) ? '#059669' : '#aaa';
+    return `<tr style="border-bottom:1px solid #f1f5f9">
+      <td style="padding:6px 16px 6px 0;color:#888">${s.step}</td>
+      <td style="padding:6px 16px 6px 0;color:#333">${s.value?.toPrecision(14)}</td>
+      <td style="padding:6px 0;color:${dclr}">${delta}</td>
+    </tr>`;
   }).join('');
-
-  if (d.conv_rate_log10_per_step !== null) {
-    document.getElementById('conv-rate').textContent =
-      `Convergence rate ≈ 10^${d.conv_rate_log10_per_step} per step`;
-  }
+  if (first.conv_rate_log10_per_step)
+    document.getElementById('conv-rate').textContent = `Convergence rate ≈ 10^${first.conv_rate_log10_per_step} per step`;
 
   document.getElementById('method-note').style.display = '';
   if (window.MathJax) MathJax.typesetPromise([document.getElementById('method-note')]);
 }
 
 function resetAll() {
-  selectedCmfId = null;
+  selectedCmfId = null; selectedDim = 2;
   searchInput.value = '';
   document.getElementById('selected-cmf-info').textContent = 'No CMF selected';
   document.getElementById('run-btn').disabled = true;
   document.getElementById('cmf-detail-card').style.display = 'none';
-  document.getElementById('status-card').innerHTML = 'Select a CMF and click <strong style="color:#101010">Run Walk</strong> to begin.';
+  document.getElementById('status-card').innerHTML = 'Select a CMF and click <strong style="color:#101010">Run Queue</strong> to begin.';
   document.getElementById('chart-card').style.display = 'none';
   document.getElementById('matches-card').style.display = 'none';
   document.getElementById('table-card').style.display = 'none';
   document.getElementById('method-note').style.display = 'none';
+  document.getElementById('walk-note-card').style.display = 'none';
+  clearQueue();
   if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
   doSearch();
 }
