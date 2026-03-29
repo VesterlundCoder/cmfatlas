@@ -48,47 +48,13 @@
   <div class="max-w-4xl mx-auto px-6">
     <h1 style="font-size:1.8rem;font-weight:800;color:#101010;margin-bottom:10px;letter-spacing:-0.5px">CMF Sources &amp; Families</h1>
     <p style="font-size:1rem;color:#555;line-height:1.7;max-width:600px">
-      The CMF Atlas contains entries from four distinct source families, each representing a different
+      The CMF Atlas contains entries from three source families, each representing a different
       methodology for discovering or constructing Conservative Matrix Fields.
     </p>
   </div>
 </div>
 
 <div class="max-w-4xl mx-auto px-6 py-10 space-y-8">
-
-  <!-- Euler2AI -->
-  <div class="card p-8">
-    <div class="flex items-center flex-wrap gap-3 mb-4">
-      <span class="source-badge" style="background:#e0faf8;color:#0bb4aa;border:1px solid #b2ede9">Euler2AI</span>
-      <span class="count-pill" id="count-euler2ai">~1,400 entries</span>
-    </div>
-    <h2 style="margin-bottom:12px">Euler2AI — Hypergeometric CMF Families</h2>
-    <p>
-      The Euler2AI family originates from the <strong>Euler2AI research project</strong>, which systematically
-      explored Conservative Matrix Fields arising from the classical hypergeometric function
-      \({}_2F_1(a,b;c;z)\) and its relatives. These CMFs are constructed from products of Pochhammer symbols
-      and encode the convergence structure of generalized hypergeometric series.
-    </p>
-    <p>
-      In this family, the matrix entries \(K_1(k,m)\) and \(K_2(k,m)\) are built from rational functions
-      of \(k\) and \(m\) derived directly from \({}_2F_1\) contiguous relations. The resulting CMFs converge
-      to values expressible in terms of \(\Gamma\)-function ratios, including constants such as \(\pi\),
-      \(\ln 2\), \(\zeta(2)\), and specific algebraic combinations thereof.
-    </p>
-    <p>
-      These are among the best-understood CMFs in the atlas — their limiting constants are often
-      provably identified through classical hypergeometric transformation theory, and many carry
-      A-level certification.
-    </p>
-    <h3>Key characteristics</h3>
-    <ul style="color:#555;line-height:1.9;margin-left:20px;list-style:disc;margin-bottom:12px">
-      <li>Primarily 2D lattice structures (k, m integer grid)</li>
-      <li>Matrix entries are rational functions of recurrence indices</li>
-      <li>Constants: \(\pi\), \(\ln 2\), \(\zeta(2)\), algebraic numbers, and \({}_2F_1\) special values</li>
-      <li>High density: ~1,400 entries — the largest single family in the atlas</li>
-    </ul>
-    <a href="browse.html?source_category=Euler2AI" style="color:#0bb4aa;font-weight:600;font-size:13px;text-decoration:none">Browse Euler2AI entries →</a>
-  </div>
 
   <!-- RamanujanTools -->
   <div class="card p-8">
@@ -268,7 +234,6 @@ async function loadCounts() {
     const d = await fetch(`${API}/stats/detailed`).then(r=>r.json());
     const src = d.by_source || {};
     const el = (id, val) => { const e = document.getElementById(id); if(e) e.textContent = `${(val||0).toLocaleString()} entries`; };
-    el('count-euler2ai',  src['Euler2AI']);
     el('count-ramanujan', src['RamanujanTools']);
     el('count-gauge',     src['Gauge Transformed']);
     el('count-hunter',    src['CMF Hunter']);
