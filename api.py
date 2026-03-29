@@ -290,6 +290,130 @@ def api_info():
     }
 
 
+@app.get("/export/cmfs.json", tags=["meta"])
+def export_cmfs():
+    """Bulk dataset download — all CMFs as a single JSON array (CC BY 4.0)."""
+    db: Session = next(get_db())
+    try:
+        rows = db.execute(text("""
+            SELECT c.id, c.dimension, c.cmf_payload, c.created_at,
+                   r.canonical_fingerprint, r.canonical_payload,
+                   s.name, s.provenance
+            FROM cmf c
+            JOIN representation r ON r.id = c.representation_id
+            JOIN series s ON s.id = r.series_id
+            ORDER BY c.id
+        """)).fetchall()
+        out = []
+        for row in rows:
+            payload  = _safe_json(row[2]) or {}
+            canon    = _safe_json(row[5]) or {}
+            out.append({
+                "id":                   row[0],
+                "dimension":            row[1],
+                "f_poly":               payload.get("f_poly", ""),
+                "fbar_poly":            payload.get("fbar_poly", ""),
+                "degree":               payload.get("degree", 0),
+                "primary_constant":     payload.get("primary_constant"),
+                "certification_level":  payload.get("certification_level"),
+                "source_category":      payload.get("source_category"),
+                "flatness_verified":    payload.get("flatness_verified", False),
+                "canonical_fingerprint": row[4],
+                "series_name":          row[6],
+                "provenance":           row[7],
+                "created_at":           _str(row[3]),
+            })
+        from fastapi.responses import JSONResponse
+        return JSONResponse(
+            content={
+                "version": "2.2",
+                "license": "CC BY 4.0",
+                "url": "https://davidvesterlund.com/cmf-atlas/",
+                "total": len(out),
+                "cmfs": out,
+            },
+            headers={"Content-Disposition": "attachment; filename=cmfs.json"},
+        )
+    finally:
+        db.close()
+
+
+# Known constants referenced by CMF Atlas entries
+_CONSTANTS_REGISTRY = [
+    {"id": "zeta3",      "label": "ζ(3)",         "latex": "\\zeta(3)",
+     "aliases": ["Apery's constant", "zeta(3)"],
+     "value_30d": "1.202056903159594285399738161511",
+     "formula": "\\sum_{n=1}^\\infty n^{-3}",
+     "irrational": True,  "proven_irrational": True,  "transcendental": None,
+     "reference": "https://mathworld.wolfram.com/AperysConstant.html"},
+    {"id": "pi",         "label": "π",             "latex": "\\pi",
+     "aliases": ["pi", "Archimedes constant"],
+     "value_30d": "3.141592653589793238462643383280",
+     "formula": "4 \\sum_{n=0}^\\infty \\frac{(-1)^n}{2n+1}",
+     "irrational": True,  "proven_irrational": True,  "transcendental": True,
+     "reference": "https://mathworld.wolfram.com/Pi.html"},
+    {"id": "e",          "label": "e",             "latex": "e",
+     "aliases": ["Euler's number", "exp(1)"],
+     "value_30d": "2.718281828459045235360287471353",
+     "formula": "\\sum_{n=0}^\\infty \\frac{1}{n!}",
+     "irrational": True,  "proven_irrational": True,  "transcendental": True,
+     "reference": "https://mathworld.wolfram.com/e.html"},
+    {"id": "ln2",        "label": "ln 2",          "latex": "\\ln 2",
+     "aliases": ["log(2)", "ln(2)"],
+     "value_30d": "0.693147180559945309417232121458",
+     "formula": "\\sum_{n=1}^\\infty \\frac{(-1)^{n+1}}{n}",
+     "irrational": True,  "proven_irrational": True,  "transcendental": True,
+     "reference": "https://mathworld.wolfram.com/NaturalLogarithmof2.html"},
+    {"id": "zeta2",      "label": "ζ(2) = π²/6",  "latex": "\\zeta(2) = \\pi^2/6",
+     "aliases": ["pi^2/6", "zeta(2)"],
+     "value_30d": "1.644934066848226436472415166646",
+     "formula": "\\sum_{n=1}^\\infty n^{-2} = \\pi^2/6",
+     "irrational": True,  "proven_irrational": True,  "transcendental": True,
+     "reference": "https://mathworld.wolfram.com/RiemannZetaFunction.html"},
+    {"id": "zeta5",      "label": "ζ(5)",          "latex": "\\zeta(5)",
+     "aliases": ["zeta(5)"],
+     "value_30d": "1.036927755143369926331365486458",
+     "formula": "\\sum_{n=1}^\\infty n^{-5}",
+     "irrational": None,  "proven_irrational": False,  "transcendental": None,
+     "reference": "https://mathworld.wolfram.com/RiemannZetaFunction.html"},
+    {"id": "catalan",    "label": "G (Catalan)",   "latex": "G",
+     "aliases": ["Catalan's constant", "Catalan"],
+     "value_30d": "0.915965594177219015054603514932",
+     "formula": "\\sum_{n=0}^\\infty \\frac{(-1)^n}{(2n+1)^2}",
+     "irrational": None,  "proven_irrational": False,  "transcendental": None,
+     "reference": "https://mathworld.wolfram.com/CatalansConstant.html"},
+    {"id": "sqrt2",      "label": "√2",            "latex": "\\sqrt{2}",
+     "aliases": ["sqrt(2)", "Pythagoras constant"],
+     "value_30d": "1.414213562373095048801688724210",
+     "formula": "\\sqrt{2}",
+     "irrational": True,  "proven_irrational": True,  "transcendental": False,
+     "reference": "https://mathworld.wolfram.com/PythagorassConstant.html"},
+    {"id": "pi_half",    "label": "π/2",           "latex": "\\pi/2",
+     "aliases": ["pi/2"],
+     "value_30d": "1.570796326794896619231321691640",
+     "formula": "\\pi/2",
+     "irrational": True,  "proven_irrational": True,  "transcendental": True,
+     "reference": "https://mathworld.wolfram.com/Pi.html"},
+    {"id": "pi_quarter", "label": "π/4",           "latex": "\\pi/4",
+     "aliases": ["pi/4", "Leibniz formula limit"],
+     "value_30d": "0.785398163397448309615660845820",
+     "formula": "\\pi/4 = 1 - 1/3 + 1/5 - \\cdots",
+     "irrational": True,  "proven_irrational": True,  "transcendental": True,
+     "reference": "https://mathworld.wolfram.com/Pi.html"},
+]
+
+
+@app.get("/constants", tags=["meta"])
+def get_constants():
+    """Registry of known mathematical constants referenced by CMF Atlas entries."""
+    return {
+        "version": "2.2",
+        "description": "Constants appearing as identified limits of CMFs in the atlas",
+        "count": len(_CONSTANTS_REGISTRY),
+        "constants": _CONSTANTS_REGISTRY,
+    }
+
+
 @app.get("/stats", response_model=StatsOut, tags=["meta"])
 def stats():
     """Aggregate statistics about the atlas."""
