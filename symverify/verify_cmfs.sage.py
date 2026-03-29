@@ -66,10 +66,14 @@ FILTER_ID  = int(_get_arg('--id',    _sage_const_0 )) or None
 FILTER_SRC = _get_arg('--source')
 FILTER_MODE= _get_arg('--mode')        # 'poly', 'explicit', or None (both)
 TIMEOUT_S  = int(_get_arg('--timeout', _sage_const_30 ))
+SAVE_CERTS = '--save-certs' in _args   # write PASS certificates back to DB
 
-# ── Polynomial ring for 2D CMFs ──────────────────────────────────────────────
+# ── Polynomial rings ────────────────────────────────────────────────────────
 R2 = PolynomialRing(QQ, names='k,m')
 k, m = R2.gens()
+
+R3 = PolynomialRing(QQ, names='k,m,n')
+k3, m3, n3 = R3.gens()
 
 # ── Timeout helper ───────────────────────────────────────────────────────────
 class TimeoutError(Exception):
@@ -90,27 +94,80 @@ def with_timeout(fn, seconds=TIMEOUT_S):
         raise
 
 # ── MODE 1: Polynomial CMF helpers ──────────────────────────────────────────
+def _poly_has_z(expr_str):
+    """Return True if the polynomial string involves variable z."""
+    import re
+    toks = set(re.findall(r'\b([a-z])\b', expr_str))
+    return 'z' in toks
+
+
+def _poly_extra_syms(expr_str, base_vars):
+    """Return extra symbolic variables found in expr_str beyond base_vars."""
+    import re
+    toks = set(re.findall(r'\b([a-zA-Z][a-zA-Z0-9_]*)\b', expr_str))
+    skip = set(base_vars) | {'True','False','None','and','or','not','for','if','else'}
+    return sorted(toks - skip)
+
+
 def _parse_poly2d(expr_str):
-    """Parse a Python polynomial string in x,y into QQ[k,m]."""
+    """Parse a Python polynomial string in x,y (possibly with extra params) into SR."""
     s = expr_str.strip().replace('x', 'k').replace('y', 'm')
-    return R2(eval(s, {'k': k, 'm': m}))
+    extra = _poly_extra_syms(s, ['k', 'm'])
+    if not extra:
+        try:
+            return R2(eval(s, {'k': k, 'm': m}))
+        except Exception:
+            pass
+    # Fall back to SR (symbolic ring) for parametric polynomials
+    ns = {str(v): v for v in R2.gens()}
+    for sym in extra:
+        if sym not in ns:
+            ns[sym] = SR.var(sym)
+    return eval(s, ns)
+
+
+def _parse_poly3d(expr_str):
+    """Parse a Python polynomial string in x,y,z (possibly with extra params) into SR."""
+    s = expr_str.strip().replace('x', 'k').replace('y', 'm').replace('z', 'n')
+    extra = _poly_extra_syms(s, ['k', 'm', 'n'])
+    if not extra:
+        try:
+            return R3(eval(s, {'k': k3, 'm': m3, 'n': n3}))
+        except Exception:
+            pass
+    ns = {str(v): v for v in R3.gens()}
+    for sym in extra:
+        if sym not in ns:
+            ns[sym] = SR.var(sym)
+    return eval(s, ns)
+
+def _poly_is_parametric(f_str, fbar_str):
+    """Return True if the polynomials contain free parameters (symbols beyond x,y,z)."""
+    import re
+    valid = set('xyz')
+    for s in (f_str, fbar_str):
+        toks = set(re.findall(r'\b([a-zA-Z][a-zA-Z0-9_]*)\b', s))
+        toks -= {'True','False','None','and','or','not','for','if','else'}
+        if toks - valid:
+            return True
+    return False
+
 
 def verify_poly_cmf(f_str, fbar_str):
     """
-    Build K₁, K₂ from f_poly/fbar_poly and verify flatness in QQ[k,m].
-
-    K₁(k,m) = [[0,        1      ],
-                [b(k+1),  a(k,m) ]]
-
-    K₂(k,m) = [[ḡ(k,m),  1      ],
-                [b(k),    g(k,m) ]]
-
-    where  g = f_poly,  ḡ = fbar_poly,
-           b(k) = g(k,0)·ḡ(k,0),
-           a(k,m) = g(k,m) − ḡ(k+1,m).
-
-    Returns (is_flat: bool, detail: str, diff_matrix)
+    Build K₁/Kx and K₂/Ky (and Kz for 3D) and verify all flatness pairs
+    using exact polynomial arithmetic in QQ[k,m] or QQ[k,m,n].
+    Returns (is_flat: bool, detail: str, first_diff_matrix)
     """
+    if _poly_is_parametric(f_str, fbar_str):
+        raise ValueError("Parametric polynomial family — fix parameters before verifying.")
+    if _poly_has_z(f_str):
+        return _verify_poly_cmf_3d(f_str, fbar_str)
+    return _verify_poly_cmf_2d(f_str, fbar_str)
+
+
+def _verify_poly_cmf_2d(f_str, fbar_str):
+    """2D case: exact verification in QQ[k,m]."""
     g    = _parse_poly2d(f_str)
     gbar = _parse_poly2d(fbar_str)
 
@@ -121,12 +178,10 @@ def verify_poly_cmf(f_str, fbar_str):
     K1 = matrix(R2, [[R2(_sage_const_0 ), R2(_sage_const_1 )], [b1, a]])
     K2 = matrix(R2, [[gbar,  R2(_sage_const_1 )], [b,  g]])
 
-    # K₂(k+1, m)
     K2_k1 = matrix(R2, [
         [R2(gbar.subs({k: k+_sage_const_1 })), R2(_sage_const_1 )],
         [b1,                      R2(g.subs({k: k+_sage_const_1 }))],
     ])
-    # K₁(k, m+1)  — b1 has no m so b1.subs(m=m+1) = b1
     K1_m1 = matrix(R2, [
         [R2(_sage_const_0 ), R2(_sage_const_1 )],
         [b1,    R2(a.subs({m: m+_sage_const_1 }))],
@@ -136,7 +191,7 @@ def verify_poly_cmf(f_str, fbar_str):
     flat = all(e == R2(_sage_const_0 ) for e in diff.list())
 
     if flat:
-        return True, "K₁·K₂(k+1,m) − K₂·K₁(k,m+1) = 0  [exact in QQ[k,m]]", diff
+        return True, "Kx·Ky(k+1,m) − Ky·Kx(k,m+1) = 0  [exact in QQ[k,m]]", diff
     else:
         nz = [(i, j, str(diff[i,j]))
               for i in range(diff.nrows())
@@ -145,6 +200,71 @@ def verify_poly_cmf(f_str, fbar_str):
         detail = "Non-zero residuals at " + ", ".join(
             f"[{r},{c}]={v[:_sage_const_60 ]}" for r,c,v in nz[:_sage_const_4 ])
         return False, detail, diff
+
+
+def _verify_poly_cmf_3d(f_str, fbar_str):
+    """3D case: verify all 3 axis pairs in QQ[k,m,n]."""
+    g    = _parse_poly3d(f_str)
+    gbar = _parse_poly3d(fbar_str)
+
+    b    = R3(g.subs({m3: R3(_sage_const_0 ), n3: R3(_sage_const_0 )}) *
+               gbar.subs({m3: R3(_sage_const_0 ), n3: R3(_sage_const_0 )}))   # b(k)
+    b1   = R3(b.subs({k3: k3 + _sage_const_1 }))                 # b(k+1)
+    a    = R3(g - gbar.subs({k3: k3 + _sage_const_1 }))           # a(k,m,n)
+
+    # Kx = [[0,1],[b1, a]]
+    # Ky = [[gbar,1],[b,g]]
+    # Kz = [[gbar,1],[b,g]]  (same formula, flatness checked by symmetry condition)
+    Kx = matrix(R3, [[R3(_sage_const_0 ), R3(_sage_const_1 )], [b1, a]])
+    Ky = matrix(R3, [[gbar,  R3(_sage_const_1 )], [b,  g]])
+
+    pair_results = []
+    failed_pairs = []
+    first_diff   = None
+
+    # Pair 1: Kx/Ky  (k-step vs m-step)
+    Ky_k1 = matrix(R3, [[R3(gbar.subs({k3: k3+_sage_const_1 })), R3(_sage_const_1 )],
+                         [b1, R3(g.subs({k3: k3+_sage_const_1 }))]])
+    Kx_m1 = matrix(R3, [[R3(_sage_const_0 ), R3(_sage_const_1 )],
+                         [b1, R3(a.subs({m3: m3+_sage_const_1 }))]])
+    diff_xy = Kx * Ky_k1 - Ky * Kx_m1
+    flat_xy = all(e == R3(_sage_const_0 ) for e in diff_xy.list())
+    pair_results.append(f"Kx/Ky={'\u2713' if flat_xy else '\u2717'}")
+    if not flat_xy:
+        failed_pairs.append('Kx/Ky')
+        if first_diff is None: first_diff = diff_xy
+
+    # Pair 2: Kx/Kz  (k-step vs n-step)
+    # Kz(k+1,m,n): shift k
+    Kz_k1 = matrix(R3, [[R3(gbar.subs({k3: k3+_sage_const_1 })), R3(_sage_const_1 )],
+                         [b1, R3(g.subs({k3: k3+_sage_const_1 }))]])
+    # Kx(k,m,n+1): shift n in Kx
+    Kx_n1 = matrix(R3, [[R3(_sage_const_0 ), R3(_sage_const_1 )],
+                         [b1, R3(a.subs({n3: n3+_sage_const_1 }))]])
+    diff_xz = Kx * Kz_k1 - Ky * Kx_n1   # Kz has same formula as Ky
+    flat_xz = all(e == R3(_sage_const_0 ) for e in diff_xz.list())
+    pair_results.append(f"Kx/Kz={'\u2713' if flat_xz else '\u2717'}")
+    if not flat_xz:
+        failed_pairs.append('Kx/Kz')
+        if first_diff is None: first_diff = diff_xz
+
+    # Pair 3: Ky/Kz  (m-step vs n-step)
+    # Kz(k,m+1,n): shift m  (same formula as Ky)
+    Kz_m1 = matrix(R3, [[R3(gbar.subs({m3: m3+_sage_const_1 })), R3(_sage_const_1 )],
+                         [b, R3(g.subs({m3: m3+_sage_const_1 }))]])
+    # Ky(k,m,n+1): shift n
+    Ky_n1 = matrix(R3, [[R3(gbar.subs({n3: n3+_sage_const_1 })), R3(_sage_const_1 )],
+                         [b, R3(g.subs({n3: n3+_sage_const_1 }))]])
+    diff_yz = Ky * Kz_m1 - Ky * Ky_n1
+    flat_yz = all(e == R3(_sage_const_0 ) for e in diff_yz.list())
+    pair_results.append(f"Ky/Kz={'\u2713' if flat_yz else '\u2717'}")
+    if not flat_yz:
+        failed_pairs.append('Ky/Kz')
+        if first_diff is None: first_diff = diff_yz
+
+    all_flat = len(failed_pairs) == _sage_const_0 
+    detail = ("[exact in QQ[k,m,n]] " if all_flat else "FAIL ") + "; ".join(pair_results)
+    return all_flat, detail, first_diff or diff_xy
 
 # ── MODE 2: Explicit matrix helpers ─────────────────────────────────────────
 def _collect_symbols(mats_dict):
@@ -323,6 +443,35 @@ for row in rows:
         n_skip += _sage_const_1 
 
     rec["time_s"] = round(time.time() - t0, _sage_const_3 )
+
+    # ── Write certificate to DB if --save-certs ──────────────────────────
+    if SAVE_CERTS and rec["result"] == "PASS":
+        try:
+            cert_con = sqlite3.connect(DB)
+            cur_w = cert_con.cursor()
+            row_db = cur_w.execute(
+                "SELECT cmf_payload FROM cmf WHERE id=?", (cid,)
+            ).fetchone()
+            if row_db:
+                p = json.loads(row_db[_sage_const_0 ])
+                p["symbolic_verification"] = {
+                    "result":       "PASS",
+                    "verified_at":  datetime.utcnow().isoformat() + "Z",
+                    "sage_version": str(version()),
+                    "mode":         str(rec["mode"]),
+                    "detail":       str(rec["detail"]),
+                    "time_s":       float(rec["time_s"]),
+                }
+                p["flatness_verified"] = True
+                cur_w.execute(
+                    "UPDATE cmf SET cmf_payload=? WHERE id=?",
+                    (json.dumps(p), cid)
+                )
+                cert_con.commit()
+            cert_con.close()
+        except Exception as _ce:
+            print(f"  [WARN] cert save failed for #{cid}: {_ce}")
+
     results.append(rec)
 
     icon = {"PASS": "✓", "FAIL": "✗", "SKIP": "–",

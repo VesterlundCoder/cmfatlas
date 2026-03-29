@@ -206,21 +206,54 @@ def _compare_constants(value: float) -> list:
     return results[:6]
 
 
-def _build_walk_fns(f_poly_str: str, fbar_poly_str: str):
-    """Build K1, K2 numerical matrix functions from CMF polynomial strings.
+def _poly_has_z(f_poly_str: str) -> bool:
+    """Return True if f_poly_str contains the variable z."""
+    return 'z' in str(_sympify(f_poly_str).free_symbols)
 
-    Convention (verify_truly_2d.py):
-        g(k,m)    = f(k,m)
-        gbar(k,m) = fbar(k,m)
-        b(k)      = g(k,0) * gbar(k,0)
-        a(k,m)    = g(k,m) - gbar(k+1, m)
-        K1(k,m)   = [[0, 1], [b(k+1), a(k,m)]]
-        K2(k,m)   = [[gbar(k,m), 1], [b(k), g(k,m)]]
+
+def _build_walk_fns(f_poly_str: str, fbar_poly_str: str):
+    """Build Kx, Ky (and Kz for 3D) numerical matrix functions.
+
+    2D (vars x,y):  maps x→k, y→m.  Returns (Kx(k,m,n), Ky(k,m,n), False).
+    3D (vars x,y,z): maps x→k, y→m, z→n.  Returns (Kx(k,m,n), Ky(k,m,n), True).
+
+    All returned functions accept (k, m, n) — n is ignored for 2D CMFs.
+
+    Telescope convention:
+        b(k)      = g(k,0,[0]) * gbar(k,0,[0])
+        a(k,m,[n])= g(k,m,[n]) - gbar(k+1,m,[n])
+        Kx = [[0,1],[b(k+1),a]]   (k-step matrix)
+        Ky = [[gbar,1],[b,g]]     (m-step matrix)
+        Kz = [[gbar,1],[b,g]]     (n-step matrix, 3D only, same functional form as Ky)
     """
     k_s, m_s, x_s, y_s = _sym("k m x y")
     f_expr    = _sympify(f_poly_str)
     fbar_expr = _sympify(fbar_poly_str)
+    is_3d     = _poly_has_z(f_poly_str)
 
+    if is_3d:
+        n_s, z_s = _sym("n z")
+        g_kmn    = f_expr.subs([(x_s, k_s), (y_s, m_s), (z_s, n_s)])
+        gbar_kmn = fbar_expr.subs([(x_s, k_s), (y_s, m_s), (z_s, n_s)])
+        b_expr   = _expand(g_kmn.subs([(m_s, 0), (n_s, 0)]) *
+                           gbar_kmn.subs([(m_s, 0), (n_s, 0)]))
+        a_expr   = _expand(g_kmn - gbar_kmn.subs(k_s, k_s + 1))
+
+        g_fn    = _lambdify([k_s, m_s, n_s], g_kmn,    modules="mpmath")
+        gbar_fn = _lambdify([k_s, m_s, n_s], gbar_kmn, modules="mpmath")
+        b_fn    = _lambdify([k_s],            b_expr,   modules="mpmath")
+        a_fn    = _lambdify([k_s, m_s, n_s], a_expr,   modules="mpmath")
+
+        def Kx(k, m, n):
+            return mpmath.matrix([[0, 1], [b_fn(k + 1), a_fn(k, m, n)]])
+        def Ky(k, m, n):
+            return mpmath.matrix([[gbar_fn(k, m, n), 1], [b_fn(k), g_fn(k, m, n)]])
+        def Kz(k, m, n):
+            return mpmath.matrix([[gbar_fn(k, m, n), 1], [b_fn(k), g_fn(k, m, n)]])
+
+        return Kx, Ky, Kz, True
+
+    # 2D
     g_km    = f_expr.subs([(x_s, k_s), (y_s, m_s)])
     gbar_km = fbar_expr.subs([(x_s, k_s), (y_s, m_s)])
     b_expr  = _expand(g_km.subs(m_s, 0) * gbar_km.subs(m_s, 0))
@@ -231,13 +264,12 @@ def _build_walk_fns(f_poly_str: str, fbar_poly_str: str):
     b_fn    = _lambdify([k_s],       b_expr,  modules="mpmath")
     a_fn    = _lambdify([k_s, m_s], a_expr,  modules="mpmath")
 
-    def K1(k, m):
+    def Kx2(k, m, n=0):
         return mpmath.matrix([[0, 1], [b_fn(k + 1), a_fn(k, m)]])
-
-    def K2(k, m):
+    def Ky2(k, m, n=0):
         return mpmath.matrix([[gbar_fn(k, m), 1], [b_fn(k), g_fn(k, m)]])
 
-    return K1, K2
+    return Kx2, Ky2, None, False
 
 
 # ---------------------------------------------------------------------------
@@ -951,6 +983,28 @@ def _compute_matrices(f_poly: str, fbar_poly: str, canonical_payload: dict) -> l
         return []
 
     try:
+        if _poly_has_z(f_poly):
+            k, m, n_s = _sp.symbols("k m n", integer=True)
+            x, y, z_s = _sp.symbols("x y z")
+            g    = _sympify(f_poly).subs([(x, k), (y, m), (z_s, n_s)])
+            gbar = _sympify(fbar_poly).subs([(x, k), (y, m), (z_s, n_s)])
+            b_k  = _expand(g.subs([(m, 0), (n_s, 0)]) * gbar.subs([(m, 0), (n_s, 0)]))
+            b_k1 = _expand(b_k.subs(k, k + 1))
+            a_kmn = _expand(g - gbar.subs(k, k + 1))
+            return [
+                {
+                    "index": 1, "label": "K_x", "axis": "k", "source": "computed",
+                    "rows": [["0", "1"], [_sp.latex(b_k1), _sp.latex(a_kmn)]],
+                },
+                {
+                    "index": 2, "label": "K_y", "axis": "m", "source": "computed",
+                    "rows": [[_sp.latex(gbar), "1"], [_sp.latex(b_k), _sp.latex(g)]],
+                },
+                {
+                    "index": 3, "label": "K_z", "axis": "n", "source": "computed",
+                    "rows": [[_sp.latex(gbar), "1"], [_sp.latex(b_k), _sp.latex(g)]],
+                },
+            ]
         k, m = _sp.symbols("k m", integer=True)
         x, y = _sp.symbols("x y")
         g    = _sympify(f_poly).subs([(x, k), (y, m)])
@@ -1052,6 +1106,8 @@ def get_cmf_full(cmf_id: int):
                 "provenance":     row[13],
             },
             "features":        feats,
+            "is_3d":           payload.get("dimension", row[1]) == 3 or _poly_has_z(payload.get("f_poly", "")),
+            "symbolic_verification": payload.get("symbolic_verification"),
             "walk_available":  bool(payload.get("f_poly")),
             "matrices": _compute_matrices(
                 payload.get("f_poly", ""),
@@ -1068,6 +1124,7 @@ def walk_cmf(
     cmf_id: int,
     depth: int = Query(100, ge=10, le=500),
     m_fixed: int = Query(0, ge=0, le=50),
+    n_fixed: int = Query(1, ge=0, le=50),
 ):
     """
     K1 matrix walk for a CMF with polynomial form.
@@ -1090,9 +1147,11 @@ def walk_cmf(
             raise HTTPException(422, "CMF has no polynomial form — walk not available")
 
         try:
-            K1_fn, _ = _build_walk_fns(f_poly, fbar_poly)
+            walk_fns = _build_walk_fns(f_poly, fbar_poly)
         except Exception as exc:
             raise HTTPException(500, f"Polynomial parse error: {exc}")
+
+        Kx_fn, _, _, is_3d = walk_fns
 
         mpmath.mp.dps = 30
         P = mpmath.eye(2)
@@ -1100,7 +1159,7 @@ def walk_cmf(
 
         for step in range(depth):
             try:
-                K = K1_fn(step, m_fixed)
+                K = Kx_fn(step, m_fixed, n_fixed)
                 P = P * K
                 # Normalize every 20 steps to prevent overflow
                 if (step + 1) % 20 == 0:
@@ -1136,6 +1195,8 @@ def walk_cmf(
             "cmf_id":          cmf_id,
             "depth":           depth,
             "m_fixed":         m_fixed,
+            "n_fixed":         n_fixed,
+            "is_3d":           is_3d,
             "f_poly":          f_poly,
             "fbar_poly":       fbar_poly,
             "sequence":        sequence,
@@ -1154,11 +1215,13 @@ def conservative_test(
     cmf_id: int,
     k_max: int = Query(5, ge=1, le=15),
     m_max: int = Query(5, ge=1, le=15),
+    n_fixed: int = Query(1, ge=0, le=50),
 ):
     """
     Empirical flatness (path-independence) test.
-    Checks K1(k,m)*K2(k+1,m) = K2(k,m)*K1(k,m+1) at a grid of (k,m) points.
-    This is numerical evidence only — not a formal proof.
+    2D: checks Kx(k,m)*Ky(k+1,m) = Ky(k,m)*Kx(k,m+1) on a (k,m) grid.
+    3D: additionally checks Kx/Kz and Ky/Kz flatness with n=n_fixed.
+    Numerical evidence only — not a formal proof.
     """
     db: Session = next(get_db())
     try:
@@ -1176,32 +1239,81 @@ def conservative_test(
             raise HTTPException(422, "CMF has no polynomial form — conservative test not available")
 
         try:
-            K1_fn, K2_fn = _build_walk_fns(f_poly, fbar_poly)
+            walk_fns = _build_walk_fns(f_poly, fbar_poly)
         except Exception as exc:
             raise HTTPException(500, f"Polynomial parse error: {exc}")
+
+        Kx_fn, Ky_fn, Kz_fn, is_3d = walk_fns
 
         mpmath.mp.dps = 20
         test_points = []
         max_residual = 0.0
 
+        def _frob(M):
+            sz = M.rows
+            return float(mpmath.sqrt(sum(
+                mpmath.fabs(M[i, j])**2 for i in range(sz) for j in range(sz)
+            )))
+
+        def _test_pair(Ma_fn, Mb_fn, pt, label):
+            """Check Ma(pt)*Mb(pt+e_a) == Mb(pt)*Ma(pt+e_b) numerically."""
+            nonlocal max_residual
+            k_, m_, n_ = pt
+            if label == 'km':
+                lhs = Ma_fn(k_, m_, n_) * Mb_fn(k_+1, m_, n_)
+                rhs = Mb_fn(k_, m_, n_) * Ma_fn(k_, m_+1, n_)
+            elif label == 'kn':
+                lhs = Ma_fn(k_, m_, n_) * Mb_fn(k_+1, m_, n_)
+                rhs = Mb_fn(k_, m_, n_) * Ma_fn(k_, m_, n_+1)
+            else:  # 'mn'
+                lhs = Ma_fn(k_, m_, n_) * Mb_fn(k_, m_+1, n_)
+                rhs = Mb_fn(k_, m_, n_) * Ma_fn(k_, m_, n_+1)
+            diff = lhs - rhs
+            res = _frob(diff)
+            max_residual = max(max_residual, res)
+            return res
+
+        # Kx/Ky flatness — test on (k,m) grid with n=n_fixed
         for k in range(1, k_max + 1):
             for m in range(1, m_max + 1):
                 try:
-                    lhs  = K1_fn(k, m) * K2_fn(k + 1, m)
-                    rhs  = K2_fn(k, m) * K1_fn(k, m + 1)
-                    diff = lhs - rhs
-                    # Frobenius norm manually
-                    res = float(mpmath.sqrt(sum(
-                        mpmath.fabs(diff[i, j])**2 for i in range(2) for j in range(2)
-                    )))
-                    max_residual = max(max_residual, res)
+                    res = _test_pair(Kx_fn, Ky_fn, (k, m, n_fixed), 'km')
                     test_points.append({
-                        "k": k, "m": m,
+                        "pair": "Kx/Ky", "k": k, "m": m, "n": n_fixed,
                         "residual": res,
                         "log10_residual": round(math.log10(res), 2) if res > 0 else -20,
                     })
                 except Exception as exc:
-                    test_points.append({"k": k, "m": m, "residual": None, "error": str(exc)})
+                    test_points.append({"pair": "Kx/Ky", "k": k, "m": m,
+                                        "n": n_fixed, "residual": None, "error": str(exc)})
+
+        if is_3d and Kz_fn is not None:
+            # Kx/Kz flatness — test on (k,n) grid with m=1
+            for k in range(1, k_max + 1):
+                for n in range(1, m_max + 1):
+                    try:
+                        res = _test_pair(Kx_fn, Kz_fn, (k, 1, n), 'kn')
+                        test_points.append({
+                            "pair": "Kx/Kz", "k": k, "m": 1, "n": n,
+                            "residual": res,
+                            "log10_residual": round(math.log10(res), 2) if res > 0 else -20,
+                        })
+                    except Exception as exc:
+                        test_points.append({"pair": "Kx/Kz", "k": k, "m": 1,
+                                            "n": n, "residual": None, "error": str(exc)})
+            # Ky/Kz flatness — test on (m,n) grid with k=2
+            for m in range(1, m_max + 1):
+                for n in range(1, m_max + 1):
+                    try:
+                        res = _test_pair(Ky_fn, Kz_fn, (2, m, n), 'mn')
+                        test_points.append({
+                            "pair": "Ky/Kz", "k": 2, "m": m, "n": n,
+                            "residual": res,
+                            "log10_residual": round(math.log10(res), 2) if res > 0 else -20,
+                        })
+                    except Exception as exc:
+                        test_points.append({"pair": "Ky/Kz", "k": 2, "m": m,
+                                            "n": n, "residual": None, "error": str(exc)})
 
         finite_res = [p["residual"] for p in test_points if p.get("residual") is not None]
         if not finite_res:
@@ -1215,6 +1327,7 @@ def conservative_test(
 
         return {
             "cmf_id":         cmf_id,
+            "is_3d":          is_3d,
             "f_poly":         f_poly,
             "fbar_poly":      fbar_poly,
             "test_points":    test_points,
@@ -1222,10 +1335,14 @@ def conservative_test(
             "verdict":        verdict,
             "k_max":          k_max,
             "m_max":          m_max,
+            "n_fixed":        n_fixed if is_3d else None,
             "note": (
-                "Checks K1(k,m)\u00b7K2(k+1,m) = K2(k,m)\u00b7K1(k,m+1) numerically. "
-                "Small residual is empirical evidence of path independence, not a formal proof."
-            ),
+                "3D CMF: checks Kx/Ky, Kx/Kz, Ky/Kz using the telescope formula extended to 3 variables. "
+                "CMF Hunter 3D entries use a different internal matrix construction (not stored), "
+                "so large residuals here do not invalidate the CMF's own B-level numerical certification. "
+                if is_3d else
+                "Checks Kx(k,m)\u00b7Ky(k+1,m) = Ky(k,m)\u00b7Kx(k,m+1) numerically. "
+            ) + "Small residual is empirical evidence of path independence, not a formal proof.",
         }
     finally:
         db.close()
