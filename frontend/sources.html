@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>CMF Sources — CMF Atlas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{fontFamily:{sans:['Inter','sans-serif']}}}}</script>
+  <script>window.MathJax={tex:{inlineMath:[['\\(','\\)']],displayMath:[['\\[','\\]']]},options:{skipHtmlTags:['script','noscript','style','textarea']}};</script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+  <style>
+    *{font-family:'Inter',sans-serif}
+    body{background:#fff;color:#101010}
+    .card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+    .nav-link{color:#555;font-size:14px;font-weight:500;transition:color .15s;text-decoration:none}
+    .nav-link:hover,.nav-link.active{color:#0bb4aa}
+    h2{font-size:1.25rem;font-weight:700;color:#101010;margin-bottom:0.75rem}
+    h3{font-size:0.95rem;font-weight:600;color:#333;margin-bottom:0.5rem;margin-top:1.25rem}
+    p{color:#555;line-height:1.8;margin-bottom:0.75rem}
+    a{color:#0bb4aa}a:hover{text-decoration:underline}
+    code{background:#f0fdfc;color:#0bb4aa;padding:1px 6px;border-radius:4px;font-size:0.85em;border:1px solid #b2ede9}
+    .source-badge{display:inline-flex;align-items:center;padding:4px 14px;border-radius:9999px;font-size:12px;font-weight:700;letter-spacing:.04em;margin-bottom:16px}
+    .count-pill{background:#f1f5f9;color:#64748b;border:1px solid #cbd5e1;padding:2px 10px;border-radius:9999px;font-size:11px;font-weight:600;margin-left:10px}
+  </style>
+</head>
+<body class="min-h-screen">
+
+<nav style="background:#fff;border-bottom:1px solid #e2e8f0;position:sticky;top:0;z-index:50">
+  <div class="max-w-7xl mx-auto px-6 flex items-center justify-between" style="height:60px">
+    <a href="index.html" style="font-weight:800;font-size:18px;color:#101010;text-decoration:none;letter-spacing:-0.5px">
+      CMF <span style="color:#0bb4aa">Atlas</span>
+    </a>
+    <div class="flex items-center gap-7">
+      <a href="index.html" class="nav-link">Home</a>
+      <a href="browse.html" class="nav-link">Browse</a>
+      <a href="explorer.html" class="nav-link">Explorer</a>
+      <a href="conservative-test.html" class="nav-link">Conservative Test</a>
+      <a href="about.html" class="nav-link">About</a>
+    </div>
+  </div>
+</nav>
+
+<!-- Page header -->
+<div style="background:linear-gradient(135deg,#f0fdfc 0%,#fff 60%);border-bottom:1px solid #e2e8f0;padding:36px 0 28px">
+  <div class="max-w-4xl mx-auto px-6">
+    <h1 style="font-size:1.8rem;font-weight:800;color:#101010;margin-bottom:10px;letter-spacing:-0.5px">CMF Sources &amp; Families</h1>
+    <p style="font-size:1rem;color:#555;line-height:1.7;max-width:600px">
+      The CMF Atlas contains entries from four distinct source families, each representing a different
+      methodology for discovering or constructing Conservative Matrix Fields.
+    </p>
+  </div>
+</div>
+
+<div class="max-w-4xl mx-auto px-6 py-10 space-y-8">
+
+  <!-- Euler2AI -->
+  <div class="card p-8">
+    <div class="flex items-center flex-wrap gap-3 mb-4">
+      <span class="source-badge" style="background:#e0faf8;color:#0bb4aa;border:1px solid #b2ede9">Euler2AI</span>
+      <span class="count-pill" id="count-euler2ai">~1,400 entries</span>
+    </div>
+    <h2 style="margin-bottom:12px">Euler2AI — Hypergeometric CMF Families</h2>
+    <p>
+      The Euler2AI family originates from the <strong>Euler2AI research project</strong>, which systematically
+      explored Conservative Matrix Fields arising from the classical hypergeometric function
+      \({}_2F_1(a,b;c;z)\) and its relatives. These CMFs are constructed from products of Pochhammer symbols
+      and encode the convergence structure of generalized hypergeometric series.
+    </p>
+    <p>
+      In this family, the matrix entries \(K_1(k,m)\) and \(K_2(k,m)\) are built from rational functions
+      of \(k\) and \(m\) derived directly from \({}_2F_1\) contiguous relations. The resulting CMFs converge
+      to values expressible in terms of \(\Gamma\)-function ratios, including constants such as \(\pi\),
+      \(\ln 2\), \(\zeta(2)\), and specific algebraic combinations thereof.
+    </p>
+    <p>
+      These are among the best-understood CMFs in the atlas — their limiting constants are often
+      provably identified through classical hypergeometric transformation theory, and many carry
+      A-level certification.
+    </p>
+    <h3>Key characteristics</h3>
+    <ul style="color:#555;line-height:1.9;margin-left:20px;list-style:disc;margin-bottom:12px">
+      <li>Primarily 2D lattice structures (k, m integer grid)</li>
+      <li>Matrix entries are rational functions of recurrence indices</li>
+      <li>Constants: \(\pi\), \(\ln 2\), \(\zeta(2)\), algebraic numbers, and \({}_2F_1\) special values</li>
+      <li>High density: ~1,400 entries — the largest single family in the atlas</li>
+    </ul>
+    <a href="browse.html?source_category=Euler2AI" style="color:#0bb4aa;font-weight:600;font-size:13px;text-decoration:none">Browse Euler2AI entries →</a>
+  </div>
+
+  <!-- RamanujanTools -->
+  <div class="card p-8">
+    <div class="flex items-center flex-wrap gap-3 mb-4">
+      <span class="source-badge" style="background:#fef3c7;color:#92400e;border:1px solid #fcd34d">RamanujanTools</span>
+      <span style="background:#fef3c7;color:#92400e;border:1px solid #fcd34d;padding:2px 10px;border-radius:9999px;font-size:11px;font-weight:700;letter-spacing:.04em">A+</span>
+      <span class="count-pill" id="count-ramanujan">15 entries</span>
+    </div>
+    <h2 style="margin-bottom:12px">RamanujanTools — Generalized Hypergeometric pFq CMFs</h2>
+    <p>
+      This family consists of CMFs imported directly from the
+      <a href="https://github.com/RamanujanMachine/RamanujanTools" target="_blank">RamanujanTools</a>
+      open-source library, developed by the <strong>Ramanujan Machine research group</strong> at the
+      Technion — Israel Institute of Technology.
+    </p>
+    <p>
+      These entries represent Conservative Matrix Fields built from generalized hypergeometric series
+      \({}_pF_q\), including 3F2, 4F3, 5F4, and 6F5 families. Their construction is grounded in
+      the deep mathematical framework connecting hypergeometric recurrence relations to
+      path-independent matrix products. Each entry has been formally verified by the Ramanujan Machine
+      team and is assigned <strong>A+ certification</strong> in the CMF Atlas.
+    </p>
+    <p>
+      The target constants include \(\zeta(3)\) (Apéry's constant), \(\zeta(5)\), \(\pi\),
+      Catalan's constant \(G\), and other transcendental values of high mathematical interest.
+    </p>
+    <h3>Key characteristics</h3>
+    <ul style="color:#555;line-height:1.9;margin-left:20px;list-style:disc;margin-bottom:12px">
+      <li>Higher-dimensional structures: 4D, 5D, 7D, 9D, 11D (pFq order determines dimension)</li>
+      <li>Built from generalized hypergeometric \({}_pF_q\) series (3F2 through 6F5)</li>
+      <li>Targets: \(\zeta(3)\), \(\zeta(5)\), \(\pi\), Catalan's constant \(G\)</li>
+      <li>All carry A+ certification — verified by the Ramanujan Machine team</li>
+    </ul>
+    <div class="flex flex-wrap gap-4 mt-2">
+      <a href="browse.html?source_category=RamanujanTools" style="color:#0bb4aa;font-weight:600;font-size:13px;text-decoration:none">Browse RamanujanTools entries →</a>
+      <a href="https://github.com/RamanujanMachine/RamanujanTools" target="_blank" style="color:#888;font-size:13px;text-decoration:none">GitHub: RamanujanTools ↗</a>
+      <a href="https://arxiv.org/abs/2303.09318" target="_blank" style="color:#888;font-size:13px;text-decoration:none">arXiv:2303.09318 ↗</a>
+    </div>
+  </div>
+
+  <!-- Gauge Transformed -->
+  <div class="card p-8">
+    <div class="flex items-center flex-wrap gap-3 mb-4">
+      <span class="source-badge" style="background:#f3f0ff;color:#7c3aed;border:1px solid #c4b5fd">Gauge Transformed</span>
+      <span class="count-pill" id="count-gauge">~206 entries</span>
+    </div>
+    <h2 style="margin-bottom:12px">Gauge Transformed — Extended Coordinate Systems</h2>
+    <h3 style="margin-top:0">What is a gauge transformation in this context?</h3>
+    <p>
+      A <strong>gauge transformation</strong> — as used here — refers to the process of re-expressing
+      a known one-dimensional number series or recurrence relation as a two-dimensional
+      (or higher-dimensional) matrix system on an integer lattice. The term is borrowed from physics,
+      where gauge transformations change the local description of a system without altering its
+      physical content.
+    </p>
+    <p>
+      In the CMF framework, a known scalar recurrence \(a_{n+1} = r(n) \cdot a_n\) can often be
+      "lifted" into a 2D matrix product \(K_1(k,m)\cdot K_2(k+1,m) = K_2(k,m)\cdot K_1(k,m+1)\)
+      by choosing matrix entries that reproduce the original scalar recurrence along the diagonal.
+      The resulting CMF is then path-independent by construction.
+    </p>
+    <h3>What gauge transformation does — and does not — provide</h3>
+    <p>
+      Gauge transformation is a powerful tool for <em>studying</em> a number series. By embedding
+      a 1D recurrence into a 2D coordinate system, researchers can analyze:
+    </p>
+    <ul style="color:#555;line-height:1.9;margin-left:20px;list-style:disc;margin-bottom:12px">
+      <li><strong>Convergence speed:</strong> How quickly the lattice walk converges to the limiting constant</li>
+      <li><strong>Arithmetic structure:</strong> The GCD, height, and complexity of matrix entries</li>
+      <li><strong>Irrationality measures:</strong> Lower bounds on how "far" the limit is from rationals</li>
+      <li><strong>Families of related series:</strong> Systematic variations via the free parameter \(m\)</li>
+    </ul>
+    <p>
+      <strong>Important note:</strong> Gauge transformation does not create genuinely new mathematical
+      constants or identities. The limit of a gauge-transformed CMF is the same constant as the
+      original 1D series. The 2D embedding widens the perspective — offering richer tools to
+      study the series — but the underlying mathematics is inherited from the source recurrence.
+    </p>
+    <p>
+      Sources in this family include D-finite recurrences, Ore algebra constructions, OEIS-bank
+      series, training seed series, and known mathematical families lifted to 2D.
+    </p>
+    <a href="browse.html?source_category=Gauge+Transformed" style="color:#0bb4aa;font-weight:600;font-size:13px;text-decoration:none">Browse Gauge Transformed entries →</a>
+  </div>
+
+  <!-- CMF Hunter -->
+  <div class="card p-8">
+    <div class="flex items-center flex-wrap gap-3 mb-4">
+      <span class="source-badge" style="background:#e6f9f0;color:#059669;border:1px solid #a7f3d0">CMF Hunter</span>
+      <span class="count-pill" id="count-hunter">~284 entries</span>
+    </div>
+    <h2 style="margin-bottom:12px">CMF Hunter — Proprietary Discovery Engine</h2>
+    <p>
+      The CMF Hunter family contains Conservative Matrix Fields discovered by
+      <strong>David Vesterlund's proprietary CMF generation algorithm</strong> — an ongoing research
+      project to build a robust, systematic method for finding genuinely new CMFs that cannot be
+      derived from known series by simple gauge transformation.
+    </p>
+    <h3>Core methodology</h3>
+    <p>
+      The central idea is to exploit the path-independence criterion as a <em>system of nonlinear
+      equations</em>. Concretely:
+    </p>
+    <ol style="color:#555;line-height:1.9;margin-left:20px;list-style:decimal;margin-bottom:12px">
+      <li>Seed with recurring functions drawn from open databases such as
+          <a href="https://www.lmfdb.org" target="_blank">LMFDB</a>,
+          OEIS, and known polynomial families</li>
+      <li>Parameterize the matrix entries \(K_1(k,m)\) and \(K_2(k,m)\) with unknown coefficients</li>
+      <li>Impose the flatness condition \(K_1 K_2(k{+}1,m) = K_2 K_1(k,m{+}1)\) as a constraint system</li>
+      <li>Solve the resulting polynomial equations to find coefficient combinations that satisfy
+          path-independence across the full integer lattice</li>
+      <li>Verify flatness numerically and symbolically; identify the limiting constant if possible</li>
+    </ol>
+    <p>
+      The process is highly iterative — hundreds of candidate families are generated and rejected
+      before a valid CMF with interesting convergence properties is found. This is not a brute-force
+      search: the seed selection and parameterization strategy are guided by structural insights
+      about which polynomial families are likely to yield flat matrix fields.
+    </p>
+    <p>
+      The CMF Hunter also includes results from an ML-assisted variant (the
+      <code>ml_loop</code> pipeline), which uses a trained model to propose candidate polynomial
+      families for the flatness equation solver.
+    </p>
+    <h3>Mathematical significance</h3>
+    <p>
+      Unlike gauge-transformed CMFs, Hunter entries represent <strong>genuinely new structures</strong>:
+      the CMFs discovered here encode number series and lattice recurrences that are not known
+      to arise from standard scalar recurrences. Many Hunter CMFs have unidentified limiting
+      constants — making them active research targets for PSLQ-based constant recognition and
+      irrationality proofs.
+    </p>
+    <a href="browse.html?source_category=CMF+Hunter" style="color:#0bb4aa;font-weight:600;font-size:13px;text-decoration:none">Browse CMF Hunter entries →</a>
+  </div>
+
+  <!-- Cert scale reference -->
+  <div class="card p-7">
+    <h2>Verification Levels</h2>
+    <p style="font-size:13px;color:#888;margin-bottom:16px">Each CMF in the atlas carries a certification level indicating the strength of its mathematical verification.</p>
+    <div style="display:grid;gap:12px">
+      <div style="display:grid;grid-template-columns:60px 1fr;gap:16px;align-items:start;padding:12px 0;border-bottom:1px solid #f1f5f9">
+        <span style="background:#fef3c7;color:#92400e;border:1px solid #fcd34d;padding:3px 10px;border-radius:9999px;font-size:11px;font-weight:700;text-align:center">A+</span>
+        <div><strong style="font-size:13px">Manually Verified</strong><p style="font-size:12px;color:#888;margin:4px 0 0">Verified by hand — pen-and-paper proof of flatness, algebraic identification of the limiting constant, and symbolic confirmation. Also assigned to all RamanujanTools entries (Ramanujan Machine team verification).</p></div>
+      </div>
+      <div style="display:grid;grid-template-columns:60px 1fr;gap:16px;align-items:start;padding:12px 0;border-bottom:1px solid #f1f5f9">
+        <span style="background:#e6f9f0;color:#059669;border:1px solid #a7f3d0;padding:3px 10px;border-radius:9999px;font-size:11px;font-weight:700;text-align:center">A</span>
+        <div><strong style="font-size:13px">Formally Certified</strong><p style="font-size:12px;color:#888;margin:4px 0 0">Flatness verified symbolically (SymPy / SageMath rational simplification). Limiting constant algebraically identified. Highest automated certification.</p></div>
+      </div>
+      <div style="display:grid;grid-template-columns:60px 1fr;gap:16px;align-items:start;padding:12px 0;border-bottom:1px solid #f1f5f9">
+        <span style="background:#e0faf8;color:#0bb4aa;border:1px solid #b2ede9;padding:3px 10px;border-radius:9999px;font-size:11px;font-weight:700;text-align:center">B</span>
+        <div><strong style="font-size:13px">Numerically Verified</strong><p style="font-size:12px;color:#888;margin:4px 0 0">Flatness confirmed numerically at high precision (20+ digit mpmath arithmetic). Constant identified by PSLQ or convergence matching. Symbolic proof pending.</p></div>
+      </div>
+      <div style="display:grid;grid-template-columns:60px 1fr;gap:16px;align-items:start;padding:12px 0">
+        <span style="background:#fef9e7;color:#b45309;border:1px solid #fcd34d;padding:3px 10px;border-radius:9999px;font-size:11px;font-weight:700;text-align:center">C</span>
+        <div><strong style="font-size:13px">Scouting</strong><p style="font-size:12px;color:#888;margin:4px 0 0">Candidate CMF identified by automated search. Flatness not yet fully verified. May be missing polynomial formula or constant identification. Included for completeness and future verification.</p></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer style="border-top:1px solid #e2e8f0;background:#f9fafb;margin-top:20px">
+  <div class="max-w-4xl mx-auto px-6 py-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3" style="font-size:13px;color:#888">
+    <div>CMF Atlas v2.2 &middot; David Vesterlund &middot; 2026</div>
+    <div class="flex gap-5">
+      <a href="about.html" style="color:#888;text-decoration:none">About</a>
+      <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" style="color:#888;text-decoration:none">CC BY 4.0</a>
+      <a href="index.html" style="color:#0bb4aa;font-weight:600;text-decoration:none">Home</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+const API = 'https://cmfatlas-production.up.railway.app';
+async function loadCounts() {
+  try {
+    const d = await fetch(`${API}/stats/detailed`).then(r=>r.json());
+    const src = d.by_source || {};
+    const el = (id, val) => { const e = document.getElementById(id); if(e) e.textContent = `${(val||0).toLocaleString()} entries`; };
+    el('count-euler2ai',  src['Euler2AI']);
+    el('count-ramanujan', src['RamanujanTools']);
+    el('count-gauge',     src['Gauge Transformed']);
+    el('count-hunter',    src['CMF Hunter']);
+  } catch(e) {}
+}
+loadCounts();
+</script>
+</body>
+</html>

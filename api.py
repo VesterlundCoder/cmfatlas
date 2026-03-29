@@ -341,7 +341,7 @@ def stats_detailed():
         for (p,) in rows:
             d = json.loads(p) if p else {}
             cl  = d.get("certification_level") or "unknown"
-            src = d.get("source") or "unknown"
+            src = d.get("source_category") or d.get("source") or "unknown"
             deg = str(d.get("degree", 0))
             pc  = d.get("primary_constant")
             certs[cl]   = certs.get(cl, 0) + 1
@@ -651,6 +651,7 @@ def browse_cmfs(
     degree: Optional[int] = None,
     certification: Optional[str] = None,
     source_type: Optional[str] = None,
+    source_category: Optional[str] = None,
     has_formula: Optional[bool] = None,
     primary_constant: Optional[str] = None,
 ):
@@ -675,6 +676,9 @@ def browse_cmfs(
         if source_type:
             where_clauses.append("s.generator_type = :source_type")
             params["source_type"] = source_type
+        if source_category:
+            where_clauses.append("json_extract(c.cmf_payload,'$.source_category') = :source_category")
+            params["source_category"] = source_category
         if has_formula is True:
             where_clauses.append(
                 "json_extract(c.cmf_payload,'$.f_poly') IS NOT NULL "
@@ -711,6 +715,7 @@ def browse_cmfs(
                    json_extract(c.cmf_payload,'$.primary_constant')    AS primary_constant,
                    json_extract(c.cmf_payload,'$.certification_level') AS cert,
                    json_extract(c.cmf_payload,'$.source')              AS source,
+                   json_extract(c.cmf_payload,'$.source_category')     AS source_category,
                    json_extract(c.cmf_payload,'$.flatness_verified')   AS flat,
                    r.canonical_fingerprint, r.primary_group,
                    s.generator_type, s.name AS series_name
@@ -733,11 +738,12 @@ def browse_cmfs(
                 "primary_constant":    r[5],
                 "certification_level": r[6],
                 "source":              r[7],
-                "flatness_verified":   bool(r[8]) if r[8] is not None else False,
-                "canonical_fingerprint": r[9],
-                "primary_group":       r[10],
-                "generator_type":      r[11],
-                "series_name":         r[12],
+                "source_category":     r[8] or r[7] or "",
+                "flatness_verified":   bool(r[9]) if r[9] is not None else False,
+                "canonical_fingerprint": r[10],
+                "primary_group":       r[11],
+                "generator_type":      r[12],
+                "series_name":         r[13],
                 "has_formula":         bool(r[2]),
             })
 

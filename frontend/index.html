@@ -53,6 +53,7 @@
       <a href="browse.html" class="nav-link">Browse</a>
       <a href="explorer.html" class="nav-link">Explorer</a>
       <a href="conservative-test.html" class="nav-link">Conservative Test</a>
+      <a href="sources.html" class="nav-link">Sources</a>
       <a href="about.html" class="nav-link">About</a>
     </div>
   </div>
@@ -207,9 +208,10 @@ function polyToLatex(s) {
 function certBadge(c) {
   if (!c) return '<span style="color:#bbb">—</span>';
   const map = {
-    'A_certified': '<span class="badge badge-green">A</span>',
-    'B_verified_numeric': '<span class="badge badge-teal">B</span>',
-    'C_scouting': '<span class="badge badge-amber">C</span>',
+    'A_plus':            '<span class="badge" style="background:#fef3c7;color:#92400e;border:1px solid #fcd34d">A+</span>',
+    'A_certified':       '<span class="badge badge-green">A</span>',
+    'B_verified_numeric':'<span class="badge badge-teal">B</span>',
+    'C_scouting':        '<span class="badge badge-amber">C</span>',
   };
   return map[c] || `<span class="badge badge-grey">${c.replace('_',' ')}</span>`;
 }
@@ -260,7 +262,7 @@ async function loadStats() {
 
     // Source chart
     const srcData = d.by_source || {};
-    const srcKeys = Object.keys(srcData).filter(k=>k!=='unknown').slice(0,8);
+    const srcKeys = Object.keys(srcData).filter(k=>k!=='unknown').slice(0,4);
     new Chart(document.getElementById('srcChart'), {
       type: 'bar',
       data: {
