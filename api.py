@@ -361,7 +361,7 @@ def stats_detailed():
             "by_dimension": {str(d): c for d, c in dims},
             "by_certification": certs,
             "by_source": dict(sorted(sources.items(), key=lambda x: -x[1])[:15]),
-            "by_degree": dict(sorted(degrees.items(), key=lambda x: int(x[0])))  ,
+            "by_degree": dict(sorted(degrees.items(), key=lambda x: int(x[0]) if x[0] not in (None, "None") else -1)),
             "known_constants": dict(sorted(constants.items(), key=lambda x: -x[1])[:20]),
             "walkable_cmfs": walkable,
         }
