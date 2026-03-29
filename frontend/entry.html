@@ -46,6 +46,7 @@
       <a href="explorer.html" class="nav-link">Explorer</a>
       <a href="conservative-test.html" class="nav-link">Conservative Test</a>
       <a href="sources.html" class="nav-link">Sources</a>
+      <a href="constants.html" class="nav-link">Constants</a>
       <a href="about.html" class="nav-link">About</a>
     </div>
   </div>
@@ -128,7 +129,7 @@ function buildBibTeX(id, f_poly, dim) {
   author    = {Vesterlund, David},
   title     = {{CMF Atlas} Entry \\#${id}: ${f_poly ? f_poly.substring(0,40) : `Dimension ${dim} CMF`}},
   year      = {${year}},
-  url       = {https://davidvesterlund.com/cmfatlas/entry.html?id=${id}},
+  url       = {https://davidvesterlund.com/cmf-atlas/entry.html?id=${id}},
   note      = {CMF Atlas v2.2, Conservative Matrix Field Database},
   license   = {CC BY 4.0}
 }`;
@@ -284,9 +285,9 @@ async function loadEntry() {
           <div class="card p-5">
             <div class="section-label">Stable URL</div>
             <div class="code-block" style="font-size:11px;word-break:break-all;color:#0bb4aa">
-              https://davidvesterlund.com/cmfatlas/entry.html?id=${d.id}
+              https://davidvesterlund.com/cmf-atlas/entry.html?id=${d.id}
             </div>
-            <button class="copy-btn" style="margin-top:8px;width:100%" onclick="copyText('https://davidvesterlund.com/cmfatlas/entry.html?id=${d.id}',this)">
+            <button class="copy-btn" style="margin-top:8px;width:100%" onclick="copyText('https://davidvesterlund.com/cmf-atlas/entry.html?id=${d.id}',this)">
               Copy URL
             </button>
           </div>
