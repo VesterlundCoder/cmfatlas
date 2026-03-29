@@ -1319,6 +1319,15 @@ def walk_cmf(
                 except Exception:
                     pass
 
+        walk_note = None
+        if is_3d:
+            walk_note = (
+                "3D CMF walk uses the telescope formula with b(k,n)=g(k,0,n)·ḡ(k,0,n). "
+                "CMF Hunter 3D entries use a different internal matrix construction, so "
+                "the walk estimate may not converge to the certified constant. "
+                "The certified value is stored in primary_constant."
+            )
+
         return {
             "cmf_id":          cmf_id,
             "depth":           depth,
@@ -1333,6 +1342,7 @@ def walk_cmf(
             "constant_matches": _compare_constants(best) if best is not None else [],
             "primary_constant": payload.get("primary_constant"),
             "certification_level": payload.get("certification_level"),
+            "walk_note":       walk_note,
         }
     finally:
         db.close()
