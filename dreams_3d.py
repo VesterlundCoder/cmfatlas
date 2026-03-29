@@ -131,19 +131,27 @@ def _compare(val: mpmath.mpf, bank: dict, top: int = 8) -> list[dict]:
 
 # ─── polynomial → matrix functions ────────────────────────────────────────────
 def _build_walk_fns_3d(f_poly: str, fbar_poly: str):
-    """Return (Kx(k,m,n), b_fn(k,z)) for 3D CMF telescope formula."""
+    """Return (Kx(k,m,n), b_fn(k,n)) for 3D CMF telescope formula."""
     k_s, m_s = symbols("k m")
-    x_s, y_s, z_s = symbols("x y z")
-    f_e    = sympify(f_poly)
-    fb_e   = sympify(fbar_poly)
-    # Keep z live — do NOT rename z→n (lambdify rename leaves z unresolved)
-    g_kmz  = f_e.subs([(x_s, k_s), (y_s, m_s)])
-    gb_kmz = fb_e.subs([(x_s, k_s), (y_s, m_s)])
+    f_e  = sympify(f_poly)
+    fb_e = sympify(fbar_poly)
+
+    # Resolve actual symbol objects from the expression (avoids assumption cache mismatch)
+    _free = f_e.free_symbols
+    x_sym = next((s for s in _free if s.name == 'x'), symbols("x"))
+    y_sym = next((s for s in _free if s.name == 'y'), symbols("y"))
+    z_sym = next((s for s in _free if s.name == 'z'), symbols("z"))
+
+    g_kmz  = f_e.subs([(x_sym, k_s), (y_sym, m_s)])
+    gb_kmz = fb_e.subs([(x_sym, k_s), (y_sym, m_s)])
     b_kz   = expand(g_kmz.subs(m_s, 0) * gb_kmz.subs(m_s, 0))
     a_expr = expand(g_kmz - gb_kmz.subs(k_s, k_s + 1))
 
-    b_fn   = lambdify([k_s, z_s],      b_kz,   modules="mpmath")
-    a_fn   = lambdify([k_s, m_s, z_s], a_expr, modules="mpmath")
+    def b_fn(k_v, z_v):
+        return complex(b_kz.subs([(k_s, k_v), (z_sym, z_v)]))
+
+    def a_fn(k_v, m_v, z_v):
+        return complex(a_expr.subs([(k_s, k_v), (m_s, m_v), (z_sym, z_v)]))
 
     def Kx(k, m, n):
         return mpmath.matrix([[0, 1], [b_fn(k+1, n), a_fn(k, m, n)]])
