@@ -326,7 +326,7 @@ function renderResults(d) {
   statusCard.innerHTML = `
     <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-size:13px">
       <span class="badge badge-green">✓ Walk complete</span>
-      <span style="color:#666">CMF #${d.cmf_id} · depth=${d.depth} · m=${d.m_fixed}${d.is_3d ? ', n='+d.n_fixed : ''}</span>
+      <span style="color:#666">CMF #${d.cmf_id} · depth=${d.depth} · m=${d.m_fixed}${d.is_3d ? ', n='+d.n_fixed : ''}${d.k_start > 0 ? ' · k_start='+d.k_start : ''}</span>
       <span style="color:#666">${finite.length} finite values</span>
       ${best !== null ? `<span style="color:#0bb4aa;font-family:monospace;font-weight:600">Best estimate: ${best.toPrecision(12)}</span>` : ''}
       ${d.primary_constant ? `<span class="badge badge-amber">Expected: ${d.primary_constant}</span>` : ''}
