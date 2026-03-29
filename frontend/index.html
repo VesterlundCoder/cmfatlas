@@ -237,8 +237,18 @@ async function loadStats() {
           borderRadius: 6, borderSkipped: false }]
       },
       options: { responsive:true, maintainAspectRatio:true,
-        plugins:{legend:{display:false}},
-        scales:{ x:{ticks:{color:'#888'},grid:{color:'#ececec'}}, y:{ticks:{color:'#888'},grid:{color:'#ececec'}} }
+        plugins:{
+          legend:{display:false},
+          tooltip:{ callbacks:{ label: ctx => ` ${ctx.raw.toLocaleString()} CMFs` } }
+        },
+        scales:{
+          x:{ticks:{color:'#888'},grid:{color:'#ececec'}},
+          y:{
+            type:'logarithmic',
+            ticks:{color:'#888', callback: v => Number.isInteger(Math.log10(v)) ? v.toLocaleString() : ''},
+            grid:{color:'#ececec'}
+          }
+        }
       }
     });
 
