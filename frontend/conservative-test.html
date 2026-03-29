@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Conservative Test — CMF Atlas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{fontFamily:{sans:['Inter','sans-serif']}}}}</script>
+  <script>window.MathJax={tex:{inlineMath:[['\\(','\\)']],displayMath:[['\\[','\\]']]},options:{skipHtmlTags:['script','noscript','style','textarea']}};</script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <style>
+    *{font-family:'Inter',sans-serif}
+    body{background:#fff;color:#101010}
+    .card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+    .badge{display:inline-flex;align-items:center;padding:2px 10px;border-radius:9999px;font-size:11px;font-weight:600}
+    .badge-green{background:#e6f9f0;color:#059669;border:1px solid #a7f3d0}
+    .badge-amber{background:#fef9e7;color:#b45309;border:1px solid #fcd34d}
+    .badge-red{background:#fef2f2;color:#dc2626;border:1px solid #fca5a5}
+    .badge-grey{background:#f1f5f9;color:#64748b;border:1px solid #cbd5e1}
+    .badge-teal{background:#e0faf8;color:#0bb4aa;border:1px solid #b2ede9}
+    .nav-link{color:#555;font-size:14px;font-weight:500;transition:color .15s;text-decoration:none}
+    .nav-link:hover,.nav-link.active{color:#0bb4aa}
+    .control-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;display:block;margin-bottom:6px}
+    .control-select{background:#fff;border:1px solid #e2e8f0;color:#333;border-radius:8px;padding:8px 12px;font-size:13px;outline:none;width:100%;font-family:inherit}
+    .control-select:focus{border-color:#0bb4aa}
+    .run-btn{background:#0bb4aa;color:#fff;font-weight:700;padding:12px 28px;border-radius:10px;font-size:14px;cursor:pointer;transition:all .15s;border:none;font-family:inherit;width:100%}
+    .run-btn:hover{background:#099990}
+    .run-btn:disabled{opacity:.4;cursor:not-allowed}
+    input[type=text]{background:#fff;border:1px solid #e2e8f0;color:#101010;border-radius:8px;padding:8px 12px;font-size:13px;outline:none;width:100%;font-family:inherit}
+    input[type=text]:focus{border-color:#0bb4aa;box-shadow:0 0 0 3px rgba(11,180,170,.1)}
+    .grid-cell{border:1px solid #e2e8f0;padding:8px;text-align:center;font-family:monospace;font-size:11px;border-radius:4px;color:#555}
+    .cell-pass{background:#e6f9f0;color:#059669;border-color:#a7f3d0}
+    .cell-warn{background:#fef9e7;color:#b45309;border-color:#fcd34d}
+    .cell-fail{background:#fef2f2;color:#dc2626;border-color:#fca5a5}
+    .cell-null{background:#f8fafc;color:#aaa;border-color:#e2e8f0}
+    #cmf-search-results{position:absolute;top:100%;left:0;right:0;z-index:50;background:#fff;border:1px solid #e2e8f0;border-radius:8px;max-height:260px;overflow-y:auto;margin-top:4px;box-shadow:0 8px 24px rgba(0,0,0,.1)}
+    #cmf-search-results .result-item{padding:10px 14px;cursor:pointer;border-bottom:1px solid #f1f5f9;font-size:12px;color:#333}
+    #cmf-search-results .result-item:hover{background:#f0fdfc}
+    .verdict-box{border-radius:10px;padding:16px 20px;font-weight:700;font-size:15px}
+    .verdict-consistent{background:#e6f9f0;border:2px solid #059669;color:#059669}
+    .verdict-approx{background:#fef9e7;border:2px solid #b45309;color:#b45309}
+    .verdict-fail{background:#fef2f2;border:2px solid #dc2626;color:#dc2626}
+    .verdict-unknown{background:#f8fafc;border:2px solid #cbd5e1;color:#64748b}
+  </style>
+</head>
+<body class="min-h-screen">
+
+<nav style="background:#fff;border-bottom:1px solid #e2e8f0;position:sticky;top:0;z-index:50">
+  <div class="max-w-7xl mx-auto px-6 flex items-center justify-between" style="height:60px">
+    <a href="index.html" style="font-weight:800;font-size:18px;color:#101010;text-decoration:none;letter-spacing:-0.5px">
+      CMF <span style="color:#0bb4aa">Atlas</span>
+    </a>
+    <div class="flex items-center gap-7">
+      <a href="index.html" class="nav-link">Home</a>
+      <a href="browse.html" class="nav-link">Browse</a>
+      <a href="explorer.html" class="nav-link">Explorer</a>
+      <a href="conservative-test.html" class="nav-link active">Conservative Test</a>
+      <a href="about.html" class="nav-link">About</a>
+    </div>
+  </div>
+</nav>
+
+<div style="background:linear-gradient(135deg,#f0fdfc 0%,#fff 60%);border-bottom:1px solid #e2e8f0;padding:28px 0 20px">
+  <div class="max-w-7xl mx-auto px-6">
+    <h1 style="font-size:1.8rem;font-weight:800;color:#101010;margin-bottom:4px;letter-spacing:-0.5px">Conservative / Path-Independence Test</h1>
+    <p style="font-size:13px;color:#666;max-width:640px">
+      A CMF is <em>conservative</em> (or <em>flat</em>) if matrix products are path-independent: any two admissible paths between the same endpoints yield the same product. Tested empirically at a grid of lattice points.
+    </p>
+  </div>
+</div>
+
+<div class="max-w-7xl mx-auto px-6 py-8">
+
+  <!-- Theory box -->
+  <div class="card p-5 mb-6">
+    <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:12px">Mathematical Background</div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6" style="font-size:13px;color:#555">
+      <div>
+        <p style="margin-bottom:12px">A 2D CMF has matrix fields \(K_1(k,m)\) and \(K_2(k,m)\). The <strong style="color:#101010">flatness condition</strong> states:</p>
+        <div style="text-align:center;margin:16px 0;color:#333">
+          \[K_1(k,m) \cdot K_2(k{+}1,\,m) = K_2(k,m) \cdot K_1(k,\,m{+}1)\]
+        </div>
+        <p>When this holds for all \((k,m)\), products along any lattice path from \((0,0)\) to \((K,M)\) agree.</p>
+      </div>
+      <div>
+        <p style="margin-bottom:10px">This test checks the condition <strong style="color:#101010">numerically</strong> at each grid point using 20-digit mpmath arithmetic.</p>
+        <p style="margin-bottom:10px">The <strong style="color:#101010">residual</strong> = Frobenius norm of \(K_1 K_2 - K_2 K_1\).</p>
+        <div style="font-size:12px;color:#888;padding:10px 12px;background:#fffbeb;border-radius:8px;border:1px solid #fcd34d">
+          <strong style="color:#b45309">Note:</strong> Small residuals are empirical evidence only — not a formal proof. Symbolic verification via SymPy/Maple is required for certainty.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+    <!-- Controls -->
+    <div class="space-y-4">
+      <div class="card p-5">
+        <h2 style="font-size:13px;font-weight:700;color:#101010;margin-bottom:16px">Test Configuration</h2>
+
+        <div class="mb-4">
+          <label class="control-label">CMF Entry</label>
+          <div style="position:relative">
+            <input type="text" id="cmf-search" placeholder="Search CMF by ID, formula…" autocomplete="off"/>
+            <div id="cmf-search-results" class="hidden"></div>
+          </div>
+          <div style="font-size:11px;color:#aaa;margin-top:4px" id="selected-info">No CMF selected</div>
+        </div>
+
+        <div class="mb-4">
+          <label class="control-label">k range: 1 … k_max</label>
+          <select id="k_max" class="control-select">
+            <option value="3">k_max = 3</option>
+            <option value="5" selected>k_max = 5</option>
+            <option value="8">k_max = 8</option>
+            <option value="10">k_max = 10</option>
+          </select>
+        </div>
+
+        <div class="mb-5">
+          <label class="control-label">m range: 1 … m_max</label>
+          <select id="m_max" class="control-select">
+            <option value="3">m_max = 3</option>
+            <option value="5" selected>m_max = 5</option>
+            <option value="8">m_max = 8</option>
+            <option value="10">m_max = 10</option>
+          </select>
+        </div>
+
+        <button id="run-btn" class="run-btn" onclick="runTest()" disabled>▶ Run Test</button>
+        <button onclick="resetAll()" style="margin-top:8px;width:100%;border:1px solid #e2e8f0;color:#555;background:#fff;padding:10px;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit">Reset</button>
+      </div>
+
+      <div class="card p-5" id="cmf-detail-card" style="display:none">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:12px">Selected CMF</div>
+        <div id="cmf-detail-content"></div>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div class="lg:col-span-2 space-y-5">
+
+      <div id="status-card" class="card p-4" style="color:#888;font-size:13px">
+        Select a CMF and click <strong style="color:#101010">Run Test</strong> to begin.
+      </div>
+
+      <div id="verdict-card" style="display:none"></div>
+
+      <div class="card p-5" id="heatmap-card" style="display:none">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:12px">
+          Residual Grid — \(\|K_1(k,m)\cdot K_2(k{+}1,m) - K_2(k,m)\cdot K_1(k,m{+}1)\|_F\)
+        </div>
+        <div id="heatmap-grid" style="overflow-x:auto"></div>
+        <div style="display:flex;align-items:center;gap:16px;margin-top:12px;font-size:11px;color:#888">
+          <div style="display:flex;align-items:center;gap:4px"><span style="width:14px;height:14px;border-radius:3px;display:inline-block;background:#e6f9f0;border:1px solid #a7f3d0"></span> &lt; 10⁻¹⁰ consistent</div>
+          <div style="display:flex;align-items:center;gap:4px"><span style="width:14px;height:14px;border-radius:3px;display:inline-block;background:#fef9e7;border:1px solid #fcd34d"></span> 10⁻¹⁰–10⁻³ approx</div>
+          <div style="display:flex;align-items:center;gap:4px"><span style="width:14px;height:14px;border-radius:3px;display:inline-block;background:#fef2f2;border:1px solid #fca5a5"></span> &gt;10⁻³ inconsistent</div>
+        </div>
+      </div>
+
+      <div class="card p-5" id="chart-card" style="display:none">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:12px">Log₁₀ Residual by Test Point</div>
+        <canvas id="residual-chart" height="180"></canvas>
+      </div>
+
+      <div class="card p-5" id="table-card" style="display:none">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:12px">Point-by-Point Results</div>
+        <div style="overflow-x:auto">
+          <table style="width:100%;font-size:12px;font-family:monospace;border-collapse:collapse">
+            <thead>
+              <tr style="border-bottom:2px solid #e2e8f0;color:#888">
+                <th style="text-align:left;padding:8px 16px 8px 0">k</th>
+                <th style="text-align:left;padding:8px 16px 8px 0">m</th>
+                <th style="text-align:left;padding:8px 16px 8px 0">Residual</th>
+                <th style="text-align:left;padding:8px 0">log₁₀</th>
+              </tr>
+            </thead>
+            <tbody id="detail-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card p-4" id="method-note" style="display:none;font-size:12px;color:#666;line-height:1.7">
+        <strong style="color:#333">Method:</strong>
+        At each \((k,m)\), evaluates \(\text{LHS} = K_1(k,m)\cdot K_2(k{+}1,m)\) and
+        \(\text{RHS} = K_2(k,m)\cdot K_1(k,m{+}1)\) using 20-digit mpmath arithmetic.
+        Residual = \(\|LHS - RHS\|_F\). For flat CMFs, residuals should be \(\approx 10^{-20}\).
+        <br/>
+        <strong style="color:#b45309">Disclaimer:</strong> Numerical consistency is not a formal proof. Symbolic verification via SymPy or Maple is required.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = 'https://api.davidvesterlund.com';
+let selectedCmfId = null;
+let chartInstance = null;
+let searchTimeout = null;
+
+function polyToLatex(s) {
+  if (!s) return '';
+  s = s.replace(/\*\*(\d+)/g, (_, e) => `^{${e}}`);
+  s = s.replace(/(-?\d+)\*([a-zA-Z])/g, '$1$2');
+  s = s.replace(/([a-zA-Z\}])\*([a-zA-Z])/g, '$1$2');
+  return s;
+}
+
+// ── Search ───────────────────────────────────────────────────────────────────
+const searchInput = document.getElementById('cmf-search');
+const searchResults = document.getElementById('cmf-search-results');
+
+searchInput.addEventListener('input', () => {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(doSearch, 250);
+});
+document.addEventListener('click', e => {
+  if (!searchInput.contains(e.target) && !searchResults.contains(e.target))
+    searchResults.classList.add('hidden');
+});
+
+async function doSearch() {
+  const q = searchInput.value.trim();
+  try {
+    const params = new URLSearchParams({ limit: 10, has_formula: 'true' });
+    if (q) params.set('q', q);
+    const res = await fetch(`${API}/cmfs/browse?${params}`);
+    const d = await res.json();
+    renderSearchResults(d.items || []);
+  } catch(e) {}
+}
+
+function renderSearchResults(items) {
+  if (!items.length) {
+    searchResults.innerHTML = '<div class="result-item text-slate-500">No walkable CMFs found.</div>';
+    searchResults.classList.remove('hidden');
+    return;
+  }
+  searchResults.innerHTML = items.map(item => `
+    <div class="result-item" onclick="selectCmf(${item.id},'${(item.f_poly||'').replace(/'/g,"\\'")}','${item.primary_constant||''}',${item.dimension},${!!item.flatness_verified})" style="cursor:pointer">
+      <span style="color:#0bb4aa;font-weight:700">#${item.id}</span>
+      <span style="color:#888;margin-left:8px">${item.dimension}D</span>
+      <span style="color:#333;margin-left:8px;font-family:monospace;font-size:11px">${(item.f_poly||'').substring(0,50)}</span>
+      ${item.primary_constant ? `<span style="color:#b45309;margin-left:8px">→ ${item.primary_constant}</span>` : ''}
+    </div>
+  `).join('');
+  searchResults.classList.remove('hidden');
+}
+
+function selectCmf(id, fPoly, primaryConst, dim, flatVerified) {
+  selectedCmfId = id;
+  searchInput.value = `CMF #${id}`;
+  searchResults.classList.add('hidden');
+  document.getElementById('selected-info').textContent =
+    `Selected: CMF #${id} (${dim}D)${flatVerified ? ' — flatness pre-verified' : ''}`;
+  document.getElementById('run-btn').disabled = false;
+
+  const detailContent = document.getElementById('cmf-detail-content');
+  detailContent.innerHTML = `
+    <div style="font-size:13px;color:#0bb4aa;font-weight:700;margin-bottom:8px">CMF #${id}</div>
+    <div style="font-size:11px;color:#888;margin-bottom:4px">f(x,y):</div>
+    <div style="font-size:13px;color:#333;font-family:monospace;margin-bottom:10px">\\(${polyToLatex(fPoly)}\\)</div>
+    ${primaryConst ? `<div style="font-size:12px"><span style="color:#888">Known limit:</span> <span style="color:#b45309;font-weight:600">${primaryConst}</span></div>` : ''}
+    ${flatVerified ? `<div style="margin-top:8px"><span class="badge badge-green">✓ Pre-verified flat</span></div>` : ''}
+    <div style="margin-top:12px"><a href="entry.html?id=${id}" style="color:#0bb4aa;font-size:12px;font-weight:600;text-decoration:none">View full entry →</a></div>
+  `;
+  document.getElementById('cmf-detail-card').style.display = '';
+  if (window.MathJax) MathJax.typesetPromise([detailContent]);
+}
+
+// Pre-load from URL param
+(async () => {
+  const params = new URLSearchParams(window.location.search);
+  const id = params.get('id');
+  if (id) {
+    try {
+      const res = await fetch(`${API}/cmfs/${id}/full`);
+      const d = await res.json();
+      if (d.walk_available)
+        selectCmf(d.id, d.f_poly, d.primary_constant, d.dimension, d.flatness_verified);
+    } catch(e) {}
+  } else {
+    doSearch();
+  }
+})();
+
+// ── Test ─────────────────────────────────────────────────────────────────────
+async function runTest() {
+  if (!selectedCmfId) return;
+  const k_max = document.getElementById('k_max').value;
+  const m_max = document.getElementById('m_max').value;
+  const btn = document.getElementById('run-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Testing…';
+
+  document.getElementById('status-card').innerHTML =
+    `<span style="color:#0bb4aa">Running conservative test on CMF #${selectedCmfId}…</span>`;
+
+  try {
+    const res = await fetch(`${API}/cmfs/${selectedCmfId}/conservative-test?k_max=${k_max}&m_max=${m_max}`);
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || `HTTP ${res.status}`);
+    }
+    const d = await res.json();
+    renderResults(d);
+  } catch(e) {
+    document.getElementById('status-card').innerHTML =
+      `<span class="text-red-400">Error: ${e.message}</span>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '▶ Run Test';
+  }
+}
+
+function verdictStyle(verdict) {
+  if (verdict === 'consistent_with_path_independence') return 'verdict-consistent';
+  if (verdict === 'approximately_path_independent') return 'verdict-approx';
+  if (verdict === 'numerically_inconsistent') return 'verdict-fail';
+  return 'verdict-unknown';
+}
+
+function verdictLabel(verdict) {
+  const map = {
+    'consistent_with_path_independence': '✓ Consistent with path independence (residuals < 10⁻¹⁰)',
+    'approximately_path_independent': '~ Approximately path independent (residuals < 10⁻³)',
+    'numerically_inconsistent': '✗ Numerically inconsistent (large residuals)',
+    'inconclusive': '? Inconclusive',
+  };
+  return map[verdict] || verdict;
+}
+
+function cellClass(res) {
+  if (res === null) return 'cell-null';
+  if (res < 1e-10) return 'cell-pass';
+  if (res < 1e-3) return 'cell-warn';
+  return 'cell-fail';
+}
+
+function renderResults(d) {
+  // Status
+  document.getElementById('status-card').innerHTML = `
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-size:13px">
+      <span style="color:#666">CMF #${d.cmf_id} · grid ${d.k_max}×${d.m_max}</span>
+      <span style="color:#666">${d.test_points.length} points tested</span>
+      <span style="color:#0bb4aa;font-family:monospace;font-weight:600">max residual = ${d.max_residual?.toExponential(3)}</span>
+    </div>`;
+
+  // Verdict
+  const verdCard = document.getElementById('verdict-card');
+  verdCard.style.display = '';
+  verdCard.innerHTML = `
+    <div class="verdict-box ${verdictStyle(d.verdict)}">${verdictLabel(d.verdict)}</div>
+    <div style="font-size:12px;color:#888;margin-top:8px;padding:0 4px">${d.note}</div>
+  `;
+
+  // Heatmap
+  document.getElementById('heatmap-card').style.display = '';
+  const kVals = [...new Set(d.test_points.map(p => p.k))].sort((a,b)=>a-b);
+  const mVals = [...new Set(d.test_points.map(p => p.m))].sort((a,b)=>a-b);
+  const lookup = {};
+  d.test_points.forEach(p => { lookup[`${p.k}_${p.m}`] = p; });
+
+  let tableHtml = '<table style="border-collapse:separate;border-spacing:4px">';
+  tableHtml += '<tr><td class="grid-cell" style="background:none;border:none;color:#888;font-weight:700">k\\m</td>';
+  mVals.forEach(m => tableHtml += `<td class="grid-cell" style="background:none;border:none;color:#888;font-weight:700">m=${m}</td>`);
+  tableHtml += '</tr>';
+
+  kVals.forEach(k => {
+    tableHtml += `<tr><td class="grid-cell" style="background:none;border:none;color:#888;font-weight:700">k=${k}</td>`;
+    mVals.forEach(m => {
+      const pt = lookup[`${k}_${m}`];
+      const res = pt?.residual;
+      const cls = cellClass(res);
+      const label = res === null ? 'err' : `10^${pt.log10_residual}`;
+      tableHtml += `<td class="grid-cell ${cls}" title="k=${k}, m=${m}: residual=${res?.toExponential(3)||'?'}">${label}</td>`;
+    });
+    tableHtml += '</tr>';
+  });
+  tableHtml += '</table>';
+  document.getElementById('heatmap-grid').innerHTML = tableHtml;
+  if (window.MathJax) MathJax.typesetPromise([document.getElementById('heatmap-card')]);
+
+  // Chart
+  document.getElementById('chart-card').style.display = '';
+  const chartLabels = d.test_points.map(p => `(${p.k},${p.m})`);
+  const chartData = d.test_points.map(p => p.log10_residual ?? null);
+  const chartColors = d.test_points.map(p => {
+    if (!p.residual) return '#e2e8f0';
+    if (p.residual < 1e-10) return '#059669';
+    if (p.residual < 1e-3) return '#f59e0b';
+    return '#dc2626';
+  });
+  if (chartInstance) chartInstance.destroy();
+  chartInstance = new Chart(document.getElementById('residual-chart'), {
+    type: 'bar',
+    data: {
+      labels: chartLabels,
+      datasets: [{
+        label: 'log₁₀ residual',
+        data: chartData,
+        backgroundColor: chartColors,
+        borderRadius: 3,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#888', font: { size: 10 } }, grid: { color: '#f1f5f9' } },
+        y: {
+          ticks: { color: '#888' }, grid: { color: '#f1f5f9' },
+          title: { display: true, text: 'log₁₀(residual)', color: '#888' }
+        }
+      }
+    }
+  });
+
+  // Table
+  document.getElementById('table-card').style.display = '';
+  document.getElementById('detail-tbody').innerHTML = d.test_points.map(p => {
+    const clr = p.residual === null ? '#aaa' :
+                p.residual < 1e-10 ? '#059669' :
+                p.residual < 1e-3 ? '#b45309' : '#dc2626';
+    return `
+      <tr style="border-bottom:1px solid #f1f5f9">
+        <td style="padding:6px 16px 6px 0;color:#888">${p.k}</td>
+        <td style="padding:6px 16px 6px 0;color:#888">${p.m}</td>
+        <td style="padding:6px 16px 6px 0;color:${clr}">${p.residual?.toExponential(6) ?? (p.error || '—')}</td>
+        <td style="padding:6px 0;color:${clr}">${p.log10_residual ?? '—'}</td>
+      </tr>`;
+  }).join('');
+
+  document.getElementById('method-note').style.display = '';
+  if (window.MathJax) MathJax.typesetPromise([document.getElementById('method-note')]);
+}
+
+function resetAll() {
+  selectedCmfId = null;
+  searchInput.value = '';
+  document.getElementById('selected-info').textContent = 'No CMF selected';
+  document.getElementById('run-btn').disabled = true;
+  document.getElementById('cmf-detail-card').style.display = 'none';
+  document.getElementById('status-card').innerHTML = 'Select a CMF and click <strong style="color:#101010">Run Test</strong> to begin.';
+  document.getElementById('verdict-card').style.display = 'none';
+  document.getElementById('heatmap-card').style.display = 'none';
+  document.getElementById('chart-card').style.display = 'none';
+  document.getElementById('table-card').style.display = 'none';
+  document.getElementById('method-note').style.display = 'none';
+  if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+  doSearch();
+}
+</script>
+</body>
+</html>

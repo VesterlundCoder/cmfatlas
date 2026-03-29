@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Matrix Walk Explorer — CMF Atlas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{fontFamily:{sans:['Inter','sans-serif']}}}}</script>
+  <script>window.MathJax={tex:{inlineMath:[['\\(','\\)']],displayMath:[['\\[','\\]']]},options:{skipHtmlTags:['script','noscript','style','textarea']}};</script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <style>
+    *{font-family:'Inter',sans-serif}
+    body{background:#fff;color:#101010}
+    .card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+    .badge{display:inline-flex;align-items:center;padding:2px 10px;border-radius:9999px;font-size:11px;font-weight:600}
+    .badge-teal{background:#e0faf8;color:#0bb4aa;border:1px solid #b2ede9}
+    .badge-green{background:#e6f9f0;color:#059669;border:1px solid #a7f3d0}
+    .badge-amber{background:#fef9e7;color:#b45309;border:1px solid #fcd34d}
+    .badge-grey{background:#f1f5f9;color:#64748b;border:1px solid #cbd5e1}
+    .nav-link{color:#555;font-size:14px;font-weight:500;transition:color .15s;text-decoration:none}
+    .nav-link:hover,.nav-link.active{color:#0bb4aa}
+    .control-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;display:block;margin-bottom:6px}
+    .control-select{background:#fff;border:1px solid #e2e8f0;color:#333;border-radius:8px;padding:8px 12px;font-size:13px;outline:none;width:100%;font-family:inherit}
+    .control-select:focus{border-color:#0bb4aa}
+    .run-btn{background:#0bb4aa;color:#fff;font-weight:700;padding:12px 28px;border-radius:10px;font-size:14px;cursor:pointer;transition:all .15s;border:none;font-family:inherit;width:100%}
+    .run-btn:hover{background:#099990}
+    .run-btn:disabled{opacity:.4;cursor:not-allowed}
+    .match-row{border-bottom:1px solid #f1f5f9;padding:8px 0}
+    .match-row:last-child{border-bottom:none}
+    input[type=number],input[type=text]{background:#fff;border:1px solid #e2e8f0;color:#101010;border-radius:8px;padding:8px 12px;font-size:13px;outline:none;width:100%;font-family:inherit}
+    input:focus{border-color:#0bb4aa;box-shadow:0 0 0 3px rgba(11,180,170,.1)}
+    .tooltip{font-size:11px;color:#aaa;margin-top:4px}
+    #cmf-search-results{position:absolute;top:100%;left:0;right:0;z-index:50;background:#fff;border:1px solid #e2e8f0;border-radius:8px;max-height:260px;overflow-y:auto;margin-top:4px;box-shadow:0 8px 24px rgba(0,0,0,.1)}
+    #cmf-search-results .result-item{padding:10px 14px;cursor:pointer;border-bottom:1px solid #f1f5f9;font-size:12px;color:#333}
+    #cmf-search-results .result-item:hover{background:#f0fdfc}
+    #cmf-search-results .result-item:last-child{border-bottom:none}
+  </style>
+</head>
+<body class="min-h-screen">
+
+<nav style="background:#fff;border-bottom:1px solid #e2e8f0;position:sticky;top:0;z-index:50">
+  <div class="max-w-7xl mx-auto px-6 flex items-center justify-between" style="height:60px">
+    <a href="index.html" style="font-weight:800;font-size:18px;color:#101010;text-decoration:none;letter-spacing:-0.5px">
+      CMF <span style="color:#0bb4aa">Atlas</span>
+    </a>
+    <div class="flex items-center gap-7">
+      <a href="index.html" class="nav-link">Home</a>
+      <a href="browse.html" class="nav-link">Browse</a>
+      <a href="explorer.html" class="nav-link active">Explorer</a>
+      <a href="conservative-test.html" class="nav-link">Conservative Test</a>
+      <a href="about.html" class="nav-link">About</a>
+    </div>
+  </div>
+</nav>
+
+<div style="background:linear-gradient(135deg,#f0fdfc 0%,#fff 60%);border-bottom:1px solid #e2e8f0;padding:28px 0 20px">
+  <div class="max-w-7xl mx-auto px-6">
+    <h1 style="font-size:1.8rem;font-weight:800;color:#101010;margin-bottom:4px;letter-spacing:-0.5px">Matrix Walk Explorer</h1>
+    <p style="font-size:13px;color:#666;max-width:600px">Select a CMF with polynomial form f(x,y), choose walk depth, and observe numerical convergence. Partial products are compared against 20+ known mathematical constants.</p>
+  </div>
+</div>
+
+<div class="max-w-7xl mx-auto px-6 py-8">
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+    <!-- Controls -->
+    <div class="space-y-4">
+      <div class="card p-5">
+        <h2 style="font-size:13px;font-weight:700;color:#101010;margin-bottom:16px">Configuration</h2>
+
+        <!-- CMF selector -->
+        <div class="mb-4">
+          <label class="control-label">CMF Entry</label>
+          <div style="position:relative">
+            <input type="text" id="cmf-search" placeholder="Search by ID, f(x,y), constant…" autocomplete="off"/>
+            <div id="cmf-search-results" class="hidden"></div>
+          </div>
+          <div class="tooltip mt-1" id="selected-cmf-info" style="font-size:11px;color:#aaa;margin-top:4px">No CMF selected</div>
+        </div>
+
+        <div class="mb-4">
+          <label class="control-label">Walk Depth</label>
+          <select id="depth" class="control-select">
+            <option value="100">100 steps</option>
+            <option value="200">200 steps</option>
+            <option value="500">500 steps</option>
+          </select>
+        </div>
+
+        <div class="mb-4">
+          <label class="control-label">Fixed m (row parameter)</label>
+          <select id="m_fixed" class="control-select">
+            <option value="0">m = 0</option>
+            <option value="1">m = 1</option>
+            <option value="2">m = 2</option>
+            <option value="3">m = 3</option>
+            <option value="5">m = 5</option>
+            <option value="10">m = 10</option>
+          </select>
+          <div class="tooltip">Walk along K₁(0,m), K₁(1,m), … with m fixed</div>
+        </div>
+
+        <button id="run-btn" class="run-btn" onclick="runWalk()" disabled>▶ Run Walk</button>
+        <button onclick="resetAll()" style="margin-top:8px;width:100%;border:1px solid #e2e8f0;color:#555;background:#fff;padding:10px;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit">Reset</button>
+      </div>
+
+      <div class="card p-5" id="cmf-detail-card" style="display:none">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:12px">Selected CMF</div>
+        <div id="cmf-detail-content"></div>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div class="lg:col-span-2 space-y-5">
+
+      <div id="status-card" class="card p-4" style="color:#888;font-size:13px">
+        Select a CMF and click <strong style="color:#101010">Run Walk</strong> to begin.
+      </div>
+
+      <div class="card p-5" id="chart-card" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div style="font-size:12px;font-weight:600;color:#333">Convergence</div>
+          <div id="best-estimate-badge" style="font-size:12px;color:#0bb4aa;font-family:monospace;font-weight:600"></div>
+        </div>
+        <canvas id="conv-chart" height="200"></canvas>
+      </div>
+
+      <div class="card p-5" id="matches-card" style="display:none">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:12px">
+          Nearest Known Constants
+          <span style="color:#bbb;font-size:10px;font-weight:400;text-transform:none;letter-spacing:0;margin-left:8px">Numerical proximity only — not a proof of identity</span>
+        </div>
+        <div id="matches-list"></div>
+      </div>
+
+      <div class="card p-5" id="table-card" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888">Last 20 Partial Convergents</div>
+          <div id="conv-rate" style="font-size:11px;color:#888"></div>
+        </div>
+        <div style="overflow-x:auto">
+          <table style="width:100%;font-size:12px;font-family:monospace;border-collapse:collapse">
+            <thead>
+              <tr style="border-bottom:2px solid #e2e8f0;color:#888">
+                <th style="text-align:left;padding:8px 16px 8px 0">Step</th>
+                <th style="text-align:left;padding:8px 16px 8px 0">P[0,1] / P[1,1]</th>
+                <th style="text-align:left;padding:8px 0">Δ from last</th>
+              </tr>
+            </thead>
+            <tbody id="conv-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card p-4" id="method-note" style="display:none;font-size:12px;color:#666;line-height:1.7">
+        <strong style="color:#333">Method:</strong>
+        The walk accumulates \(P_N = K_1(0,m)\cdot K_1(1,m)\cdots K_1(N{-}1,m)\) using 30-digit mpmath arithmetic.
+        Convergents read as \(P_N[0,1] / P_N[1,1]\). Normalized every 20 steps to prevent overflow.
+        Constant comparisons show absolute error only — small error is numerical evidence, not a symbolic identity proof.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = 'https://api.davidvesterlund.com';
+let selectedCmfId = null;
+let chartInstance = null;
+let searchTimeout = null;
+
+function polyToLatex(s) {
+  if (!s) return '';
+  s = s.replace(/\*\*(\d+)/g, (_, e) => `^{${e}}`);
+  s = s.replace(/(-?\d+)\*([a-zA-Z])/g, '$1$2');
+  s = s.replace(/([a-zA-Z\}])\*([a-zA-Z])/g, '$1$2');
+  return s;
+}
+
+// ── CMF search ──────────────────────────────────────────────────────────────
+const searchInput = document.getElementById('cmf-search');
+const searchResults = document.getElementById('cmf-search-results');
+
+searchInput.addEventListener('input', () => {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(doSearch, 250);
+});
+
+searchInput.addEventListener('keydown', e => {
+  if (e.key === 'Escape') searchResults.classList.add('hidden');
+});
+
+document.addEventListener('click', e => {
+  if (!searchInput.contains(e.target) && !searchResults.contains(e.target))
+    searchResults.classList.add('hidden');
+});
+
+async function doSearch() {
+  const q = searchInput.value.trim();
+  if (!q && !isNaN(parseInt(q))) return;
+  try {
+    const params = new URLSearchParams({ limit: 10, has_formula: 'true' });
+    if (q) params.set('q', q);
+    const res = await fetch(`${API}/cmfs/browse?${params}`);
+    const d = await res.json();
+    renderSearchResults(d.items || []);
+  } catch(e) {
+    searchResults.innerHTML = `<div class="result-item text-red-400">Error: ${e.message}</div>`;
+    searchResults.classList.remove('hidden');
+  }
+}
+
+function renderSearchResults(items) {
+  if (!items.length) {
+    searchResults.innerHTML = '<div class="result-item text-slate-500">No walkable CMFs found.</div>';
+    searchResults.classList.remove('hidden');
+    return;
+  }
+  searchResults.innerHTML = items.map(item => `
+    <div class="result-item" onclick="selectCmf(${item.id},'${(item.f_poly||'').replace(/'/g,"\\'")}','${item.primary_constant||''}',${item.dimension})">
+      <span style="color:#0bb4aa;font-weight:700">#${item.id}</span>
+      <span style="color:#888;margin-left:8px">${item.dimension}D</span>
+      <span style="color:#333;margin-left:8px;font-family:monospace;font-size:11px">${(item.f_poly||'').substring(0,50)}</span>
+      ${item.primary_constant ? `<span style="color:#b45309;margin-left:8px">→ ${item.primary_constant}</span>` : ''}
+    </div>
+  `).join('');
+  searchResults.classList.remove('hidden');
+}
+
+function selectCmf(id, fPoly, primaryConst, dim) {
+  selectedCmfId = id;
+  searchInput.value = `CMF #${id} — ${fPoly.substring(0,40)}`;
+  searchResults.classList.add('hidden');
+  document.getElementById('selected-cmf-info').textContent =
+    `Selected: CMF #${id} (${dim}D)${primaryConst ? ' → ' + primaryConst : ''}`;
+  document.getElementById('run-btn').disabled = false;
+
+  const detailCard = document.getElementById('cmf-detail-card');
+  const detailContent = document.getElementById('cmf-detail-content');
+  detailContent.innerHTML = `
+    <div style="font-size:13px;color:#0bb4aa;font-weight:700;margin-bottom:8px">CMF #${id}</div>
+    <div style="font-size:11px;color:#888;margin-bottom:4px">f(x,y):</div>
+    <div style="font-size:13px;color:#333;font-family:monospace;margin-bottom:12px">\\(${polyToLatex(fPoly)}\\)</div>
+    ${primaryConst ? `<div style="font-size:11px;color:#888">Primary constant:</div><div style="color:#b45309;font-weight:600;font-size:13px">${primaryConst}</div>` : ''}
+    <div style="margin-top:12px"><a href="entry.html?id=${id}" style="color:#0bb4aa;font-size:12px;font-weight:600;text-decoration:none">View full entry →</a></div>
+  `;
+  detailCard.style.display = '';
+  if (window.MathJax) MathJax.typesetPromise([detailContent]);
+}
+
+// Pre-load from URL param
+(async () => {
+  const params = new URLSearchParams(window.location.search);
+  const id = params.get('id');
+  if (id) {
+    try {
+      const res = await fetch(`${API}/cmfs/${id}/full`);
+      const d = await res.json();
+      if (d.walk_available) {
+        selectCmf(d.id, d.f_poly, d.primary_constant, d.dimension);
+      } else {
+        document.getElementById('status-card').innerHTML =
+          `<div class="text-amber-400">CMF #${id} has no polynomial form — walk not available.</div>`;
+      }
+    } catch(e) {}
+  } else {
+    // Load a few walkable CMFs for quick selection
+    doSearch();
+  }
+})();
+
+// ── Walk ─────────────────────────────────────────────────────────────────────
+async function runWalk() {
+  if (!selectedCmfId) return;
+  const depth = document.getElementById('depth').value;
+  const m_fixed = document.getElementById('m_fixed').value;
+  const btn = document.getElementById('run-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Computing…';
+
+  const statusCard = document.getElementById('status-card');
+  statusCard.innerHTML = `<span class="text-violet-400">Running walk: CMF #${selectedCmfId}, depth=${depth}, m=${m_fixed}…</span>`;
+
+  try {
+    const res = await fetch(`${API}/cmfs/${selectedCmfId}/walk?depth=${depth}&m_fixed=${m_fixed}`);
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || `HTTP ${res.status}`);
+    }
+    const d = await res.json();
+    renderResults(d);
+  } catch(e) {
+    statusCard.innerHTML = `<span class="text-red-400">Error: ${e.message}</span>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '▶ Run Walk';
+  }
+}
+
+function renderResults(d) {
+  const finite = d.sequence.filter(s => s.value !== null);
+  const best = d.best_estimate;
+
+  // Status
+  const statusCard = document.getElementById('status-card');
+  statusCard.innerHTML = `
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-size:13px">
+      <span class="badge badge-green">✓ Walk complete</span>
+      <span style="color:#666">CMF #${d.cmf_id} · depth=${d.depth} · m=${d.m_fixed}</span>
+      <span style="color:#666">${finite.length} finite values</span>
+      ${best !== null ? `<span style="color:#0bb4aa;font-family:monospace;font-weight:600">Best estimate: ${best.toPrecision(12)}</span>` : ''}
+      ${d.primary_constant ? `<span class="badge badge-amber">Expected: ${d.primary_constant}</span>` : ''}
+    </div>
+  `;
+
+  // Chart
+  document.getElementById('chart-card').style.display = '';
+  document.getElementById('best-estimate-badge').textContent = best !== null ? `≈ ${best.toPrecision(10)}` : '';
+  const labels = finite.map(s => s.step);
+  const values = finite.map(s => s.value);
+
+  if (chartInstance) chartInstance.destroy();
+  chartInstance = new Chart(document.getElementById('conv-chart'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'P[0,1]/P[1,1]',
+        data: values,
+        borderColor: '#0bb4aa',
+        backgroundColor: 'rgba(11,180,170,0.07)',
+        borderWidth: 2,
+        pointRadius: values.length > 100 ? 0 : 2,
+        pointHoverRadius: 4,
+        tension: 0.1,
+        fill: true,
+      },
+      ...(best !== null ? [{
+        label: 'Best estimate',
+        data: labels.map(() => best),
+        borderColor: '#059669',
+        borderWidth: 1.5,
+        borderDash: [4, 4],
+        pointRadius: 0,
+        fill: false,
+      }] : [])
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      animation: { duration: 300 },
+      plugins: {
+        legend: { labels: { color: '#555', font: { size: 11 } } },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y?.toPrecision(10)}`
+          }
+        }
+      },
+      scales: {
+        x: { ticks: { color: '#888', maxTicksLimit: 10 }, grid: { color: '#f1f5f9' } },
+        y: { ticks: { color: '#888' }, grid: { color: '#f1f5f9' } }
+      }
+    }
+  });
+
+  // Constant matches
+  if (d.constant_matches?.length && best !== null) {
+    document.getElementById('matches-card').style.display = '';
+    document.getElementById('matches-list').innerHTML = d.constant_matches.map((m, i) => {
+      const err = m.log10_abs_error;
+      const clr = err < -8 ? '#059669' : err < -4 ? '#b45309' : '#aaa';
+      const stars = err < -8 ? '★★★' : err < -5 ? '★★☆' : err < -3 ? '★☆☆' : '☆☆☆';
+      return `
+        <div class="match-row" style="display:flex;align-items:center;justify-content:space-between;gap:16px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="color:#f59e0b;font-family:monospace;font-size:11px;width:30px">${stars}</span>
+            <span style="color:#101010;font-weight:600;font-size:13px">${m.name}</span>
+            <span style="color:#888;font-family:monospace;font-size:11px">= ${m.constant?.toFixed(8)}</span>
+          </div>
+          <span style="color:${clr};font-family:monospace;font-size:11px">|err| = 10<sup>${err}</sup></span>
+        </div>`;
+    }).join('');
+  }
+
+  // Table (last 20 + earlier sample)
+  document.getElementById('table-card').style.display = '';
+  const last20 = finite.slice(-20);
+  const tbody = document.getElementById('conv-table-body');
+  tbody.innerHTML = last20.map((s, i) => {
+    const delta = i > 0 && last20[i-1].value !== null
+      ? (s.value - last20[i-1].value).toExponential(2)
+      : '—';
+    const deltaClass = i > 0
+      ? (Math.abs(s.value - (last20[i-1]?.value||0)) < Math.abs((last20[i-1]?.value||0) - (last20[i-2]?.value||0))
+         ? 'text-emerald-600' : 'text-slate-500')
+      : 'text-slate-600';
+    return `
+      <tr style="border-bottom:1px solid #f1f5f9">
+        <td style="padding:6px 16px 6px 0;color:#888">${s.step}</td>
+        <td style="padding:6px 16px 6px 0;color:#333">${s.value?.toPrecision(14)}</td>
+        <td style="padding:6px 0;color:${deltaClass==='text-emerald-600'?'#059669':'#aaa'}">${delta}</td>
+      </tr>`;
+  }).join('');
+
+  if (d.conv_rate_log10_per_step !== null) {
+    document.getElementById('conv-rate').textContent =
+      `Convergence rate ≈ 10^${d.conv_rate_log10_per_step} per step`;
+  }
+
+  document.getElementById('method-note').style.display = '';
+  if (window.MathJax) MathJax.typesetPromise([document.getElementById('method-note')]);
+}
+
+function resetAll() {
+  selectedCmfId = null;
+  searchInput.value = '';
+  document.getElementById('selected-cmf-info').textContent = 'No CMF selected';
+  document.getElementById('run-btn').disabled = true;
+  document.getElementById('cmf-detail-card').style.display = 'none';
+  document.getElementById('status-card').innerHTML = 'Select a CMF and click <strong style="color:#101010">Run Walk</strong> to begin.';
+  document.getElementById('chart-card').style.display = 'none';
+  document.getElementById('matches-card').style.display = 'none';
+  document.getElementById('table-card').style.display = 'none';
+  document.getElementById('method-note').style.display = 'none';
+  if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+  doSearch();
+}
+</script>
+</body>
+</html>

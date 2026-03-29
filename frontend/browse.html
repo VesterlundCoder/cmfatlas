@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Browse — CMF Atlas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{fontFamily:{sans:['Inter','sans-serif']}}}}</script>
+  <script>window.MathJax={tex:{inlineMath:[['\\(','\\)']],displayMath:[['\\[','\\]']]},options:{skipHtmlTags:['script','noscript','style','textarea','pre']}};</script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+  <style>
+    *{font-family:'Inter',sans-serif}
+    body{background:#fff;color:#101010}
+    .card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+    .badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:9999px;font-size:11px;font-weight:600;letter-spacing:.03em}
+    .badge-teal{background:#e0faf8;color:#0bb4aa;border:1px solid #b2ede9}
+    .badge-green{background:#e6f9f0;color:#059669;border:1px solid #a7f3d0}
+    .badge-amber{background:#fef9e7;color:#b45309;border:1px solid #fcd34d}
+    .badge-grey{background:#f1f5f9;color:#64748b;border:1px solid #cbd5e1}
+    .badge-violet{background:#f3f0ff;color:#7c3aed;border:1px solid #c4b5fd}
+    .nav-link{color:#555;font-size:14px;font-weight:500;transition:color .15s;text-decoration:none}
+    .nav-link:hover,.nav-link.active{color:#0bb4aa}
+    .entry-row{border-bottom:1px solid #e2e8f0;transition:background .1s}
+    .entry-row:hover{background:#f0fdfc}
+    input[type=text]{background:#fff;border:1px solid #e2e8f0;color:#101010;border-radius:8px;padding:9px 14px;font-size:13px;outline:none;width:100%;transition:border-color .15s}
+    input[type=text]:focus{border-color:#0bb4aa;box-shadow:0 0 0 3px rgba(11,180,170,.1)}
+    select{background:#fff;border:1px solid #e2e8f0;color:#333;border-radius:8px;padding:8px 10px;font-size:13px;outline:none;cursor:pointer;transition:border-color .15s}
+    select:focus{border-color:#0bb4aa}
+    .page-btn{background:#fff;border:1px solid #e2e8f0;color:#555;padding:5px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-family:inherit;transition:all .15s}
+    .page-btn:hover{border-color:#0bb4aa;color:#0bb4aa}
+    .page-btn.active-page{background:#0bb4aa;color:#fff;border-color:#0bb4aa}
+  </style>
+</head>
+<body class="min-h-screen">
+
+<!-- Navigation -->
+<nav style="background:#fff;border-bottom:1px solid #e2e8f0;position:sticky;top:0;z-index:50">
+  <div class="max-w-7xl mx-auto px-6 flex items-center justify-between" style="height:60px">
+    <a href="index.html" style="font-weight:800;font-size:18px;color:#101010;text-decoration:none;letter-spacing:-0.5px">
+      CMF <span style="color:#0bb4aa">Atlas</span>
+    </a>
+    <div class="flex items-center gap-7">
+      <a href="index.html" class="nav-link">Home</a>
+      <a href="browse.html" class="nav-link active">Browse</a>
+      <a href="explorer.html" class="nav-link">Explorer</a>
+      <a href="conservative-test.html" class="nav-link">Conservative Test</a>
+      <a href="about.html" class="nav-link">About</a>
+    </div>
+  </div>
+</nav>
+
+<!-- Page header -->
+<div style="background:linear-gradient(135deg,#f0fdfc 0%,#fff 60%);border-bottom:1px solid #e2e8f0;padding:32px 0 24px">
+  <div class="max-w-7xl mx-auto px-6">
+    <h1 style="font-size:1.8rem;font-weight:800;color:#101010;margin-bottom:4px;letter-spacing:-0.5px">Browse CMF Atlas</h1>
+    <p style="font-size:13px;color:#888" id="total-label">Loading…</p>
+  </div>
+</div>
+
+<div class="max-w-7xl mx-auto px-6 py-8">
+
+  <!-- Filters -->
+  <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:20px;margin-bottom:20px;box-shadow:0 2px 8px rgba(0,0,0,.05)">
+    <div class="flex flex-wrap gap-4 items-end">
+      <div style="flex:1;min-width:220px">
+        <label style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:6px">Search</label>
+        <input type="text" id="q" placeholder="f(x,y), fingerprint, constant, definition…"/>
+      </div>
+      <div>
+        <label style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:6px">Dimension</label>
+        <select id="dimension">
+          <option value="">All (2D+)</option>
+          <option value="2">2D only</option>
+          <option value="3">3D only</option>
+          <option value="4">4D only</option>
+          <option value="5">5D only</option>
+          <option value="7">7D only</option>
+        </select>
+      </div>
+      <div>
+        <label style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:6px">Degree</label>
+        <select id="degree">
+          <option value="">All</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+          <option value="6">6</option>
+          <option value="8">8</option>
+        </select>
+      </div>
+      <div>
+        <label style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:6px">Certification</label>
+        <select id="certification">
+          <option value="">All</option>
+          <option value="A_certified">A — Certified</option>
+          <option value="B_verified_numeric">B — Numeric</option>
+          <option value="C_scouting">C — Scouting</option>
+        </select>
+      </div>
+      <div>
+        <label style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:6px">Source</label>
+        <select id="source_type">
+          <option value="">All</option>
+          <option value="pfq">pFq (RamanujanTools)</option>
+          <option value="known_family">Known family</option>
+          <option value="telescope">Telescope</option>
+          <option value="targeted_2d">Targeted 2D</option>
+          <option value="euler2ai">Euler2AI</option>
+          <option value="cmf_hunter">CMF Hunter</option>
+          <option value="verified_2d">Verified 2D</option>
+        </select>
+      </div>
+      <div>
+        <label style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:6px">Formula</label>
+        <select id="has_formula">
+          <option value="">All</option>
+          <option value="true">Has f(x,y)</option>
+          <option value="false">No formula</option>
+        </select>
+      </div>
+      <div>
+        <label style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:6px">Per page</label>
+        <select id="limit">
+          <option value="25">25</option>
+          <option value="50" selected>50</option>
+          <option value="100">100</option>
+        </select>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="search(0)" style="background:#0bb4aa;color:#fff;font-weight:600;padding:9px 20px;border-radius:8px;font-size:13px;border:none;cursor:pointer;font-family:inherit">Search</button>
+        <button onclick="clearFilters()" style="border:1px solid #e2e8f0;color:#555;background:#fff;padding:9px 16px;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit">Clear</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Results table -->
+  <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.05);margin-bottom:16px">
+    <div style="overflow-x:auto">
+      <table style="width:100%;font-size:13px;border-collapse:collapse;min-width:860px">
+        <thead>
+          <tr style="border-bottom:2px solid #e2e8f0;background:#f9fafb">
+            <th style="text-align:left;padding:12px 14px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#888">ID</th>
+            <th style="text-align:left;padding:12px 14px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#888">Dim</th>
+            <th style="text-align:left;padding:12px 14px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#888">Deg</th>
+            <th style="text-align:left;padding:12px 14px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#888;min-width:200px">f(x,y) / Type</th>
+            <th style="text-align:left;padding:12px 14px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#888">Constant</th>
+            <th style="text-align:left;padding:12px 14px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#888">Cert</th>
+            <th style="text-align:left;padding:12px 14px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#888">Source</th>
+            <th style="text-align:left;padding:12px 14px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#888">Walk</th>
+            <th style="padding:12px 14px"></th>
+          </tr>
+        </thead>
+        <tbody id="results-tbody">
+          <tr><td colspan="9" style="padding:40px;text-align:center;color:#aaa">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Pagination -->
+  <div class="flex items-center justify-between flex-wrap gap-3">
+    <div style="font-size:13px;color:#888" id="page-info"></div>
+    <div class="flex gap-2 flex-wrap" id="pagination"></div>
+  </div>
+</div>
+
+<script>
+const API = 'https://api.davidvesterlund.com';
+let currentOffset = 0;
+let totalCount = 0;
+
+function polyToLatex(s) {
+  if (!s) return '';
+  s = s.replace(/\*\*(\d+)/g, (_, e) => `^{${e}}`);
+  s = s.replace(/(-?\d+)\*([a-zA-Z])/g, '$1$2');
+  s = s.replace(/([a-zA-Z\}])\*([a-zA-Z])/g, '$1$2');
+  return s;
+}
+
+function certBadge(c) {
+  if (!c) return '<span style="color:#bbb">—</span>';
+  const map = {
+    'A_certified':'<span class="badge badge-green">A</span>',
+    'B_verified_numeric':'<span class="badge badge-teal">B</span>',
+    'C_scouting':'<span class="badge badge-amber">C</span>',
+  };
+  return map[c] || `<span class="badge badge-grey">${c.split('_')[0]}</span>`;
+}
+
+function dimBadge(d) {
+  const colors = {2:'badge-teal',3:'badge-violet',4:'badge-amber'};
+  const cls = colors[d] || 'badge-grey';
+  return `<span class="badge ${cls}">${d}D</span>`;
+}
+
+function buildUrl(offset) {
+  const params = new URLSearchParams();
+  const q = document.getElementById('q').value.trim();
+  const dim = document.getElementById('dimension').value;
+  const deg = document.getElementById('degree').value;
+  const cert = document.getElementById('certification').value;
+  const src = document.getElementById('source_type').value;
+  const hf = document.getElementById('has_formula').value;
+  const lim = document.getElementById('limit').value;
+  params.set('offset', offset);
+  params.set('limit', lim);
+  if (q) params.set('q', q);
+  if (dim) params.set('dimension', dim);
+  if (deg) params.set('degree', deg);
+  if (cert) params.set('certification', cert);
+  if (src) params.set('source_type', src);
+  if (hf) params.set('has_formula', hf);
+  return `${API}/cmfs/browse?${params}`;
+}
+
+async function search(offset) {
+  currentOffset = offset;
+  const tbody = document.getElementById('results-tbody');
+  tbody.innerHTML = '<tr><td colspan="9" style="padding:40px;text-align:center;color:#aaa">Loading…</td></tr>';
+
+  try {
+    const res = await fetch(buildUrl(offset));
+    const d = await res.json();
+    totalCount = d.total;
+    const lim = parseInt(document.getElementById('limit').value);
+
+    document.getElementById('total-label').textContent = `${totalCount.toLocaleString()} entries found`;
+
+    if (!d.items?.length) {
+      tbody.innerHTML = '<tr><td colspan="9" style="padding:40px;text-align:center;color:#aaa">No results found.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = d.items.map(item => {
+      const fp = item.f_poly
+        ? `<span style="font-size:12px;color:#333">\\(${polyToLatex(item.f_poly)}\\)</span>`
+        : `<span style="font-size:11px;color:#aaa;font-style:italic">${item.series_name||item.generator_type||'—'}</span>`;
+      const pc = item.primary_constant
+        ? `<span style="color:#b45309;font-weight:500">${item.primary_constant}</span>`
+        : '<span style="color:#bbb">—</span>';
+      const walkable = item.has_formula
+        ? `<a href="explorer.html?id=${item.id}" style="color:#0bb4aa;font-size:12px;font-weight:600;text-decoration:none">▶ Run</a>`
+        : '<span style="color:#ccc;font-size:12px">—</span>';
+      return `
+        <tr class="entry-row">
+          <td style="padding:11px 14px;font-family:monospace;font-size:12px;color:#0bb4aa;font-weight:700">#${item.id}</td>
+          <td style="padding:11px 14px">${dimBadge(item.dimension)}</td>
+          <td style="padding:11px 14px;font-size:12px;color:#888">${item.degree||'—'}</td>
+          <td style="padding:11px 14px;max-width:220px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${fp}</td>
+          <td style="padding:11px 14px;font-size:12px">${pc}</td>
+          <td style="padding:11px 14px">${certBadge(item.certification_level)}</td>
+          <td style="padding:11px 14px;font-size:11px;color:#888">${(item.generator_type||'').replace(/_/g,' ')}</td>
+          <td style="padding:11px 14px">${walkable}</td>
+          <td style="padding:11px 14px"><a href="entry.html?id=${item.id}" style="color:#0bb4aa;font-size:12px;font-weight:600;text-decoration:none;white-space:nowrap">View →</a></td>
+        </tr>`;
+    }).join('');
+
+    if (window.MathJax) MathJax.typesetPromise([tbody]);
+
+    const pages = Math.ceil(totalCount / lim);
+    const currentPage = Math.floor(offset / lim);
+    document.getElementById('page-info').textContent =
+      `Showing ${offset + 1}–${Math.min(offset + lim, totalCount)} of ${totalCount.toLocaleString()}`;
+
+    let btns = '';
+    const start = Math.max(0, currentPage - 2);
+    const end = Math.min(pages - 1, currentPage + 2);
+    if (currentPage > 0) btns += `<button class="page-btn" onclick="search(${(currentPage-1)*lim})">‹ Prev</button>`;
+    for (let p = start; p <= end; p++) {
+      btns += `<button class="page-btn ${p===currentPage?'active-page':''}" onclick="search(${p*lim})">${p+1}</button>`;
+    }
+    if (currentPage < pages - 1) btns += `<button class="page-btn" onclick="search(${(currentPage+1)*lim})">Next ›</button>`;
+    document.getElementById('pagination').innerHTML = btns;
+
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="9" style="padding:40px;text-align:center;color:#e53e3e;font-size:12px">API error: ${e.message}</td></tr>`;
+  }
+}
+
+function clearFilters() {
+  ['q','dimension','degree','certification','source_type','has_formula'].forEach(id => {
+    const el = document.getElementById(id);
+    el.value = '';
+  });
+  document.getElementById('limit').value = '50';
+  search(0);
+}
+
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('dimension')) document.getElementById('dimension').value = urlParams.get('dimension');
+if (urlParams.get('has_formula')) document.getElementById('has_formula').value = urlParams.get('has_formula');
+if (urlParams.get('certification')) document.getElementById('certification').value = urlParams.get('certification');
+if (urlParams.get('source_type')) document.getElementById('source_type').value = urlParams.get('source_type');
+
+document.getElementById('q').addEventListener('keyup', e => { if (e.key === 'Enter') search(0); });
+search(0);
+</script>
+</body>
+</html>

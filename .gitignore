@@ -1,0 +1,21 @@
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+.DS_Store
+
+# Keep atlas_2d.db (published DB), exclude the full one
+data/atlas.db
+data/gap_fill_results.json
+data/ml_hits_verification.json
+data/smart_gap_fill_results.json
+data/targeted_results.json
+data/truly_2d_verification.json
+data/verified_2d_catalog.json
+
+# Logs and experiments
+experiments_gen2/
+*.log
+deploy/
