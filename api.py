@@ -994,21 +994,22 @@ def _compute_matrices(f_poly: str, fbar_poly: str, canonical_payload: dict) -> l
             x, y, z_s = _sp.symbols("x y z")
             g    = _sympify(f_poly).subs([(x, k), (y, m), (z_s, n_s)])
             gbar = _sympify(fbar_poly).subs([(x, k), (y, m), (z_s, n_s)])
-            b_k  = _expand(g.subs([(m, 0), (n_s, 0)]) * gbar.subs([(m, 0), (n_s, 0)]))
-            b_k1 = _expand(b_k.subs(k, k + 1))
+            # b(k,n) = g(k,0,n)*gbar(k,0,n) — keep n live (same as _build_walk_fns)
+            b_kn  = _expand(g.subs(m, 0) * gbar.subs(m, 0))
+            b_kn1 = _expand(b_kn.subs(k, k + 1))
             a_kmn = _expand(g - gbar.subs(k, k + 1))
             return [
                 {
                     "index": 1, "label": "K_x", "axis": "k", "source": "computed",
-                    "rows": [["0", "1"], [_sp.latex(b_k1), _sp.latex(a_kmn)]],
+                    "rows": [["0", "1"], [_sp.latex(b_kn1), _sp.latex(a_kmn)]],
                 },
                 {
                     "index": 2, "label": "K_y", "axis": "m", "source": "computed",
-                    "rows": [[_sp.latex(gbar), "1"], [_sp.latex(b_k), _sp.latex(g)]],
+                    "rows": [[_sp.latex(gbar), "1"], [_sp.latex(b_kn), _sp.latex(g)]],
                 },
                 {
                     "index": 3, "label": "K_z", "axis": "n", "source": "computed",
-                    "rows": [[_sp.latex(gbar), "1"], [_sp.latex(b_k), _sp.latex(g)]],
+                    "rows": [[_sp.latex(gbar), "1"], [_sp.latex(b_kn), _sp.latex(g)]],
                 },
             ]
         k, m = _sp.symbols("k m", integer=True)
@@ -1285,12 +1286,25 @@ def walk_cmf(
         P = mpmath.eye(2)
         sequence = []
 
-        for step in range(depth):
+        # For 3D CMFs: b(k,n)=g(k,0,n)*gbar(k,0,n) has roots at small k (when fbar has
+        # falling-factorial factors). Skip degenerate steps where Kx[1,0]≈0.
+        k_start = 0
+        if is_3d:
+            for _k in range(30):
+                try:
+                    _b = abs(float(mpmath.re(Kx_fn(_k, 0, n_fixed)[1, 0])))
+                    if _b > 1e-10:
+                        k_start = max(0, _k - 1)
+                        break
+                except Exception:
+                    pass
+
+        for _iter, step in enumerate(range(k_start, k_start + depth)):
             try:
                 K = Kx_fn(step, m_fixed, n_fixed)
                 P = P * K
-                # Normalize every 20 steps to prevent overflow
-                if (step + 1) % 20 == 0:
+                # Normalize every 20 iterations to prevent overflow
+                if (_iter + 1) % 20 == 0:
                     scale = max(abs(float(mpmath.re(P[0, 0]))),
                                 abs(float(mpmath.re(P[0, 1]))), 1e-300)
                     P = P / scale
@@ -1331,6 +1345,7 @@ def walk_cmf(
         return {
             "cmf_id":          cmf_id,
             "depth":           depth,
+            "k_start":         k_start,
             "m_fixed":         m_fixed,
             "n_fixed":         n_fixed,
             "is_3d":           is_3d,
