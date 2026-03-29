@@ -798,14 +798,17 @@ def _compute_matrices(f_poly: str, fbar_poly: str, canonical_payload: dict) -> l
         subs_k = ["₁","₂","₃","₄","₅","₆","₇","₈","₉","₁₀","₁₁"]
         for i, (axis, mat_str) in enumerate(explicit.items()):
             try:
-                import ast
-                rows_raw = ast.literal_eval(mat_str)
+                _sym_ns = {s: _sp.Symbol(s) for s in "abcdefghijklmnopqrstuvwxyz"}
+                _sym_ns.update({f"x{j}": _sp.Symbol(f"x{j}") for j in range(5)})
+                _sym_ns.update({f"y{j}": _sp.Symbol(f"y{j}") for j in range(3)})
+                _sym_ns.update({f"c{j}": _sp.Symbol(f"c{j}") for j in range(5)})
+                rows_raw = eval(mat_str, {"__builtins__": {}}, _sym_ns)  # noqa: S307
                 rows_latex = []
                 for row in rows_raw:
                     row_l = []
                     for e in row:
                         try:
-                            row_l.append(_sp.latex(_sympify(str(e))))
+                            row_l.append(_sp.latex(_sp.simplify(e)))
                         except Exception:
                             row_l.append(str(e))
                     rows_latex.append(row_l)
