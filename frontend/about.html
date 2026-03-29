@@ -63,6 +63,31 @@
 
 <div class="max-w-4xl mx-auto px-6 py-10 space-y-8">
 
+  <!-- Disclaimer & Project Status -->
+  <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:12px;padding:28px">
+    <div class="flex items-center gap-3" style="margin-bottom:16px">
+      <span style="background:#fef3c7;color:#b45309;border:1px solid #fcd34d;padding:3px 12px;border-radius:9999px;font-size:11px;font-weight:700;letter-spacing:.05em">BETA</span>
+      <h2 style="margin-bottom:0;color:#92400e">Disclaimer &amp; Project Status</h2>
+    </div>
+    <h3 style="color:#92400e">Beta Version &amp; Research Goals</h3>
+    <p style="color:#78350f">The CMF Atlas is currently in its beta stage. This platform is designed to facilitate mathematical research by making Conservative Matrix Fields (CMF) more accessible to the global community.</p>
+    <h3 style="color:#92400e;margin-top:16px">Ongoing Development &amp; Verification</h3>
+    <p style="color:#78350f">Please be aware that this is a live, ongoing project. Our current efforts are focused on two primary areas:</p>
+    <ul style="color:#78350f;margin:8px 0 12px 20px;line-height:1.9;list-style:disc">
+      <li><strong>Expansion:</strong> We are actively searching for new CMFs, specifically focusing on sets of three or more path-independent 3×3 matrices and beyond.</li>
+      <li><strong>Verification:</strong> We are in the process of systematically verifying all CMFs currently hosted in the database to ensure mathematical rigor.</li>
+    </ul>
+    <h3 style="color:#92400e;margin-top:16px">Feedback &amp; Corrections</h3>
+    <p style="color:#78350f">As this is a work in progress, errors in data may occur. We highly value community involvement — if you identify any discrepancies or bugs, please let us know via the <a href="https://davidvesterlund.com/contact" target="_blank" style="color:#b45309;font-weight:600">Contact Page</a>.</p>
+    <h3 style="color:#92400e;margin-top:16px">Independent Project &amp; Credits</h3>
+    <p style="color:#78350f">This is an independent project dedicated to highlighting the research conducted by the Ramanujan Machine Team. The structures presented here are built upon their discovery of the Conservative Matrix Field.</p>
+    <p style="color:#78350f;margin-bottom:0">For further technical details, please refer to their official resources:</p>
+    <ul style="color:#78350f;margin:8px 0 0 20px;line-height:1.9;list-style:disc">
+      <li><a href="https://www.ramanujanmachine.com/discovered-conservative-matrix-fields/" target="_blank" style="color:#b45309;font-weight:600">The Ramanujan Machine: Discovered Conservative Matrix Fields</a></li>
+      <li><a href="https://arxiv.org/abs/2303.09318" target="_blank" style="color:#b45309;font-weight:600">Research Paper: &ldquo;The Conservative Matrix Field&rdquo; (arXiv:2303.09318)</a></li>
+    </ul>
+  </div>
+
   <!-- What is a CMF -->
   <div class="card p-7">
     <h2>What is a Conservative Matrix Field?</h2>
@@ -208,7 +233,7 @@ GET /cmfs/{id}/full</pre>
 <script>
 async function loadCount() {
   try {
-    const res = await fetch('/stats/detailed');
+    const res = await fetch('https://cmfatlas-production.up.railway.app/stats/detailed');
     const d = await res.json();
     document.getElementById('total-count').textContent = `${d.total_cmfs?.toLocaleString()} entries`;
   } catch(e) {}
