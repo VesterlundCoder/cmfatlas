@@ -854,7 +854,12 @@ def browse_cmfs(
             )
             params["q"] = f"%{q}%"
 
-        where = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
+        # Always exclude hidden CMFs from public browse
+        where_clauses.append(
+            "(json_extract(c.cmf_payload,'$.hidden') IS NULL "
+            "OR json_extract(c.cmf_payload,'$.hidden') = 0)"
+        )
+        where = "WHERE " + " AND ".join(where_clauses)
 
         total = db.execute(text(f"""
             SELECT COUNT(*) FROM cmf c
@@ -1115,6 +1120,128 @@ def get_cmf_full(cmf_id: int):
                 canon,
             ),
         }
+    finally:
+        db.close()
+
+
+@app.get("/cmfs/{cmf_id}/verify-steps", tags=["cmfs"])
+def verify_steps(cmf_id: int):
+    """
+    Return symbolic flatness verification steps as LaTeX for a polynomial CMF.
+    Computes K_x, K_y, the commutator K_x·K_y(k+1) − K_y·K_x(m+1), and checks = 0.
+    No SageMath required — uses sympy only.
+    """
+    db: Session = next(get_db())
+    try:
+        row = db.execute(
+            text("SELECT cmf_payload FROM cmf WHERE id = :id"), {"id": cmf_id}
+        ).fetchone()
+        if not row:
+            raise HTTPException(404, "CMF not found")
+
+        payload  = _safe_json(row[0]) or {}
+        f_poly   = payload.get("f_poly", "").strip()
+        fbar_poly = payload.get("fbar_poly", "").strip()
+
+        if not f_poly or not fbar_poly:
+            raise HTTPException(400, "CMF has no polynomial form — verify-steps only works for polynomial CMFs")
+
+        # Detect parametric (c0, c1, ...)
+        import re as _re
+        _extra = set(_re.findall(r'\b([a-zA-Z][a-zA-Z0-9_]*)\b', f_poly + ' ' + fbar_poly)) \
+                 - set('xyz') - {'True','False','None','and','or','not'}
+        if _extra:
+            raise HTTPException(400, f"Parametric polynomial — free parameters {sorted(_extra)} must be fixed before verifying")
+
+        is_3d = _poly_has_z(f_poly)
+        k, m = _sp.symbols("k m", integer=True, positive=True)
+        x, y = _sp.symbols("x y")
+
+        steps = []
+
+        if not is_3d:
+            g    = _sympify(f_poly).subs([(x, k), (y, m)])
+            gbar = _sympify(fbar_poly).subs([(x, k), (y, m)])
+            b    = _expand(g.subs(m, 0) * gbar.subs(m, 0))
+            b1   = _expand(b.subs(k, k + 1))
+            a    = _expand(g - gbar.subs(k, k + 1))
+
+            steps.append({"label": "Step 1 — Define g and ḡ",
+                "latex": rf"g(k,m) = {_sp.latex(g)}, \quad \bar{{g}}(k,m) = {_sp.latex(gbar)}"})
+            steps.append({"label": "Step 2 — Compute b(k) = g(k,0)·ḡ(k,0)",
+                "latex": rf"b(k) = {_sp.latex(b)}"})
+            steps.append({"label": "Step 3 — Compute a(k,m) = g(k,m) − ḡ(k+1,m)",
+                "latex": rf"a(k,m) = {_sp.latex(a)}"})
+            steps.append({"label": "Step 4 — K matrices",
+                "latex": (
+                    r"K_x(k,m) = \begin{pmatrix}0 & 1\\ b(k+1) & a(k,m)\end{pmatrix}, \quad "
+                    r"K_y(k,m) = \begin{pmatrix}\bar{g}(k,m) & 1\\ b(k) & g(k,m)\end{pmatrix}"
+                )})
+
+            # Compute commutator symbolically
+            K1 = _sp.Matrix([[0, 1], [b1, a]])
+            K2 = _sp.Matrix([[gbar, 1], [b, g]])
+            K2_k1 = K2.subs(k, k + 1)
+            K1_m1 = _sp.Matrix([[0, 1], [b1, a.subs(m, m + 1)]])
+            comm = _sp.simplify(K1 * K2_k1 - K2 * K1_m1)
+
+            steps.append({"label": "Step 5 — Flatness condition to check",
+                "latex": r"K_x(k,m)\cdot K_y(k{+}1,m) - K_y(k,m)\cdot K_x(k,m{+}1) \stackrel{?}{=} 0"})
+
+            is_zero = all(e == 0 for e in comm)
+            if is_zero:
+                steps.append({"label": "Step 6 — Result",
+                    "latex": r"= \mathbf{0} \quad \checkmark \text{ proved flat in } \mathbb{Q}[k,m]",
+                    "result": "PASS"})
+            else:
+                nz = {(i,j): _sp.latex(_sp.expand(comm[i,j]))
+                      for i in range(2) for j in range(2) if comm[i,j] != 0}
+                steps.append({"label": "Step 6 — Result",
+                    "latex": r"\neq \mathbf{0} \text{ — non-zero residual}",
+                    "residual": {f"[{i},{j}]": v for (i,j),v in nz.items()},
+                    "result": "FAIL"})
+
+            existing_cert = payload.get("symbolic_verification")
+            return {
+                "cmf_id":    cmf_id,
+                "is_3d":     False,
+                "steps":     steps,
+                "result":    "PASS" if is_zero else "FAIL",
+                "certified": existing_cert is not None,
+                "certified_at": existing_cert.get("verified_at") if existing_cert else None,
+            }
+        else:
+            # 3D — return the theoretical steps but note that no formula is stored
+            n = _sp.symbols("n", integer=True, positive=True)
+            z = _sp.symbols("z")
+            g    = _sympify(f_poly).subs([(x, k), (y, m), (z, n)])
+            gbar = _sympify(fbar_poly).subs([(x, k), (y, m), (z, n)])
+            b    = _expand(g.subs([(m, 0), (n, 0)]) * gbar.subs([(m, 0), (n, 0)]))
+            b1   = _expand(b.subs(k, k + 1))
+            a    = _expand(g - gbar.subs(k, k + 1))
+
+            steps.append({"label": "Step 1 — Define g and ḡ (3D)",
+                "latex": rf"g(k,m,n) = {_sp.latex(g)}, \quad \bar{{g}}(k,m,n) = {_sp.latex(gbar)}"})
+            steps.append({"label": "Step 2 — b(k) = g(k,0,0)·ḡ(k,0,0)",
+                "latex": rf"b(k) = {_sp.latex(b)}"})
+            steps.append({"label": "Step 3 — Three flatness pairs to verify",
+                "latex": (
+                    r"K_x\cdot K_y(k{+}1,m,n) = K_y\cdot K_x(k,m{+}1,n) \quad \text{(Kx/Ky)}\\"
+                    r"K_x\cdot K_z(k{+}1,m,n) = K_z\cdot K_x(k,m,n{+}1) \quad \text{(Kx/Kz)}\\"
+                    r"K_y\cdot K_z(k,m{+}1,n) = K_z\cdot K_y(k,m,n{+}1) \quad \text{(Ky/Kz)}"
+                )})
+            steps.append({"label": "Note",
+                "latex": r"\text{3D CMF Hunter entries use internal matrices not stored in the Atlas — symbolic certificate not yet available}",
+                "result": "PENDING"})
+
+            return {
+                "cmf_id": cmf_id,
+                "is_3d":  True,
+                "steps":  steps,
+                "result": "PENDING",
+                "certified": False,
+                "certified_at": None,
+            }
     finally:
         db.close()
 
