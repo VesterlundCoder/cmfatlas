@@ -790,6 +790,87 @@ def get_cmf(cmf_id: int):
         db.close()
 
 
+def _compute_matrices(f_poly: str, fbar_poly: str, canonical_payload: dict) -> list:
+    """Return list of K-matrix dicts with LaTeX entries."""
+    explicit = canonical_payload.get("matrices")
+    if explicit and isinstance(explicit, dict):
+        result = []
+        subs_k = ["₁","₂","₃","₄","₅","₆","₇","₈","₉","₁₀","₁₁"]
+        for i, (axis, mat_str) in enumerate(explicit.items()):
+            try:
+                import ast
+                rows_raw = ast.literal_eval(mat_str)
+                rows_latex = []
+                for row in rows_raw:
+                    row_l = []
+                    for e in row:
+                        try:
+                            row_l.append(_sp.latex(_sympify(str(e))))
+                        except Exception:
+                            row_l.append(str(e))
+                    rows_latex.append(row_l)
+                result.append({
+                    "index": i + 1,
+                    "label": f"K{subs_k[i] if i < len(subs_k) else str(i+1)}",
+                    "axis": axis,
+                    "source": "explicit",
+                    "rows": rows_latex,
+                })
+            except Exception:
+                continue
+        return result
+
+    if not f_poly or not fbar_poly:
+        return []
+
+    try:
+        k, m = _sp.symbols("k m", integer=True)
+        x, y = _sp.symbols("x y")
+        g    = _sympify(f_poly).subs([(x, k), (y, m)])
+        gbar = _sympify(fbar_poly).subs([(x, k), (y, m)])
+        b_k  = _expand(g.subs(m, 0) * gbar.subs(m, 0))
+        b_k1 = _expand(b_k.subs(k, k + 1))
+        a_km = _expand(g - gbar.subs(k, k + 1))
+        return [
+            {
+                "index": 1, "label": "K₁", "axis": "k", "source": "computed",
+                "rows": [["0", "1"], [_sp.latex(b_k1), _sp.latex(a_km)]],
+            },
+            {
+                "index": 2, "label": "K₂", "axis": "m", "source": "computed",
+                "rows": [[_sp.latex(gbar), "1"], [_sp.latex(b_k), _sp.latex(g)]],
+            },
+        ]
+    except Exception:
+        return []
+
+
+@app.get("/cmfs/{cmf_id}/matrices", tags=["cmfs"])
+def get_cmf_matrices(cmf_id: int):
+    """Return computed K-matrix entries (LaTeX) for a CMF."""
+    db: Session = next(get_db())
+    try:
+        row = db.execute(text("""
+            SELECT c.cmf_payload, r.canonical_payload
+            FROM cmf c JOIN representation r ON r.id = c.representation_id
+            WHERE c.id = :id
+        """), {"id": cmf_id}).fetchone()
+        if not row:
+            raise HTTPException(404, "CMF not found")
+        payload = _safe_json(row[0]) or {}
+        canon   = _safe_json(row[1]) or {}
+        matrices = _compute_matrices(
+            payload.get("f_poly", ""),
+            payload.get("fbar_poly", ""),
+            canon,
+        )
+        if not matrices:
+            raise HTTPException(404, "No matrix representation available for this CMF")
+        return {"cmf_id": cmf_id, "matrices": matrices}
+    finally:
+        db.close()
+
+
 @app.get("/cmfs/{cmf_id}/full", tags=["cmfs"])
 def get_cmf_full(cmf_id: int):
     """Full CMF details with joined representation, features, and series."""
@@ -845,6 +926,11 @@ def get_cmf_full(cmf_id: int):
             },
             "features":        feats,
             "walk_available":  bool(payload.get("f_poly")),
+            "matrices": _compute_matrices(
+                payload.get("f_poly", ""),
+                payload.get("fbar_poly", ""),
+                canon,
+            ),
         }
     finally:
         db.close()
