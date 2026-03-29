@@ -232,18 +232,19 @@ def _build_walk_fns(f_poly_str: str, fbar_poly_str: str):
     is_3d     = _poly_has_z(f_poly_str)
 
     if is_3d:
-        n_s, z_s = _sym("n z")
-        g_kmn    = f_expr.subs([(x_s, k_s), (y_s, m_s), (z_s, n_s)])
-        gbar_kmn = fbar_expr.subs([(x_s, k_s), (y_s, m_s), (z_s, n_s)])
-        # b(k,n) = g(k,0,n)*gbar(k,0,n) — keep n live so b≠0 for CMF Hunter 3D entries
-        # (g(k,0,0) = 0 for polynomials like (x+y)^4 * z*(z+1)*... so n=0 is always degenerate)
-        b_kn_expr = _expand(g_kmn.subs(m_s, 0) * gbar_kmn.subs(m_s, 0))
-        a_expr    = _expand(g_kmn - gbar_kmn.subs(k_s, k_s + 1))
+        # Keep z_s live — do NOT rename z→n.  lambdify over z directly;
+        # callers pass n_fixed as the positional z argument.
+        z_s = _sym("z")
+        g_kmz    = f_expr.subs([(x_s, k_s), (y_s, m_s)])
+        gbar_kmz = fbar_expr.subs([(x_s, k_s), (y_s, m_s)])
+        # b(k,z) = g(k,0,z)*gbar(k,0,z)
+        b_kz_expr = _expand(g_kmz.subs(m_s, 0) * gbar_kmz.subs(m_s, 0))
+        a_expr    = _expand(g_kmz - gbar_kmz.subs(k_s, k_s + 1))
 
-        g_fn    = _lambdify([k_s, m_s, n_s], g_kmn,     modules="mpmath")
-        gbar_fn = _lambdify([k_s, m_s, n_s], gbar_kmn,  modules="mpmath")
-        b_fn    = _lambdify([k_s, n_s],       b_kn_expr, modules="mpmath")
-        a_fn    = _lambdify([k_s, m_s, n_s],  a_expr,    modules="mpmath")
+        g_fn    = _lambdify([k_s, m_s, z_s], g_kmz,     modules="mpmath")
+        gbar_fn = _lambdify([k_s, m_s, z_s], gbar_kmz,  modules="mpmath")
+        b_fn    = _lambdify([k_s, z_s],       b_kz_expr, modules="mpmath")
+        a_fn    = _lambdify([k_s, m_s, z_s],  a_expr,    modules="mpmath")
 
         def Kx(k, m, n):
             return mpmath.matrix([[0, 1], [b_fn(k + 1, n), a_fn(k, m, n)]])
@@ -990,26 +991,26 @@ def _compute_matrices(f_poly: str, fbar_poly: str, canonical_payload: dict) -> l
 
     try:
         if _poly_has_z(f_poly):
-            k, m, n_s = _sp.symbols("k m n", integer=True)
+            k, m = _sp.symbols("k m", integer=True)
             x, y, z_s = _sp.symbols("x y z")
-            g    = _sympify(f_poly).subs([(x, k), (y, m), (z_s, n_s)])
-            gbar = _sympify(fbar_poly).subs([(x, k), (y, m), (z_s, n_s)])
-            # b(k,n) = g(k,0,n)*gbar(k,0,n) — keep n live (same as _build_walk_fns)
-            b_kn  = _expand(g.subs(m, 0) * gbar.subs(m, 0))
-            b_kn1 = _expand(b_kn.subs(k, k + 1))
+            g    = _sympify(f_poly).subs([(x, k), (y, m)])
+            gbar = _sympify(fbar_poly).subs([(x, k), (y, m)])
+            # b(k,z) = g(k,0,z)*gbar(k,0,z) — keep z live
+            b_kz  = _expand(g.subs(m, 0) * gbar.subs(m, 0))
+            b_kz1 = _expand(b_kz.subs(k, k + 1))
             a_kmn = _expand(g - gbar.subs(k, k + 1))
             return [
                 {
                     "index": 1, "label": "K_x", "axis": "k", "source": "computed",
-                    "rows": [["0", "1"], [_sp.latex(b_kn1), _sp.latex(a_kmn)]],
+                    "rows": [["0", "1"], [_sp.latex(b_kz1), _sp.latex(a_kmn)]],
                 },
                 {
                     "index": 2, "label": "K_y", "axis": "m", "source": "computed",
-                    "rows": [[_sp.latex(gbar), "1"], [_sp.latex(b_kn), _sp.latex(g)]],
+                    "rows": [[_sp.latex(gbar), "1"], [_sp.latex(b_kz), _sp.latex(g)]],
                 },
                 {
                     "index": 3, "label": "K_z", "axis": "n", "source": "computed",
-                    "rows": [[_sp.latex(gbar), "1"], [_sp.latex(b_kn), _sp.latex(g)]],
+                    "rows": [[_sp.latex(gbar), "1"], [_sp.latex(b_kz), _sp.latex(g)]],
                 },
             ]
         k, m = _sp.symbols("k m", integer=True)
