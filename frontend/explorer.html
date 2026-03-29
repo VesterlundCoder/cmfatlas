@@ -103,7 +103,19 @@
             <option value="5">m = 5</option>
             <option value="10">m = 10</option>
           </select>
-          <div class="tooltip">Walk along K₁(0,m), K₁(1,m), … with m fixed</div>
+          <div class="tooltip">Walk along Kx(step,m,n) with m fixed</div>
+        </div>
+
+        <div class="mb-4" id="n-fixed-row">
+          <label class="control-label">Fixed n <span style="font-size:9px;color:#0bb4aa;background:#e0faf8;padding:1px 5px;border-radius:9999px">3D only</span></label>
+          <select id="n_fixed" class="control-select">
+            <option value="1" selected>n = 1</option>
+            <option value="2">n = 2</option>
+            <option value="3">n = 3</option>
+            <option value="5">n = 5</option>
+            <option value="10">n = 10</option>
+          </select>
+          <div class="tooltip">For 3D CMFs: walk Kx(step,m,n) with both m,n fixed</div>
         </div>
 
         <button id="run-btn" class="run-btn" onclick="runWalk()" disabled>▶ Run Walk</button>
@@ -279,15 +291,16 @@ async function runWalk() {
   if (!selectedCmfId) return;
   const depth = document.getElementById('depth').value;
   const m_fixed = document.getElementById('m_fixed').value;
+  const n_fixed = document.getElementById('n_fixed').value;
   const btn = document.getElementById('run-btn');
   btn.disabled = true;
   btn.textContent = '⏳ Computing…';
 
   const statusCard = document.getElementById('status-card');
-  statusCard.innerHTML = `<span class="text-violet-400">Running walk: CMF #${selectedCmfId}, depth=${depth}, m=${m_fixed}…</span>`;
+  statusCard.innerHTML = `<span style="color:#0bb4aa">Running walk: CMF #${selectedCmfId}, depth=${depth}, m=${m_fixed}…</span>`;
 
   try {
-    const res = await fetch(`${API}/cmfs/${selectedCmfId}/walk?depth=${depth}&m_fixed=${m_fixed}`);
+    const res = await fetch(`${API}/cmfs/${selectedCmfId}/walk?depth=${depth}&m_fixed=${m_fixed}&n_fixed=${n_fixed}`);
     if (!res.ok) {
       const err = await res.json();
       throw new Error(err.detail || `HTTP ${res.status}`);
@@ -311,7 +324,7 @@ function renderResults(d) {
   statusCard.innerHTML = `
     <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-size:13px">
       <span class="badge badge-green">✓ Walk complete</span>
-      <span style="color:#666">CMF #${d.cmf_id} · depth=${d.depth} · m=${d.m_fixed}</span>
+      <span style="color:#666">CMF #${d.cmf_id} · depth=${d.depth} · m=${d.m_fixed}${d.is_3d ? ', n='+d.n_fixed : ''}</span>
       <span style="color:#666">${finite.length} finite values</span>
       ${best !== null ? `<span style="color:#0bb4aa;font-family:monospace;font-weight:600">Best estimate: ${best.toPrecision(12)}</span>` : ''}
       ${d.primary_constant ? `<span class="badge badge-amber">Expected: ${d.primary_constant}</span>` : ''}

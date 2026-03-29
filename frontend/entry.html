@@ -172,6 +172,7 @@ async function loadEntry() {
               <span class="badge badge-teal">${d.dimension}D</span>
               ${certBadge(d.certification_level)}
               ${d.flatness_verified ? '<span class="badge badge-green">✓ Flatness Verified</span>' : ''}
+              ${d.symbolic_verification?.result === 'PASS' ? '<span class="badge" style="background:#dcfce7;color:#15803d;border:1px solid #86efac">🔬 Symbolically Proven</span>' : ''}
               ${hasFormula ? '<span class="badge" style="background:#e0faf8;color:#0bb4aa;border:1px solid #b2ede9">▶ Walkable</span>' : ''}
             </div>
           </div>
@@ -193,14 +194,14 @@ async function loadEntry() {
           <div class="card p-6">
             <div class="section-label">Polynomial Form</div>
             <div style="font-size:1.4rem;text-align:center;padding:16px 0;color:#333">
-              \\[f(x,y) = ${fpL}\\]
+              \\[f(${d.is_3d ? 'x,y,z' : 'x,y'}) = ${fpL}\\]
             </div>
-            ${d.fbar_poly ? `<div style="font-size:1.1rem;text-align:center;color:#666">\\[\\bar{f}(x,y) = ${fbL}\\]</div>` : ''}
+            ${d.fbar_poly ? `<div style="font-size:1.1rem;text-align:center;color:#666">\\[\\bar{f}(${d.is_3d ? 'x,y,z' : 'x,y'}) = ${fbL}\\]</div>` : ''}
             <details style="margin-top:16px">
               <summary style="font-size:12px;color:#888;cursor:pointer">Raw machine syntax</summary>
               <div class="code-block" style="margin-top:8px">
-                <div>f(x,y) = <span style="color:#059669">${d.f_poly}</span></div>
-                ${d.fbar_poly ? `<div>f̄(x,y) = <span style="color:#059669">${d.fbar_poly}</span></div>` : ''}
+                <div>f(${d.is_3d?'x,y,z':'x,y'}) = <span style="color:#059669">${d.f_poly}</span></div>
+                ${d.fbar_poly ? `<div>f̄(${d.is_3d?'x,y,z':'x,y'}) = <span style="color:#059669">${d.fbar_poly}</span></div>` : ''}
               </div>
             </details>
           </div>
@@ -270,6 +271,11 @@ async function loadEntry() {
                 <span style="color:#888">Flatness</span>
                 <span style="color:${d.flatness_verified?'#059669':'#aaa'}">${d.flatness_verified?'✓ Verified':'Not verified'}</span>
               </div>
+              ${d.symbolic_verification ? `
+              <div class="meta-row">
+                <span style="color:#888">Symbolic proof</span>
+                <span style="color:#15803d;font-size:12px">✓ SageMath ${d.symbolic_verification.sage_version?.match(/\d+\.\d+/)?.[0] || ''}</span>
+              </div>` : ''}
               <div class="meta-row">
                 <span style="color:#888">Source</span>
                 <span style="color:#555;font-size:12px">${d.source || '—'}</span>
@@ -309,6 +315,20 @@ async function loadEntry() {
               ${d.features.complexity_score !== undefined ? `<div>Complexity score: <strong style="color:#333">${d.features.complexity_score?.toFixed(3)}</strong></div>` : ''}
               ${d.features.d_finite_rank_proxy !== undefined ? `<div>D-finite rank proxy: <strong style="color:#333">${d.features.d_finite_rank_proxy}</strong></div>` : ''}
               ${d.features.rec_order !== undefined ? `<div>Recurrence order: <strong style="color:#333">${d.features.rec_order}</strong></div>` : ''}
+            </div>
+          </div>
+          ` : ''}
+
+          <!-- Symbolic verification certificate -->
+          ${d.symbolic_verification ? `
+          <div class="card p-5" style="border:1px solid #86efac;background:linear-gradient(135deg,#f0fdf4,#fff)">
+            <div class="section-label" style="color:#15803d">🔬 Symbolic Verification Certificate</div>
+            <div style="font-size:12px;color:#555;line-height:2;margin-top:4px">
+              <div><span style="color:#888">Result:</span> <strong style="color:#15803d">✓ PASS — Flatness proven exactly</strong></div>
+              <div><span style="color:#888">Method:</span> <span style="color:#333">${d.symbolic_verification.mode === 'poly' ? 'Exact polynomial arithmetic in QQ[k,m' + (d.is_3d ? ',n' : '') + ']' : 'simplify_rational() in SR'}</span></div>
+              <div><span style="color:#888">System:</span> <span style="color:#333">SageMath ${d.symbolic_verification.sage_version?.replace('SageMath version ','')?.split(',')[0] || ''}</span></div>
+              <div><span style="color:#888">Verified:</span> <span style="color:#aaa">${d.symbolic_verification.verified_at ? d.symbolic_verification.verified_at.substring(0,10) : '—'}</span></div>
+              <div style="margin-top:6px;font-size:11px;color:#888;font-style:italic">${d.symbolic_verification.detail || ''}</div>
             </div>
           </div>
           ` : ''}

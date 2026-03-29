@@ -124,7 +124,7 @@
           </select>
         </div>
 
-        <div class="mb-5">
+        <div class="mb-4">
           <label class="control-label">m range: 1 … m_max</label>
           <select id="m_max" class="control-select">
             <option value="3">m_max = 3</option>
@@ -132,6 +132,17 @@
             <option value="8">m_max = 8</option>
             <option value="10">m_max = 10</option>
           </select>
+        </div>
+
+        <div class="mb-5" id="n-fixed-row">
+          <label class="control-label">Fixed n <span style="font-size:9px;color:#0bb4aa;background:#e0faf8;padding:1px 5px;border-radius:9999px">3D only</span></label>
+          <select id="n_fixed" class="control-select">
+            <option value="1" selected>n = 1</option>
+            <option value="2">n = 2</option>
+            <option value="3">n = 3</option>
+            <option value="5">n = 5</option>
+          </select>
+          <div style="font-size:11px;color:#aaa;margin-top:4px">For 3D CMFs: Kx/Kz and Ky/Kz tested at this n slice</div>
         </div>
 
         <button id="run-btn" class="run-btn" onclick="runTest()" disabled>▶ Run Test</button>
@@ -176,8 +187,10 @@
           <table style="width:100%;font-size:12px;font-family:monospace;border-collapse:collapse">
             <thead>
               <tr style="border-bottom:2px solid #e2e8f0;color:#888">
+                ${d.is_3d ? '<th style="text-align:left;padding:8px 8px 8px 0">Pair</th>' : ''}
                 <th style="text-align:left;padding:8px 16px 8px 0">k</th>
                 <th style="text-align:left;padding:8px 16px 8px 0">m</th>
+                ${d.is_3d ? '<th style="text-align:left;padding:8px 8px 8px 0">n</th>' : ''}
                 <th style="text-align:left;padding:8px 16px 8px 0">Residual</th>
                 <th style="text-align:left;padding:8px 0">log₁₀</th>
               </tr>
@@ -296,6 +309,7 @@ async function runTest() {
   if (!selectedCmfId) return;
   const k_max = document.getElementById('k_max').value;
   const m_max = document.getElementById('m_max').value;
+  const n_fixed = document.getElementById('n_fixed').value;
   const btn = document.getElementById('run-btn');
   btn.disabled = true;
   btn.textContent = '⏳ Testing…';
@@ -304,7 +318,7 @@ async function runTest() {
     `<span style="color:#0bb4aa">Running conservative test on CMF #${selectedCmfId}…</span>`;
 
   try {
-    const res = await fetch(`${API}/cmfs/${selectedCmfId}/conservative-test?k_max=${k_max}&m_max=${m_max}`);
+    const res = await fetch(`${API}/cmfs/${selectedCmfId}/conservative-test?k_max=${k_max}&m_max=${m_max}&n_fixed=${n_fixed}`);
     if (!res.ok) {
       const err = await res.json();
       throw new Error(err.detail || `HTTP ${res.status}`);
@@ -348,7 +362,8 @@ function renderResults(d) {
   // Status
   document.getElementById('status-card').innerHTML = `
     <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-size:13px">
-      <span style="color:#666">CMF #${d.cmf_id} · grid ${d.k_max}×${d.m_max}</span>
+      ${d.is_3d ? '<span class="badge badge-teal">3D CMF</span>' : ''}
+      <span style="color:#666">CMF #${d.cmf_id} · grid ${d.k_max}×${d.m_max}${d.is_3d ? ' (n='+d.n_fixed+')' : ''}</span>
       <span style="color:#666">${d.test_points.length} points tested</span>
       <span style="color:#0bb4aa;font-family:monospace;font-weight:600">max residual = ${d.max_residual?.toExponential(3)}</span>
     </div>`;
@@ -361,31 +376,49 @@ function renderResults(d) {
     <div style="font-size:12px;color:#888;margin-top:8px;padding:0 4px">${d.note}</div>
   `;
 
-  // Heatmap
+  // Heatmap (2D) or pair tables (3D)
   document.getElementById('heatmap-card').style.display = '';
-  const kVals = [...new Set(d.test_points.map(p => p.k))].sort((a,b)=>a-b);
-  const mVals = [...new Set(d.test_points.map(p => p.m))].sort((a,b)=>a-b);
-  const lookup = {};
-  d.test_points.forEach(p => { lookup[`${p.k}_${p.m}`] = p; });
-
-  let tableHtml = '<table style="border-collapse:separate;border-spacing:4px">';
-  tableHtml += '<tr><td class="grid-cell" style="background:none;border:none;color:#888;font-weight:700">k\\m</td>';
-  mVals.forEach(m => tableHtml += `<td class="grid-cell" style="background:none;border:none;color:#888;font-weight:700">m=${m}</td>`);
-  tableHtml += '</tr>';
-
-  kVals.forEach(k => {
-    tableHtml += `<tr><td class="grid-cell" style="background:none;border:none;color:#888;font-weight:700">k=${k}</td>`;
-    mVals.forEach(m => {
-      const pt = lookup[`${k}_${m}`];
-      const res = pt?.residual;
-      const cls = cellClass(res);
-      const label = res === null ? 'err' : `10^${pt.log10_residual}`;
-      tableHtml += `<td class="grid-cell ${cls}" title="k=${k}, m=${m}: residual=${res?.toExponential(3)||'?'}">${label}</td>`;
+  if (d.is_3d) {
+    const pairs = ['Kx/Ky', 'Kx/Kz', 'Ky/Kz'];
+    let html = '';
+    pairs.forEach(pair => {
+      const pts = d.test_points.filter(p => p.pair === pair);
+      if (!pts.length) return;
+      html += `<div style="margin-bottom:16px"><div style="font-size:11px;font-weight:700;color:#555;margin-bottom:6px">${pair} flatness</div>`;
+      html += '<div style="display:flex;flex-wrap:wrap;gap:4px">';
+      pts.forEach(p => {
+        const cls = cellClass(p.residual);
+        const lbl = p.residual === null ? 'err' : `10^${p.log10_residual}`;
+        html += `<span class="grid-cell ${cls}" style="min-width:64px" title="(${p.k},${p.m},${p.n}): ${p.residual?.toExponential(2)||'?'}">(${p.k},${p.m},${p.n})<br>${lbl}</span>`;
+      });
+      html += '</div></div>';
     });
+    document.getElementById('heatmap-grid').innerHTML = html;
+  } else {
+    const kVals = [...new Set(d.test_points.map(p => p.k))].sort((a,b)=>a-b);
+    const mVals = [...new Set(d.test_points.map(p => p.m))].sort((a,b)=>a-b);
+    const lookup = {};
+    d.test_points.forEach(p => { lookup[`${p.k}_${p.m}`] = p; });
+
+    let tableHtml = '<table style="border-collapse:separate;border-spacing:4px">';
+    tableHtml += '<tr><td class="grid-cell" style="background:none;border:none;color:#888;font-weight:700">k\\m</td>';
+    mVals.forEach(m => tableHtml += `<td class="grid-cell" style="background:none;border:none;color:#888;font-weight:700">m=${m}</td>`);
     tableHtml += '</tr>';
-  });
-  tableHtml += '</table>';
-  document.getElementById('heatmap-grid').innerHTML = tableHtml;
+
+    kVals.forEach(k => {
+      tableHtml += `<tr><td class="grid-cell" style="background:none;border:none;color:#888;font-weight:700">k=${k}</td>`;
+      mVals.forEach(m => {
+        const pt = lookup[`${k}_${m}`];
+        const res = pt?.residual;
+        const cls = cellClass(res);
+        const label = res === null ? 'err' : `10^${pt.log10_residual}`;
+        tableHtml += `<td class="grid-cell ${cls}" title="k=${k}, m=${m}: residual=${res?.toExponential(3)||'?'}">${label}</td>`;
+      });
+      tableHtml += '</tr>';
+    });
+    tableHtml += '</table>';
+    document.getElementById('heatmap-grid').innerHTML = tableHtml;
+  }
   if (window.MathJax) MathJax.typesetPromise([document.getElementById('heatmap-card')]);
 
   // Chart
