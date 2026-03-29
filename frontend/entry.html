@@ -360,7 +360,7 @@ async function loadEntry() {
           ` : ''}
 
           <!-- Symbolic verification / A-certified certificate -->
-          ${d.symbolic_verification || d.certification_level === 'A_certified' ? `
+          ${d.symbolic_verification || d.certification_level === 'A_certified' || d.certification_level === 'A_plus' ? `
           <div class="card p-5" style="border:1px solid #86efac;background:linear-gradient(135deg,#f0fdf4,#fff)">
             <div class="section-label" style="color:#15803d">🔬 Symbolic Verification Certificate</div>
             <div style="font-size:12px;color:#555;line-height:2;margin-top:4px">

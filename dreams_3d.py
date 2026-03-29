@@ -130,6 +130,28 @@ def _compare(val: mpmath.mpf, bank: dict, top: int = 8) -> list[dict]:
 
 
 # ─── polynomial → matrix functions ────────────────────────────────────────────
+def _poly_fast_fn(expr, *sym_list):
+    """Compile a sympy polynomial into a fast Python evaluator via Poly coefficients."""
+    from sympy import Poly, Integer
+    try:
+        p = Poly(expr, *sym_list)
+        monoms = p.monoms()
+        coeffs = [complex(c) for c in p.coeffs()]
+        def fast(*args):
+            acc = 0.0
+            for c, m in zip(coeffs, monoms):
+                t = c
+                for a, e in zip(args, m):
+                    if e:
+                        t *= a ** e
+                acc += t
+            return acc
+        return fast
+    except Exception:
+        # Fallback: lambdify with resolved symbols
+        return lambdify(list(sym_list), expr, modules="math")
+
+
 def _build_walk_fns_3d(f_poly: str, fbar_poly: str):
     """Return (Kx(k,m,n), b_fn(k,n)) for 3D CMF telescope formula."""
     k_s, m_s = symbols("k m")
@@ -147,11 +169,15 @@ def _build_walk_fns_3d(f_poly: str, fbar_poly: str):
     b_kz   = expand(g_kmz.subs(m_s, 0) * gb_kmz.subs(m_s, 0))
     a_expr = expand(g_kmz - gb_kmz.subs(k_s, k_s + 1))
 
+    # Fast evaluators — no sympy overhead per step
+    _b = _poly_fast_fn(b_kz,   k_s, z_sym)
+    _a = _poly_fast_fn(a_expr, k_s, m_s, z_sym)
+
     def b_fn(k_v, z_v):
-        return complex(b_kz.subs([(k_s, k_v), (z_sym, z_v)]))
+        return _b(k_v, z_v)
 
     def a_fn(k_v, m_v, z_v):
-        return complex(a_expr.subs([(k_s, k_v), (m_s, m_v), (z_sym, z_v)]))
+        return _a(k_v, m_v, z_v)
 
     def Kx(k, m, n):
         return mpmath.matrix([[0, 1], [b_fn(k+1, n), a_fn(k, m, n)]])
