@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>CMF Entry — CMF Atlas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{fontFamily:{sans:['Inter','sans-serif']}}}}</script>
+  <script>window.MathJax={tex:{inlineMath:[['\\(','\\)']],displayMath:[['\\[','\\]']]},svg:{fontCache:'global'},options:{skipHtmlTags:['script','noscript','style','textarea']}};</script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+  <style>
+    *{font-family:'Inter',sans-serif}
+    body{background:#fff;color:#101010}
+    .card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+    .card-grey{background:#f2f4f6;border:1px solid #e2e8f0;border-radius:12px}
+    .badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:9999px;font-size:11px;font-weight:600;letter-spacing:.03em}
+    .badge-teal{background:#e0faf8;color:#0bb4aa;border:1px solid #b2ede9}
+    .badge-green{background:#e6f9f0;color:#059669;border:1px solid #a7f3d0}
+    .badge-amber{background:#fef9e7;color:#b45309;border:1px solid #fcd34d}
+    .badge-grey{background:#f1f5f9;color:#64748b;border:1px solid #cbd5e1}
+    .badge-violet{background:#f3f0ff;color:#7c3aed;border:1px solid #c4b5fd}
+    .nav-link{color:#555;font-size:14px;font-weight:500;transition:color .15s;text-decoration:none}
+    .nav-link:hover{color:#0bb4aa}
+    .meta-row{display:flex;justify-content:space-between;align-items:start;padding:10px 0;border-bottom:1px solid #f1f5f9;font-size:13px}
+    .meta-row:last-child{border-bottom:none}
+    .code-block{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px 16px;font-family:monospace;font-size:12px;line-height:1.6;overflow-x:auto;color:#334155}
+    .bibtex-block{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-family:monospace;font-size:12px;line-height:1.7;white-space:pre;overflow-x:auto;color:#334155}
+    .copy-btn{background:#fff;border:1px solid #e2e8f0;color:#555;padding:5px 14px;border-radius:6px;font-size:11px;cursor:pointer;font-family:inherit;transition:all .15s}
+    .copy-btn:hover{border-color:#0bb4aa;color:#0bb4aa}
+    .section-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:12px}
+  </style>
+</head>
+<body class="min-h-screen">
+
+<nav style="background:#fff;border-bottom:1px solid #e2e8f0;position:sticky;top:0;z-index:50">
+  <div class="max-w-7xl mx-auto px-6 flex items-center justify-between" style="height:60px">
+    <a href="index.html" style="font-weight:800;font-size:18px;color:#101010;text-decoration:none;letter-spacing:-0.5px">
+      CMF <span style="color:#0bb4aa">Atlas</span>
+    </a>
+    <div class="flex items-center gap-7">
+      <a href="index.html" class="nav-link">Home</a>
+      <a href="browse.html" class="nav-link">Browse</a>
+      <a href="explorer.html" class="nav-link">Explorer</a>
+      <a href="conservative-test.html" class="nav-link">Conservative Test</a>
+      <a href="about.html" class="nav-link">About</a>
+    </div>
+  </div>
+</nav>
+
+<div class="max-w-5xl mx-auto px-6 py-8" id="main-content">
+  <div style="color:#aaa;font-size:13px;padding:48px;text-align:center">Loading entry…</div>
+</div>
+
+<script>
+const API = 'https://api.davidvesterlund.com';
+
+function polyToLatex(s) {
+  if (!s) return '';
+  s = s.replace(/\*\*(\d+)/g, (_, e) => `^{${e}}`);
+  s = s.replace(/(-?\d+)\*([a-zA-Z])/g, '$1$2');
+  s = s.replace(/([a-zA-Z\}])\*([a-zA-Z])/g, '$1$2');
+  return s;
+}
+
+function certBadge(c) {
+  if (!c) return '<span class="badge badge-grey">Unknown</span>';
+  const map = {
+    'A_certified': '<span class="badge badge-green">A — Formally Certified</span>',
+    'B_verified_numeric': '<span class="badge badge-teal">B — Numerically Verified</span>',
+    'C_scouting': '<span class="badge badge-amber">C — Scouting</span>',
+  };
+  return map[c] || `<span class="badge badge-grey">${c}</span>`;
+}
+
+function buildMatrixLatex(f, fbar) {
+  const fpL  = polyToLatex(f);
+  const fbarL = polyToLatex(fbar);
+  return `
+    <div class="space-y-4">
+      <div>
+        <div class="section-label">K₁(k, m) — Horizontal step matrix</div>
+        <div style="font-size:14px;color:#333;margin-bottom:10px">
+          \\[K_1(k,m) = \\begin{pmatrix} 0 & 1 \\\\ b(k+1) & a(k,m) \\end{pmatrix}\\]
+        </div>
+        <div style="font-size:12px;color:#666;line-height:1.8">
+          <div>\\(g(k,m) = ${fpL}\\)</div>
+          <div>\\(\\bar{g}(k,m) = ${fbarL}\\)</div>
+          <div>\\(b(k) = g(k,0)\\cdot\\bar{g}(k,0)\\)</div>
+          <div>\\(a(k,m) = g(k,m) - \\bar{g}(k+1,m)\\)</div>
+        </div>
+      </div>
+      <div>
+        <div class="section-label">K₂(k, m) — Vertical step matrix</div>
+        <div style="font-size:14px;color:#333">
+          \\[K_2(k,m) = \\begin{pmatrix} \\bar{g}(k,m) & 1 \\\\ b(k) & g(k,m) \\end{pmatrix}\\]
+        </div>
+      </div>
+      <div style="font-size:12px;color:#666;border:1px solid #e2e8f0;border-radius:8px;padding:12px;background:#f8fafc">
+        <strong style="color:#333">Flatness condition:</strong>
+        \\(K_1(k,m) \\cdot K_2(k{+}1,m) = K_2(k,m) \\cdot K_1(k,m{+}1)\\)
+      </div>
+    </div>`;
+}
+
+function buildBibTeX(id, f_poly, dim) {
+  const year = new Date().getFullYear();
+  const slug = `cmf${id}`;
+  return `@misc{vesterlund${year}cmf${id},
+  author    = {Vesterlund, David},
+  title     = {{CMF Atlas} Entry \\#${id}: ${f_poly ? f_poly.substring(0,40) : `Dimension ${dim} CMF`}},
+  year      = {${year}},
+  url       = {https://davidvesterlund.com/cmfatlas/entry.html?id=${id}},
+  note      = {CMF Atlas v2.2, Conservative Matrix Field Database},
+  license   = {CC BY 4.0}
+}`;
+}
+
+async function loadEntry() {
+  const params = new URLSearchParams(window.location.search);
+  const id = params.get('id');
+  if (!id) {
+    document.getElementById('main-content').innerHTML =
+      '<div class="text-red-400 py-12 text-center">No CMF ID specified. Use <code>?id=N</code> in the URL.</div>';
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API}/cmfs/${id}/full`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const d = await res.json();
+
+    document.title = `CMF #${d.id} — CMF Atlas`;
+    const hasFormula = !!d.f_poly;
+    const fpL = polyToLatex(d.f_poly);
+    const fbL = polyToLatex(d.fbar_poly);
+    const bibtex = buildBibTeX(d.id, d.f_poly, d.dimension);
+
+    document.getElementById('main-content').innerHTML = `
+      <!-- Breadcrumb -->
+      <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#888;margin-bottom:24px">
+        <a href="browse.html" style="color:#0bb4aa;text-decoration:none;font-weight:500">Browse</a>
+        <span>›</span>
+        <span style="color:#333">CMF #${d.id}</span>
+      </div>
+
+      <!-- Header -->
+      <div style="background:linear-gradient(135deg,#f0fdfc 0%,#fff 60%);border:1px solid #e2e8f0;border-radius:16px;padding:28px 28px 24px;margin-bottom:24px">
+        <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:16px">
+          <div>
+            <h1 style="font-size:2rem;font-weight:800;color:#101010;margin-bottom:10px;letter-spacing:-0.5px">CMF #${d.id}</h1>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+              <span class="badge badge-teal">${d.dimension}D</span>
+              ${certBadge(d.certification_level)}
+              ${d.flatness_verified ? '<span class="badge badge-green">✓ Flatness Verified</span>' : ''}
+              ${hasFormula ? '<span class="badge" style="background:#e0faf8;color:#0bb4aa;border:1px solid #b2ede9">▶ Walkable</span>' : ''}
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            ${hasFormula ? `<a href="explorer.html?id=${d.id}" style="background:#0bb4aa;color:#fff;font-weight:600;padding:9px 18px;border-radius:8px;font-size:13px;text-decoration:none;display:inline-flex;align-items:center;gap:6px">▶ Matrix Walk</a>` : ''}
+            ${hasFormula ? `<a href="conservative-test.html?id=${d.id}" style="border:2px solid #0bb4aa;color:#0bb4aa;font-weight:600;padding:8px 16px;border-radius:8px;font-size:13px;text-decoration:none;background:#fff">Path Independence</a>` : ''}
+          </div>
+        </div>
+      </div>
+
+      <!-- Main grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+
+        <!-- Left: Math -->
+        <div class="lg:col-span-2 space-y-5">
+
+          <!-- Polynomial form -->
+          ${hasFormula ? `
+          <div class="card p-6">
+            <div class="section-label">Polynomial Form</div>
+            <div style="font-size:1.4rem;text-align:center;padding:16px 0;color:#333">
+              \\[f(x,y) = ${fpL}\\]
+            </div>
+            ${d.fbar_poly ? `<div style="font-size:1.1rem;text-align:center;color:#666">\\[\\bar{f}(x,y) = ${fbL}\\]</div>` : ''}
+            <details style="margin-top:16px">
+              <summary style="font-size:12px;color:#888;cursor:pointer">Raw machine syntax</summary>
+              <div class="code-block" style="margin-top:8px">
+                <div>f(x,y) = <span style="color:#059669">${d.f_poly}</span></div>
+                ${d.fbar_poly ? `<div>f̄(x,y) = <span style="color:#059669">${d.fbar_poly}</span></div>` : ''}
+              </div>
+            </details>
+          </div>
+          ` : `
+          <div class="card p-6">
+            <div class="section-label">Polynomial Form</div>
+            <div style="color:#888;font-size:13px;font-style:italic;padding:16px 0">No explicit polynomial form — this CMF is defined via matrix entries or pFq hypergeometric structure.</div>
+            ${d.description ? `<p style="font-size:13px;color:#555;line-height:1.6">${d.description}</p>` : ''}
+          </div>
+          `}
+
+          <!-- Matrix structure -->
+          ${hasFormula ? `
+          <div class="card p-6">
+            <div class="section-label">K-Matrix Structure</div>
+            ${buildMatrixLatex(d.f_poly, d.fbar_poly)}
+          </div>
+          ` : ''}
+
+          <!-- Representation -->
+          <div class="card p-6">
+            <div class="section-label">Representation</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 24px;font-size:13px">
+              <div><span style="color:#888">Group:</span> <span style="color:#333;font-weight:500">${d.representation?.primary_group || '—'}</span></div>
+              <div><span style="color:#888">Source type:</span> <span style="color:#333;font-weight:500">${d.representation?.source_type || '—'}</span></div>
+              <div><span style="color:#888">Conjugacy:</span> <span style="color:#333;font-family:monospace">${d.representation?.conjugacy || '(none)'}</span></div>
+              <div><span style="color:#888">Monomials:</span> <span style="color:#333">${d.representation?.n_monomials ?? '—'}</span></div>
+            </div>
+            <div style="margin-top:12px;font-size:11px;color:#aaa;font-family:monospace">Fingerprint: ${d.representation?.canonical_fingerprint || '—'}</div>
+          </div>
+
+          <!-- Provenance -->
+          <div class="card p-6">
+            <div class="section-label">Provenance</div>
+            <div style="font-size:13px;line-height:1.8">
+              <div><span style="color:#888">Series:</span> <span style="color:#333;font-family:monospace">${d.series?.name || '—'}</span></div>
+              <div><span style="color:#888">Generator type:</span> <span style="color:#333">${d.series?.generator_type || '—'}</span></div>
+              <div><span style="color:#888">Provenance:</span> <span style="color:#666;font-size:12px">${d.series?.provenance || '—'}</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Metadata + Citation -->
+        <div class="space-y-5">
+
+          <!-- Key metadata -->
+          <div class="card p-5">
+            <div class="section-label">Metadata</div>
+            <div>
+              <div class="meta-row">
+                <span style="color:#888">Primary Constant</span>
+                <span style="color:#b45309;font-weight:600">${d.primary_constant || '—'}</span>
+              </div>
+              <div class="meta-row">
+                <span style="color:#888">Dimension</span>
+                <span style="color:#333;font-weight:500">${d.dimension}D</span>
+              </div>
+              <div class="meta-row">
+                <span style="color:#888">Degree</span>
+                <span style="color:#333">${d.degree ?? '—'}</span>
+              </div>
+              <div class="meta-row">
+                <span style="color:#888">Certification</span>
+                ${certBadge(d.certification_level)}
+              </div>
+              <div class="meta-row">
+                <span style="color:#888">Flatness</span>
+                <span style="color:${d.flatness_verified?'#059669':'#aaa'}">${d.flatness_verified?'✓ Verified':'Not verified'}</span>
+              </div>
+              <div class="meta-row">
+                <span style="color:#888">Source</span>
+                <span style="color:#555;font-size:12px">${d.source || '—'}</span>
+              </div>
+              <div class="meta-row">
+                <span style="color:#888">Added</span>
+                <span style="color:#aaa;font-size:12px">${d.created_at ? d.created_at.substring(0,10) : '—'}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Stable URL -->
+          <div class="card p-5">
+            <div class="section-label">Stable URL</div>
+            <div class="code-block" style="font-size:11px;word-break:break-all;color:#0bb4aa">
+              https://davidvesterlund.com/cmfatlas/entry.html?id=${d.id}
+            </div>
+            <button class="copy-btn" style="margin-top:8px;width:100%" onclick="copyText('https://davidvesterlund.com/cmfatlas/entry.html?id=${d.id}',this)">
+              Copy URL
+            </button>
+          </div>
+
+          <!-- Citation -->
+          <div class="card p-5">
+            <div class="section-label" style="display:flex;justify-content:space-between;align-items:center">
+              <span>BibTeX Citation</span>
+              <button class="copy-btn" id="bibtex-copy-btn" onclick="copyBibTeX()">Copy</button>
+            </div>
+            <pre class="bibtex-block" style="margin-top:12px;font-size:11px" id="bibtex-block">${bibtex}</pre>
+          </div>
+
+          <!-- Features -->
+          ${d.features && Object.keys(d.features).length ? `
+          <div class="card p-5">
+            <div class="section-label">Complexity Features</div>
+            <div style="font-size:12px;color:#555;line-height:2">
+              ${d.features.complexity_score !== undefined ? `<div>Complexity score: <strong style="color:#333">${d.features.complexity_score?.toFixed(3)}</strong></div>` : ''}
+              ${d.features.d_finite_rank_proxy !== undefined ? `<div>D-finite rank proxy: <strong style="color:#333">${d.features.d_finite_rank_proxy}</strong></div>` : ''}
+              ${d.features.rec_order !== undefined ? `<div>Recurrence order: <strong style="color:#333">${d.features.rec_order}</strong></div>` : ''}
+            </div>
+          </div>
+          ` : ''}
+        </div>
+      </div>
+    `;
+
+    if (window.MathJax) MathJax.typesetPromise([document.getElementById('main-content')]);
+
+  } catch(e) {
+    document.getElementById('main-content').innerHTML =
+      `<div class="text-red-400 py-12 text-center">Failed to load entry: ${e.message}</div>`;
+  }
+}
+
+function copyText(text, btn) {
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = 'Copied!';
+    btn.style.color = '#0bb4aa';
+    setTimeout(() => { btn.textContent = orig; btn.style.color = ''; }, 1500);
+  });
+}
+
+function copyBibTeX() {
+  const text = document.getElementById('bibtex-block').textContent;
+  const btn = document.getElementById('bibtex-copy-btn');
+  copyText(text, btn);
+}
+
+loadEntry();
+</script>
+</body>
+</html>

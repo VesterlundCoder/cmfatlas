@@ -1,0 +1,14 @@
+venv/
+__pycache__/
+*.pyc
+*.pyo
+experiments_gen2/
+data/atlas.db
+data/gap_fill_results.json
+data/ml_hits_verification.json
+data/smart_gap_fill_results.json
+data/targeted_results.json
+data/truly_2d_verification.json
+data/verified_2d_catalog.json
+tests/
+*.log
