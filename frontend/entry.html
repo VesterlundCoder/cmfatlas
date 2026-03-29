@@ -77,34 +77,48 @@ function certBadge(c) {
   return map[c] || `<span class="badge badge-grey">${c}</span>`;
 }
 
-function buildMatrixLatex(f, fbar) {
-  const fpL  = polyToLatex(f);
-  const fbarL = polyToLatex(fbar);
-  return `
-    <div class="space-y-4">
-      <div>
-        <div class="section-label">K₁(k, m) — Horizontal step matrix</div>
-        <div style="font-size:14px;color:#333;margin-bottom:10px">
-          \\[K_1(k,m) = \\begin{pmatrix} 0 & 1 \\\\ b(k+1) & a(k,m) \\end{pmatrix}\\]
+function renderMatrices(matrices) {
+  if (!matrices || !matrices.length) return '<div style="color:#aaa;font-size:13px;padding:8px 0">No matrix representation available.</div>';
+  const axisNames = {'k':'k','m':'m','x':'x','y':'y','a':'a','b':'b','c':'c','d':'d'};
+  const parts = matrices.map(mx => {
+    const rows = mx.rows;
+    const n = rows.length;
+    const m = rows[0].length;
+    // Build pmatrix LaTeX — use smallmatrix for entries to keep size manageable
+    const rowsLatex = rows.map(r => r.join(' & ')).join(' \\\\ ');
+    const label = mx.label || `K${mx.index}`;
+    const axisVars = matrices.map(mm => mm.axis).join(',');
+    const varList = matrices.length === 2 ? '(k,m)' : '(' + matrices.map(mm=>mm.axis).join(',') + ')';
+    return `
+      <div style="margin-bottom:24px">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:8px">
+          ${label}${varList} — ${mx.axis.toUpperCase()} step matrix
+          ${mx.source === 'explicit' ? '<span style="margin-left:8px;font-size:9px;background:#e0faf8;color:#0bb4aa;border:1px solid #b2ede9;padding:1px 6px;border-radius:9999px;font-weight:600;text-transform:none">explicit</span>' : '<span style="margin-left:8px;font-size:9px;background:#f1f5f9;color:#64748b;border:1px solid #cbd5e1;padding:1px 6px;border-radius:9999px;font-weight:600;text-transform:none">computed</span>'}
         </div>
-        <div style="font-size:12px;color:#666;line-height:1.8">
-          <div>\\(g(k,m) = ${fpL}\\)</div>
-          <div>\\(\\bar{g}(k,m) = ${fbarL}\\)</div>
-          <div>\\(b(k) = g(k,0)\\cdot\\bar{g}(k,0)\\)</div>
-          <div>\\(a(k,m) = g(k,m) - \\bar{g}(k+1,m)\\)</div>
+        <div style="overflow-x:auto;font-size:13px;color:#222">
+          \\[${label}${varList} = \\begin{pmatrix} ${rowsLatex} \\end{pmatrix}\\]
         </div>
-      </div>
-      <div>
-        <div class="section-label">K₂(k, m) — Vertical step matrix</div>
-        <div style="font-size:14px;color:#333">
-          \\[K_2(k,m) = \\begin{pmatrix} \\bar{g}(k,m) & 1 \\\\ b(k) & g(k,m) \\end{pmatrix}\\]
-        </div>
-      </div>
-      <div style="font-size:12px;color:#666;border:1px solid #e2e8f0;border-radius:8px;padding:12px;background:#f8fafc">
-        <strong style="color:#333">Flatness condition:</strong>
-        \\(K_1(k,m) \\cdot K_2(k{+}1,m) = K_2(k,m) \\cdot K_1(k,m{+}1)\\)
-      </div>
-    </div>`;
+      </div>`;
+  });
+
+  // Flatness conditions
+  const mxLabels = matrices.map(mx => mx.label || `K${mx.index}`);
+  let flatness = '';
+  if (matrices.length === 2) {
+    flatness = `\\(${mxLabels[0]}(k,m) \\cdot ${mxLabels[1]}(k{+}1,m) = ${mxLabels[1]}(k,m) \\cdot ${mxLabels[0]}(k,m{+}1)\\)`;
+  } else if (matrices.length >= 3) {
+    const pairs = [];
+    for (let i = 0; i < matrices.length; i++)
+      for (let j = i+1; j < matrices.length; j++)
+        pairs.push(`\\(${mxLabels[i]} \\cdot ${mxLabels[j]} = ${mxLabels[j]} \\cdot ${mxLabels[i]}\\) (shifted)`);
+    flatness = pairs.join(' &nbsp;&nbsp; ');
+  }
+
+  return `<div class="space-y-2">${parts.join('')}
+    <div style="font-size:12px;color:#666;border:1px solid #e2e8f0;border-radius:8px;padding:12px;background:#f8fafc;margin-top:8px">
+      <strong style="color:#333">Flatness condition:</strong> ${flatness}
+    </div>
+  </div>`;
 }
 
 function buildBibTeX(id, f_poly, dim) {
@@ -198,10 +212,10 @@ async function loadEntry() {
           `}
 
           <!-- Matrix structure -->
-          ${hasFormula ? `
+          ${d.matrices && d.matrices.length ? `
           <div class="card p-6">
             <div class="section-label">K-Matrix Structure</div>
-            ${buildMatrixLatex(d.f_poly, d.fbar_poly)}
+            ${renderMatrices(d.matrices)}
           </div>
           ` : ''}
 
