@@ -232,26 +232,38 @@ def _build_walk_fns(f_poly_str: str, fbar_poly_str: str):
     is_3d     = _poly_has_z(f_poly_str)
 
     if is_3d:
-        # Keep z_s live — do NOT rename z→n.  lambdify over z directly;
-        # callers pass n_fixed as the positional z argument.
-        z_s = _sym("z")
-        g_kmz    = f_expr.subs([(x_s, k_s), (y_s, m_s)])
-        gbar_kmz = fbar_expr.subs([(x_s, k_s), (y_s, m_s)])
-        # b(k,z) = g(k,0,z)*gbar(k,0,z)
+        # Use free_symbols to identify x,y,z regardless of assumption cache
+        _free = f_expr.free_symbols
+        x_sym = next((s for s in _free if s.name == 'x'), x_s)
+        y_sym = next((s for s in _free if s.name == 'y'), y_s)
+        z_sym = next((s for s in _free if s.name == 'z'), _sym("z"))
+
+        g_kmz    = f_expr.subs([(x_sym, k_s), (y_sym, m_s)])
+        gbar_kmz = fbar_expr.subs([(x_sym, k_s), (y_sym, m_s)])
         b_kz_expr = _expand(g_kmz.subs(m_s, 0) * gbar_kmz.subs(m_s, 0))
         a_expr    = _expand(g_kmz - gbar_kmz.subs(k_s, k_s + 1))
 
-        g_fn    = _lambdify([k_s, m_s, z_s], g_kmz,     modules="mpmath")
-        gbar_fn = _lambdify([k_s, m_s, z_s], gbar_kmz,  modules="mpmath")
-        b_fn    = _lambdify([k_s, z_s],       b_kz_expr, modules="mpmath")
-        a_fn    = _lambdify([k_s, m_s, z_s],  a_expr,    modules="mpmath")
+        # Use subs-based evaluation — lambdify has a symbol-identity issue for z
+        def _eval(expr, k_v, m_v, z_v):
+            return complex(expr.subs([(k_s, k_v), (m_s, m_v), (z_sym, z_v)]))
+
+        def _eval_b(expr, k_v, z_v):
+            return complex(expr.subs([(k_s, k_v), (z_sym, z_v)]))
 
         def Kx(k, m, n):
-            return mpmath.matrix([[0, 1], [b_fn(k + 1, n), a_fn(k, m, n)]])
+            b = _eval_b(b_kz_expr, k + 1, n)
+            a = _eval(a_expr, k, m, n)
+            return mpmath.matrix([[0, 1], [b, a]])
         def Ky(k, m, n):
-            return mpmath.matrix([[gbar_fn(k, m, n), 1], [b_fn(k, n), g_fn(k, m, n)]])
+            g    = _eval(g_kmz,    k, m, n)
+            gbar = _eval(gbar_kmz, k, m, n)
+            b    = _eval_b(b_kz_expr, k, n)
+            return mpmath.matrix([[gbar, 1], [b, g]])
         def Kz(k, m, n):
-            return mpmath.matrix([[gbar_fn(k, m, n), 1], [b_fn(k, n), g_fn(k, m, n)]])
+            g    = _eval(g_kmz,    k, m, n)
+            gbar = _eval(gbar_kmz, k, m, n)
+            b    = _eval_b(b_kz_expr, k, n)
+            return mpmath.matrix([[gbar, 1], [b, g]])
 
         return Kx, Ky, Kz, True
 
