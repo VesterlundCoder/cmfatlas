@@ -47,6 +47,7 @@
       <a href="browse.html" class="nav-link active">Browse</a>
       <a href="explorer.html" class="nav-link">Explorer</a>
       <a href="conservative-test.html" class="nav-link">Conservative Test</a>
+      <a href="sources.html" class="nav-link">Sources</a>
       <a href="about.html" class="nav-link">About</a>
     </div>
   </div>
@@ -96,22 +97,20 @@
         <label style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:6px">Certification</label>
         <select id="certification">
           <option value="">All</option>
+          <option value="A_plus">A+ — Manually Verified</option>
           <option value="A_certified">A — Certified</option>
           <option value="B_verified_numeric">B — Numeric</option>
           <option value="C_scouting">C — Scouting</option>
         </select>
       </div>
       <div>
-        <label style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:6px">Source</label>
-        <select id="source_type">
+        <label style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:6px">Source / Family</label>
+        <select id="source_category">
           <option value="">All</option>
-          <option value="pfq">pFq (RamanujanTools)</option>
-          <option value="known_family">Known family</option>
-          <option value="telescope">Telescope</option>
-          <option value="targeted_2d">Targeted 2D</option>
-          <option value="euler2ai">Euler2AI</option>
-          <option value="cmf_hunter">CMF Hunter</option>
-          <option value="verified_2d">Verified 2D</option>
+          <option value="Euler2AI">Euler2AI</option>
+          <option value="RamanujanTools">RamanujanTools</option>
+          <option value="CMF Hunter">CMF Hunter</option>
+          <option value="Gauge Transformed">Gauge Transformed</option>
         </select>
       </div>
       <div>
@@ -184,9 +183,10 @@ function polyToLatex(s) {
 function certBadge(c) {
   if (!c) return '<span style="color:#bbb">—</span>';
   const map = {
-    'A_certified':'<span class="badge badge-green">A</span>',
+    'A_plus':           '<span class="badge" style="background:#fef3c7;color:#92400e;border:1px solid #fcd34d">A+</span>',
+    'A_certified':      '<span class="badge badge-green">A</span>',
     'B_verified_numeric':'<span class="badge badge-teal">B</span>',
-    'C_scouting':'<span class="badge badge-amber">C</span>',
+    'C_scouting':       '<span class="badge badge-amber">C</span>',
   };
   return map[c] || `<span class="badge badge-grey">${c.split('_')[0]}</span>`;
 }
@@ -203,7 +203,7 @@ function buildUrl(offset) {
   const dim = document.getElementById('dimension').value;
   const deg = document.getElementById('degree').value;
   const cert = document.getElementById('certification').value;
-  const src = document.getElementById('source_type').value;
+  const src = document.getElementById('source_category').value;
   const hf = document.getElementById('has_formula').value;
   const lim = document.getElementById('limit').value;
   params.set('offset', offset);
@@ -212,7 +212,7 @@ function buildUrl(offset) {
   if (dim) params.set('dimension', dim);
   if (deg) params.set('degree', deg);
   if (cert) params.set('certification', cert);
-  if (src) params.set('source_type', src);
+  if (src) params.set('source_category', src);
   if (hf) params.set('has_formula', hf);
   return `${API}/cmfs/browse?${params}`;
 }
@@ -253,7 +253,7 @@ async function search(offset) {
           <td style="padding:11px 14px;max-width:220px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${fp}</td>
           <td style="padding:11px 14px;font-size:12px">${pc}</td>
           <td style="padding:11px 14px">${certBadge(item.certification_level)}</td>
-          <td style="padding:11px 14px;font-size:11px;color:#888">${(item.generator_type||'').replace(/_/g,' ')}</td>
+          <td style="padding:11px 14px;font-size:11px;color:#555">${item.source_category||item.source||'—'}</td>
           <td style="padding:11px 14px">${walkable}</td>
           <td style="padding:11px 14px"><a href="entry.html?id=${item.id}" style="color:#0bb4aa;font-size:12px;font-weight:600;text-decoration:none;white-space:nowrap">View →</a></td>
         </tr>`;
@@ -282,7 +282,7 @@ async function search(offset) {
 }
 
 function clearFilters() {
-  ['q','dimension','degree','certification','source_type','has_formula'].forEach(id => {
+  ['q','dimension','degree','certification','source_category','has_formula'].forEach(id => {
     const el = document.getElementById(id);
     el.value = '';
   });
@@ -294,7 +294,7 @@ const urlParams = new URLSearchParams(window.location.search);
 if (urlParams.get('dimension')) document.getElementById('dimension').value = urlParams.get('dimension');
 if (urlParams.get('has_formula')) document.getElementById('has_formula').value = urlParams.get('has_formula');
 if (urlParams.get('certification')) document.getElementById('certification').value = urlParams.get('certification');
-if (urlParams.get('source_type')) document.getElementById('source_type').value = urlParams.get('source_type');
+if (urlParams.get('source_category')) document.getElementById('source_category').value = urlParams.get('source_category');
 
 document.getElementById('q').addEventListener('keyup', e => { if (e.key === 'Enter') search(0); });
 search(0);
