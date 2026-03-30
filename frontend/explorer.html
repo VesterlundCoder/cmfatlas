@@ -113,7 +113,11 @@
         </div>
 
         <!-- Parameters -->
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px" id="param-grid">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px" id="param-grid">
+          <div id="k-start-wrap">
+            <label class="control-label">k<sub>start</sub></label>
+            <input type="number" id="k_start" value="0" min="0" max="200" title="Starting step for Kx walk"/>
+          </div>
           <div id="k-fixed-wrap" style="display:none">
             <label class="control-label">k<sub>fixed</sub></label>
             <input type="number" id="k_fixed" value="1" min="1" max="50"/>
@@ -139,6 +143,28 @@
         <button class="add-traj-btn" onclick="enqueue()">+ Add to Queue</button>
         <button class="preset-chip" onclick="addDreamsPresets()" style="width:100%;margin-bottom:6px">⚡ Dreams Grid (8 shifts)</button>
 
+        <!-- Constant comparison -->
+        <div class="mb-4">
+          <label class="control-label">Compare to Constant</label>
+          <select id="const-select" class="control-select">
+            <option value="">— auto: show top matches —</option>
+            <option value="π">π = 3.14159…</option>
+            <option value="e">e = 2.71828…</option>
+            <option value="ln(2)">ln(2) = 0.69315…</option>
+            <option value="ζ(3)">ζ(3) = 1.20206…</option>
+            <option value="ζ(5)">ζ(5) = 1.03693…</option>
+            <option value="ζ(2) = π²/6">ζ(2) = π²/6 = 1.64493…</option>
+            <option value="G (Catalan)">G (Catalan) = 0.91597…</option>
+            <option value="4/π">4/π = 1.27324…</option>
+            <option value="1/π">1/π = 0.31831…</option>
+            <option value="π²">π² = 9.86960…</option>
+            <option value="ln(3)">ln(3) = 1.09861…</option>
+            <option value="√2">√2 = 1.41421…</option>
+            <option value="φ = (1+√5)/2">φ = (1+√5)/2 = 1.61803…</option>
+            <option value="√3">√3 = 1.73205…</option>
+          </select>
+        </div>
+
         <button id="run-btn" class="run-btn" onclick="runAll()" disabled>▶ Run Queue</button>
         <button onclick="resetAll()" style="margin-top:8px;width:100%;border:1px solid #e2e8f0;color:#555;background:#fff;padding:10px;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit">Reset</button>
       </div>
@@ -155,6 +181,8 @@
       <div id="status-card" class="card p-4" style="color:#888;font-size:13px">
         Select a CMF and click <strong style="color:#101010">Run Walk</strong> to begin.
       </div>
+
+      <div id="const-match-card" style="display:none"></div>
 
       <div id="walk-note-card" style="display:none"></div>
 
@@ -206,6 +234,22 @@
 
 <script>
 const API = 'https://cmfatlas-production.up.railway.app';
+const KNOWN_CONSTANTS = {
+  'π': Math.PI,
+  'e': Math.E,
+  'ln(2)': Math.log(2),
+  'ζ(3)': 1.20205690315959,
+  'ζ(5)': 1.03692775514336,
+  'ζ(2) = π²/6': Math.PI**2/6,
+  'G (Catalan)': 0.91596559417721,
+  '4/π': 4/Math.PI,
+  '1/π': 1/Math.PI,
+  'π²': Math.PI**2,
+  'ln(3)': Math.log(3),
+  '√2': Math.sqrt(2),
+  'φ = (1+√5)/2': (1+Math.sqrt(5))/2,
+  '√3': Math.sqrt(3),
+};
 let selectedCmfId = null, selectedDim = 2;
 let chartInstance = null, searchTimeout = null;
 let currentDir = 'x';
@@ -226,6 +270,7 @@ function setDir(d) {
     if (b) b.classList.toggle('active', dd === d);
   });
   document.getElementById('dir-tip').textContent = DIR_TIPS[d] || '';
+  document.getElementById('k-start-wrap').style.display = d === 'x' ? '' : 'none';
   document.getElementById('k-fixed-wrap').style.display = d !== 'x' ? '' : 'none';
   document.getElementById('m-fixed-wrap').style.display = d !== 'y' ? '' : 'none';
   const show3dN = selectedDim === 3 && d !== 'z';
@@ -234,20 +279,27 @@ function setDir(d) {
 
 // ── Queue management ─────────────────────────────────────────────────────────
 function enqueue() {
+  const k_start = parseInt(document.getElementById('k_start')?.value) || 0;
   const k = parseInt(document.getElementById('k_fixed')?.value) || 1;
   const m = parseInt(document.getElementById('m_fixed')?.value) || 0;
   const n = parseInt(document.getElementById('n_fixed')?.value) || 1;
-  queue.push({dir: currentDir, k, m, n, id: Date.now()});
+  queue.push({dir: currentDir, k_start, k, m, n, id: Date.now()});
   renderQueue();
 }
 
 function addDreamsPresets() {
-  const base = [
-    {dir:'x',k:1,m:0,n:1},{dir:'x',k:1,m:1,n:1},{dir:'x',k:1,m:0,n:2},
-    {dir:'x',k:1,m:1,n:2},{dir:'x',k:1,m:2,n:1},{dir:'x',k:1,m:0,n:3},
-    {dir:'x',k:1,m:2,n:2},{dir:'x',k:1,m:3,n:1},
-  ];
-  base.forEach((p,i) => queue.push({...p, id: Date.now()+i}));
+  if (selectedDim === 3) {
+    const base = [
+      {dir:'x',k_start:0,k:1,m:0,n:1},{dir:'x',k_start:0,k:1,m:1,n:1},
+      {dir:'x',k_start:0,k:1,m:0,n:2},{dir:'x',k_start:0,k:1,m:1,n:2},
+      {dir:'x',k_start:0,k:1,m:2,n:1},{dir:'x',k_start:0,k:1,m:0,n:3},
+      {dir:'x',k_start:0,k:1,m:2,n:2},{dir:'x',k_start:0,k:1,m:3,n:1},
+    ];
+    base.forEach((p,i) => queue.push({...p, id: Date.now()+i}));
+  } else {
+    for (let m = 0; m < 8; m++)
+      queue.push({dir:'x', k_start:0, k:1, m, n:1, id: Date.now()+m});
+  }
   renderQueue();
 }
 
@@ -270,7 +322,7 @@ function renderQueue() {
   }
   el.innerHTML = queue.map((t, i) => {
     const c = COLORS[i % COLORS.length];
-    const lbl = t.dir==='x' ? `Kx  m=${t.m} n=${t.n}` : t.dir==='y' ? `Ky  k=${t.k} n=${t.n}` : `Kz  k=${t.k} m=${t.m}`;
+    const lbl = t.dir==='x' ? `Kx  k₀=${t.k_start??0} m=${t.m}${selectedDim===3?' n='+t.n:''}` : t.dir==='y' ? `Ky  k=${t.k} n=${t.n}` : `Kz  k=${t.k} m=${t.m}`;
     return `<div class="queue-row">
       <span style="width:8px;height:8px;border-radius:50%;background:${c};display:inline-block;flex-shrink:0"></span>
       <span style="flex:1;color:#333;font-family:monospace">${lbl}</span>
@@ -399,6 +451,7 @@ async function runAll() {
     const fetches = queue.map(t => {
       const p = new URLSearchParams({
         depth, direction: t.dir,
+        k_start_override: t.k_start ?? 0,
         k_fixed: t.k, m_fixed: t.m, n_fixed: t.n
       });
       return fetch(`${API}/cmfs/${selectedCmfId}/walk?${p}`)
@@ -449,6 +502,37 @@ function renderResults(results) {
   const note = valid.find(d => d.walk_note)?.walk_note;
   if (note) { noteEl.style.display=''; noteEl.innerHTML=`<div style="background:#fef9e7;border:1px solid #fcd34d;border-radius:8px;padding:10px 14px;font-size:12px;color:#92400e">⚠ ${note}</div>`; }
   else noteEl.style.display='none';
+
+  // Constant comparison panel
+  const constMatchCard = document.getElementById('const-match-card');
+  const selectedConst = document.getElementById('const-select')?.value;
+  const bestVal = valid[0]?.best_estimate;
+  if (constMatchCard && bestVal != null && selectedConst && KNOWN_CONSTANTS[selectedConst] !== undefined) {
+    const cval = KNOWN_CONSTANTS[selectedConst];
+    const absErr = Math.abs(bestVal - cval);
+    const log10Err = absErr > 0 ? Math.log10(absErr) : -15;
+    const isGood = log10Err < -8;
+    const isOk   = log10Err < -5;
+    const label  = isGood ? '★ Good Match' : (isOk ? '◐ Ok Match' : '✗ No Match');
+    const bg     = isGood ? '#e6f9f0' : (isOk ? '#fef9e7' : '#f8f8f8');
+    const clr    = isGood ? '#059669' : (isOk ? '#b45309' : '#888');
+    const bdr    = isGood ? '#a7f3d0' : (isOk ? '#fcd34d' : '#e2e8f0');
+    constMatchCard.style.display = '';
+    constMatchCard.innerHTML = `<div style="background:${bg};border:1px solid ${bdr};border-radius:10px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+      <div>
+        <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888">Constant Match</span>
+        <div style="margin-top:4px;font-size:16px;font-weight:800;color:${clr}">${label}</div>
+        <div style="font-size:12px;color:#555;margin-top:3px">${selectedConst} = ${cval.toPrecision(10)}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:11px;color:#aaa">Walk best estimate</div>
+        <div style="font-family:monospace;font-size:13px;color:#333;margin-top:2px">${bestVal.toPrecision(12)}</div>
+        <div style="font-size:12px;color:${clr};font-weight:600;margin-top:4px">|err| = 10<sup>${log10Err.toFixed(1)}</sup></div>
+      </div>
+    </div>`;
+  } else if (constMatchCard) {
+    constMatchCard.style.display = 'none';
+  }
 
   // Chart — one dataset per trajectory
   document.getElementById('chart-card').style.display = '';
@@ -553,6 +637,7 @@ function resetAll() {
   document.getElementById('table-card').style.display = 'none';
   document.getElementById('method-note').style.display = 'none';
   document.getElementById('walk-note-card').style.display = 'none';
+  document.getElementById('const-match-card').style.display = 'none';
   clearQueue();
   if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
   doSearch();
