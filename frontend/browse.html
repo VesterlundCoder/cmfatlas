@@ -239,9 +239,12 @@ async function search(offset) {
       const fp = item.f_poly
         ? `<span style="font-size:12px;color:#333">\\(${polyToLatex(item.f_poly)}\\)</span>`
         : `<span style="font-size:11px;color:#aaa;font-style:italic">${item.series_name||item.generator_type||'—'}</span>`;
-      const pc = item.primary_constant
+      const ic = item.identified_constant
+        ? `<span title="Identified by PSLQ/float-match" style="background:#fef3c7;border:1px solid #fcd34d;color:#92400e;font-weight:600;padding:1px 7px;border-radius:9999px;font-size:11px;white-space:nowrap">&#128273; ${item.identified_constant}</span>`
+        : null;
+      const pc = ic || (item.primary_constant
         ? `<span style="color:#b45309;font-weight:500">${item.primary_constant}</span>`
-        : '<span style="color:#bbb">—</span>';
+        : '<span style="color:#bbb">—</span>');
       const walkable = item.has_formula
         ? `<a href="explorer.html?id=${item.id}" style="color:#0bb4aa;font-size:12px;font-weight:600;text-decoration:none">▶ Run</a>`
         : '<span style="color:#ccc;font-size:12px">—</span>';
