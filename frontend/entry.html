@@ -136,6 +136,84 @@ function buildBibTeX(id, f_poly, dim) {
 }`;
 }
 
+function buildTelescopeDerivation(d) {
+  if (!d.f_poly || !d.matrices || d.matrices.length < 2) return '';
+  const is3d = !!d.is_3d;
+  const vars = is3d ? 'x,y,z' : 'x,y';
+  const subst = is3d ? 'x\\to k,\\, y\\to m,\\, z\\to n' : 'x\\to k,\\, y\\to m';
+
+  // Extract entries from matrices returned by API
+  const K1 = d.matrices[0], K2 = d.matrices[1];
+  const bk1_tex = K1.rows[1][0];   // b(k+1)
+  const akm_tex = K1.rows[1][1];   // a(k,m)
+  const gbar_tex = K2.rows[0][0];  // gbar(k,m)
+  const bk_tex  = K2.rows[1][0];   // b(k)
+  const g_tex   = K2.rows[1][1];   // g(k,m)
+
+  const fpL = polyToLatex(d.f_poly);
+  const fbL = polyToLatex(d.fbar_poly);
+
+  return `
+  <details style="margin-top:6px" onToggle="if(this.open&&window.MathJax)MathJax.typesetPromise([this])">
+    <summary style="cursor:pointer;font-size:12px;font-weight:600;color:#0bb4aa;padding:10px 14px;background:#f0fdfc;border:1px solid #b2ede9;border-radius:8px;list-style:none;display:flex;align-items:center;gap:6px">
+      <span style="font-size:14px">▶</span> How are these matrices derived? — Telescope Construction
+    </summary>
+    <div style="padding:20px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 8px 8px;background:#fafcff">
+
+      <p style="font-size:13px;color:#555;margin-bottom:16px;line-height:1.6">
+        The K-matrices are built from the two conjugate polynomials \(f\) and \(\bar f\) via the <strong>telescope construction</strong>:
+      </p>
+
+      <!-- Step 1 -->
+      <div style="margin-bottom:18px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#0bb4aa;margin-bottom:6px">Step 1 — Substitute variables</div>
+        <div style="font-size:13px;color:#333;padding:10px 14px;background:#fff;border:1px solid #e2e8f0;border-radius:6px">
+          \[g(k,m) \;=\; f(${vars})\big|_{${subst}} \;=\; ${fpL}\bigl|_{${subst}}\]<br>
+          \[\bar g(k,m) \;=\; \bar f(${vars})\big|_{${subst}} \;=\; ${fbL}\bigl|_{${subst}}\]
+          <div style="margin-top:8px;font-size:12px;color:#555">
+            giving \(g(k,m) = ${g_tex}\) and \(\bar g(k,m) = ${gbar_tex}\)
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2 -->
+      <div style="margin-bottom:18px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#0bb4aa;margin-bottom:6px">Step 2 — Build b(k): the denominator polynomial</div>
+        <div style="font-size:13px;color:#333;padding:10px 14px;background:#fff;border:1px solid #e2e8f0;border-radius:6px">
+          Evaluate both polynomials at \(m=0\) and multiply:
+          \[b(k) \;=\; g(k,0)\cdot\bar g(k,0) \;=\; ${bk_tex}\]
+          Then shift by one step:
+          \[b(k+1) = ${bk1_tex}\]
+        </div>
+      </div>
+
+      <!-- Step 3 -->
+      <div style="margin-bottom:18px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#0bb4aa;margin-bottom:6px">Step 3 — Build a(k,m): the diagonal entry</div>
+        <div style="font-size:13px;color:#333;padding:10px 14px;background:#fff;border:1px solid #e2e8f0;border-radius:6px">
+          Subtract \(\bar g\) evaluated at \(k+1\) from \(g\):
+          \[a(k,m) \;=\; g(k,m) - \bar g(k+1,m) \;=\; ${akm_tex}\]
+        </div>
+      </div>
+
+      <!-- Step 4 -->
+      <div style="margin-bottom:10px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#0bb4aa;margin-bottom:6px">Step 4 — Assemble K₁ and K₂</div>
+        <div style="font-size:13px;color:#333;padding:10px 14px;background:#fff;border:1px solid #e2e8f0;border-radius:6px">
+          <strong>K₁</strong> walks along k using \(b(k+1)\) (one step ahead in k):
+          \[K_1(k,m) = \begin{pmatrix} 0 & 1 \\ b(k+1) & a(k,m) \end{pmatrix} = \begin{pmatrix} 0 & 1 \\ ${bk1_tex} & ${akm_tex} \end{pmatrix}\]
+          <div style="margin-top:12px"><strong>K₂</strong> walks along m using \(b(k)\) and the full \(g, \bar g\):</div>
+          \[K_2(k,m) = \begin{pmatrix} \bar g(k,m) & 1 \\ b(k) & g(k,m) \end{pmatrix} = \begin{pmatrix} ${gbar_tex} & 1 \\ ${bk_tex} & ${g_tex} \end{pmatrix}\]
+        </div>
+      </div>
+
+      <div style="font-size:12px;color:#888;margin-top:14px;padding:10px 14px;background:#f8fafc;border-radius:6px;border:1px solid #e2e8f0">
+        <strong style="color:#333">Flatness:</strong> Path independence means \(K_1(k,m)\cdot K_2(k+1,m) = K_2(k,m)\cdot K_1(k,m+1)\) for all integers \(k,m\). This is what the Sage symbolic proof verifies exactly in \(\mathbb{Q}[k,m]\).
+      </div>
+    </div>
+  </details>`;
+}
+
 async function loadEntry() {
   const params = new URLSearchParams(window.location.search);
   const id = params.get('id');
@@ -219,6 +297,7 @@ async function loadEntry() {
           <div class="card p-6">
             <div class="section-label">K-Matrix Structure</div>
             ${renderMatrices(d.matrices)}
+            ${buildTelescopeDerivation(d)}
           </div>
           ` : ''}
 
