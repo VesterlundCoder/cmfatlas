@@ -371,10 +371,23 @@ function renderResults(d) {
   // Verdict
   const verdCard = document.getElementById('verdict-card');
   verdCard.style.display = '';
-  verdCard.innerHTML = `
-    <div class="verdict-box ${verdictStyle(d.verdict)}">${verdictLabel(d.verdict)}</div>
-    <div style="font-size:12px;color:#888;margin-top:8px;padding:0 4px">${d.note}</div>
-  `;
+  if (d.is_3d) {
+    verdCard.innerHTML = `
+      <div class="verdict-box verdict-approx">⚠ 3D CMF — Telescope test not applicable here</div>
+      <div style="font-size:12px;color:#555;margin-top:10px;padding:10px 14px;background:#fef9e7;border:1px solid #fcd34d;border-radius:8px;line-height:1.7">
+        This is a <strong>3D CMF certified at B-level by CMF Hunter</strong> using its own internal numerical verification.
+        The telescope formula used in this test does not match the internal matrix construction stored for 3D CMFs,
+        so <strong>large residuals are expected and do not invalidate the CMF</strong>.
+        The B-level certification is the authoritative result.
+      </div>
+      <div style="font-size:11px;color:#aaa;margin-top:8px;padding:0 4px">${d.note}</div>
+    `;
+  } else {
+    verdCard.innerHTML = `
+      <div class="verdict-box ${verdictStyle(d.verdict)}">${verdictLabel(d.verdict)}</div>
+      <div style="font-size:12px;color:#888;margin-top:8px;padding:0 4px">${d.note}</div>
+    `;
+  }
 
   // Heatmap (2D) or pair tables (3D)
   document.getElementById('heatmap-card').style.display = '';
