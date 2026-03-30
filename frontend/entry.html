@@ -234,6 +234,11 @@ async function loadEntry() {
     const fbL = polyToLatex(d.fbar_poly);
     const bibtex = buildBibTeX(d.id, d.f_poly, d.dimension);
 
+    const identConst = d.identified_constant;
+    const identMethod = d.identification_method;
+    const identDigits = d.identification_digits;
+    const methodLabel = {'pconst':'Known','float':'Float match','pslq':'PSLQ','isc':'ISC','pf_pslq':'PF+PSLQ'}[identMethod] || (identMethod||'');
+
     document.getElementById('main-content').innerHTML = `
       <!-- Breadcrumb -->
       <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#888;margin-bottom:24px">
@@ -261,6 +266,21 @@ async function loadEntry() {
           </div>
         </div>
       </div>
+
+      <!-- Identified Constant Banner -->
+      ${identConst ? `
+      <div style="background:linear-gradient(135deg,#fefce8,#fffbeb);border:2px solid #fcd34d;border-radius:14px;padding:18px 22px;margin-bottom:20px;display:flex;align-items:center;gap:16px">
+        <div style="font-size:1.8rem;line-height:1">&#128273;</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#92400e;margin-bottom:5px">Identified Constant</div>
+          <div style="font-size:1.15rem;font-weight:700;color:#101010;font-family:monospace;overflow-wrap:break-word">${identConst}</div>
+          <div style="margin-top:6px;display:flex;align-items:center;flex-wrap:wrap;gap:8px;font-size:12px">
+            <span style="background:#fef3c7;border:1px solid #fcd34d;padding:2px 9px;border-radius:9999px;font-weight:600;color:#92400e">${methodLabel}</span>
+            ${identDigits ? `<span style="color:#b45309;font-weight:500">${identDigits >= 20 ? '&#10003; Confirmed' : identDigits + ' matching digits'}</span>` : ''}
+          </div>
+        </div>
+      </div>
+      ` : ''}
 
       <!-- Main grid -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
@@ -370,6 +390,12 @@ async function loadEntry() {
           <div class="card p-5">
             <div class="section-label">Metadata</div>
             <div>
+              ${identConst ? `
+              <div class="meta-row" style="border-bottom:1px solid #fde68a;background:#fefce8;margin:0 -4px;padding:10px 4px;border-radius:6px">
+                <span style="color:#92400e;font-weight:600">&#128273; Identified</span>
+                <span style="color:#101010;font-weight:700;font-size:12px;font-family:monospace;text-align:right;max-width:160px;overflow-wrap:break-word">${identConst}</span>
+              </div>
+              ` : ''}
               <div class="meta-row">
                 <span style="color:#888">Primary Constant</span>
                 <span style="color:#b45309;font-weight:600">${d.primary_constant || '—'}</span>
