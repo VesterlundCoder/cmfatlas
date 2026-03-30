@@ -1269,6 +1269,7 @@ def walk_cmf(
     n_fixed: int = Query(1, ge=1, le=50),
     k_fixed: int = Query(1, ge=1, le=50),
     direction: str = Query("x"),
+    k_start_override: int = Query(-1, ge=-1, le=200),
 ):
     """
     K1 matrix walk for a CMF with polynomial form.
@@ -1339,6 +1340,8 @@ def walk_cmf(
                     except Exception:
                         pass
 
+        if k_start_override >= 0:
+            k_start = k_start_override
         for _iter, step in enumerate(range(k_start, k_start + depth)):
             try:
                 K = _K(step)
