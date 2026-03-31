@@ -11,7 +11,7 @@
     "name": "CMF Atlas",
     "description": "An open mathematical research database of Conservative Matrix Fields — 2D and higher-dimensional lattice recurrences with path-independent matrix products.",
     "url": "https://davidvesterlund.com/cmf-atlas/",
-    "version": "2.2",
+    "version": "2.3",
     "creator": {"@type": "Person", "name": "David Vesterlund"},
     "license": "https://creativecommons.org/licenses/by/4.0/",
     "keywords": ["Conservative Matrix Field", "CMF", "continued fractions", "hypergeometric series", "zeta function", "Ramanujan"],
@@ -73,8 +73,8 @@
     <h1 style="font-size:1.8rem;font-weight:800;color:#101010;margin-bottom:10px;letter-spacing:-0.5px">About CMF Atlas</h1>
     <p style="font-size:1rem;color:#555;line-height:1.7;max-width:600px">
       An open mathematical research database of <strong style="color:#101010">Conservative Matrix Fields</strong> —
-      2D lattice recurrences with path-independent matrix products, encoding continued fractions,
-      hypergeometric series, and transcendental constants.
+      2D and higher-dimensional lattice recurrences with path-independent matrix products, encoding continued fractions,
+      hypergeometric series, and named constants.
     </p>
   </div>
 </div>
@@ -137,14 +137,14 @@
   <!-- Database contents -->
   <div class="card p-7">
     <h2>Database Contents</h2>
-    <p>CMF Atlas v2.2 contains entries from multiple discovery pipelines, including pFq CMFs from
+    <p>CMF Atlas v2.3 contains entries from multiple discovery pipelines, including pFq CMFs from
     <a href="https://github.com/RamanujanMachine/RamanujanTools" target="_blank">RamanujanTools</a>.</p>
     <div style="margin-top:16px">
-      <div class="field-row"><span>Version</span><span style="color:#101010;font-weight:500">v2.2</span></div>
+      <div class="field-row"><span>Version</span><span style="color:#101010;font-weight:500">v2.3</span></div>
       <div class="field-row"><span>Total entries (2D+)</span><span id="total-count" style="color:#0bb4aa;font-weight:600">Loading…</span></div>
-      <div class="field-row"><span>Dimensions</span><span style="color:#101010">2D (280 entries), 3D (75 entries), 5D (1 entry)</span></div>
+      <div class="field-row"><span>Dimensions</span><span style="color:#101010">2D (~280 entries), 3D (2 entries), 5D+ (pFq, 1 entry)</span></div>
       <div class="field-row"><span>Sources</span><span style="color:#101010">RamanujanTools (A+), Gauge Transformed, CMF Hunter</span></div>
-      <div class="field-row"><span>Certification levels</span><span style="color:#101010">A+ (manually verified), A (formally certified), B (numerically verified), C (scouting)</span></div>
+      <div class="field-row"><span>Certification levels</span><span style="color:#101010">A_plus (symbolically certified), A_certified (verified), B_verified_numeric (numeric), C_scouting (scouting)</span></div>
       <div class="field-row"><span>Bulk download</span><span><a href="https://cmfatlas-production.up.railway.app/export/cmfs.json" target="_blank">cmfs.json</a> &nbsp;<span style="font-size:11px;color:#aaa">(JSON, CC BY 4.0)</span></span></div>
       <div class="field-row"><span>DOI</span><span style="color:#aaa;font-size:12px">Pending registration — cite via BibTeX below in the interim</span></div>
       <div class="field-row"><span>License</span><span><a href="https://creativecommons.org/licenses/by/4.0/" target="_blank">CC BY 4.0</a></span></div>
@@ -162,7 +162,7 @@
       <div class="field-row"><code>fbar_poly</code><span>Conjugate polynomial f̄(x,y)</span></div>
       <div class="field-row"><code>degree</code><span>Total polynomial degree</span></div>
       <div class="field-row"><code>primary_constant</code><span>Known limit / target constant (if identified)</span></div>
-      <div class="field-row"><code>certification_level</code><span>A_certified / B_verified_numeric / C_scouting</span></div>
+      <div class="field-row"><code>certification_level</code><span>A_plus / A_certified / B_verified_numeric / C_scouting</span></div>
       <div class="field-row"><code>canonical_fingerprint</code><span>Hash-based unique key for the representation</span></div>
     </div>
   </div>
@@ -179,7 +179,7 @@
   title     = {{CMF Atlas}: A Database of Conservative Matrix Fields},
   year      = {2026},
   url       = {https://davidvesterlund.com/cmf-atlas/},
-  note      = {Version 2.2, open research dataset. DOI pending.},
+  note      = {Version 2.3, open research dataset. DOI pending.},
   license   = {CC BY 4.0}
 }</pre>
       <button class="copy-btn" style="position:absolute;top:10px;right:10px" onclick="copyEl('bibtex-project', this)">Copy</button>
@@ -192,7 +192,7 @@
   title     = {{CMF Atlas} Entry \#1: $f(x,y) = (x+y)^3$},
   year      = {2026},
   url       = {https://davidvesterlund.com/cmf-atlas/entry.html?id=1},
-  note      = {CMF Atlas v2.2, limit = $\zeta(3)$},
+  note      = {CMF Atlas v2.3, limit = $\zeta(3)$},
   license   = {CC BY 4.0}
 }</pre>
       <button class="copy-btn" style="position:absolute;top:10px;right:10px" onclick="copyEl('bibtex-entry', this)">Copy</button>
@@ -245,7 +245,7 @@ GET /cmfs/{id}/full</pre>
 
 <footer style="border-top:1px solid #e2e8f0;background:#f9fafb;margin-top:20px">
   <div class="max-w-4xl mx-auto px-6 py-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3" style="font-size:13px;color:#888">
-    <div>CMF Atlas v2.2 &middot; David Vesterlund &middot; 2026</div>
+    <div>CMF Atlas v2.3 &middot; David Vesterlund &middot; 2026</div>
     <div class="flex gap-5">
       <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" style="color:#888;text-decoration:none">CC BY 4.0</a>
       <a href="https://cmfatlas-production.up.railway.app/docs" target="_blank" style="color:#888;text-decoration:none">API Docs</a>
