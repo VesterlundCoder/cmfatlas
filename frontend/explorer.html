@@ -61,6 +61,7 @@
       <a href="conservative-test.html" class="nav-link">Conservative Test</a>
       <a href="sources.html" class="nav-link">Sources</a>
       <a href="constants.html" class="nav-link">Constants</a>
+      <a href="guide.html" class="nav-link">Guide</a>
       <a href="about.html" class="nav-link">About</a>
     </div>
   </div>
@@ -205,7 +206,10 @@
       <div class="card p-5" id="table-card" style="display:none">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
           <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888">Last 20 Partial Convergents</div>
-          <div id="conv-rate" style="font-size:11px;color:#888"></div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px">
+            <div id="conv-rate" style="font-size:11px;color:#888"></div>
+            <div id="self-delta" style="font-size:12px;display:none;padding:3px 10px;background:#f0fdfc;border:1px solid #b2ede9;border-radius:6px"></div>
+          </div>
         </div>
         <div style="overflow-x:auto">
           <table style="width:100%;font-size:12px;font-family:monospace;border-collapse:collapse">
@@ -619,7 +623,16 @@ function renderResults(results) {
     </tr>`;
   }).join('');
   if (first.conv_rate_log10_per_step)
-    document.getElementById('conv-rate').textContent = `Convergence rate ≈ 10^${first.conv_rate_log10_per_step} per step`;
+    document.getElementById('conv-rate').textContent = `Conv. rate ≈ 10^${first.conv_rate_log10_per_step} per step`;
+  const deltaEl = document.getElementById('self-delta');
+  if (deltaEl) {
+    if (first.self_delta_bits_per_step != null) {
+      const d = first.self_delta_bits_per_step;
+      const qual = d >= 1.0 ? '🟢 Excellent' : d >= 0.3 ? '🟡 Good' : d >= 0.05 ? '🟠 Moderate' : '🔴 Slow';
+      deltaEl.innerHTML = `<span style="font-weight:700;color:#0bb4aa">δ = ${d.toFixed(4)} bits/step</span> <span style="font-size:11px;color:#888">${qual}</span> <a href="guide.html#delta" style="font-size:11px;color:#0bb4aa;margin-left:6px">What is δ?</a>`;
+      deltaEl.style.display = '';
+    } else { deltaEl.style.display = 'none'; }
+  }
 
   document.getElementById('method-note').style.display = '';
   if (window.MathJax) MathJax.typesetPromise([document.getElementById('method-note')]);
