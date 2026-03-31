@@ -57,8 +57,9 @@
       Each entry includes a 30-digit precision value, irrationality status, and links to CMF entries targeting that constant.
     </p>
     <div style="margin-top:16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center">
-      <span id="total-badge" style="background:#f1f5f9;color:#64748b;border:1px solid #cbd5e1;padding:4px 14px;border-radius:9999px;font-size:12px;font-weight:600">Loading…</span>
+      <span id="total-badge" style="background:#f1f5f9;color:#64748b;border:1px solid #cbd5e1;padding:4px 14px;border-radius:9999px;font-size:12px;font-weight:600">10 constants</span>
       <a href="https://cmfatlas-production.up.railway.app/constants" target="_blank" style="font-size:12px;color:#0bb4aa;font-weight:600">JSON endpoint ↗</a>
+      <a href="https://cmfatlas-production.up.railway.app/release" target="_blank" style="font-size:12px;color:#888;font-weight:500">Release manifest ↗</a>
     </div>
   </div>
 </div>
@@ -66,12 +67,12 @@
 <div class="max-w-5xl mx-auto px-6 py-10 space-y-8">
 
   <!-- Status key -->
-  <div class="card p-5" style="display:flex;flex-wrap:wrap;gap:16px;align-items:center">
-    <span style="font-size:12px;color:#888;font-weight:600">Irrationality status key:</span>
-    <span class="pill pill-green">✓ Proven irrational</span>
-    <span class="pill pill-amber">? Open question</span>
-    <span class="pill pill-grey">— Algebraic (not transcendental)</span>
-    <span style="font-size:12px;color:#aaa;margin-left:4px">T = proven transcendental</span>
+  <div class="card p-5" style="display:flex;flex-wrap:wrap;gap:14px;align-items:center">
+    <span style="font-size:12px;color:#888;font-weight:600">Irrationality / transcendence status:</span>
+    <span class="pill pill-green">✓ proven_transcendental</span>
+    <span class="pill" style="background:#e0f2fe;color:#0369a1;border:1px solid #7dd3fc">✓ proven_irrational</span>
+    <span class="pill pill-amber">? open_question</span>
+    <span class="pill pill-grey">– algebraic</span>
   </div>
 
   <!-- Main table -->
@@ -88,7 +89,16 @@
         </tr>
       </thead>
       <tbody id="const-tbody">
-        <tr><td colspan="6" style="text-align:center;color:#aaa;padding:32px">Loading…</td></tr>
+        <tr><td style="padding:11px 12px;font-weight:700;font-size:14px">\(\zeta(3)\)<div style="font-size:10px;color:#aaa;margin-top:2px">zeta3</div></td><td><code style="font-size:11px">1.202056903159594285399738161511</code></td><td style="font-size:12px;color:#555">\(\displaystyle\sum_{n=1}^\infty n^{-3}\)</td><td><span class="pill" style="background:#e0f2fe;color:#0369a1;border:1px solid #7dd3fc">✓ proven_irrational</span></td><td style="text-align:center"><span style="color:#b45309">?</span></td><td id="cnt-zeta3"><span style="color:#ddd;font-size:12px">—</span></td></tr>
+        <tr><td style="padding:11px 12px;font-weight:700;font-size:14px">\(\pi\)<div style="font-size:10px;color:#aaa;margin-top:2px">pi</div></td><td><code style="font-size:11px">3.141592653589793238462643383280</code></td><td style="font-size:12px;color:#555">\(4\sum_{n=0}^\infty\frac{(-1)^n}{2n+1}\)</td><td><span class="pill pill-green">✓ proven_transc.</span></td><td style="text-align:center"><span style="color:#059669;font-weight:600">T</span></td><td id="cnt-pi"><span style="color:#ddd;font-size:12px">—</span></td></tr>
+        <tr><td style="padding:11px 12px;font-weight:700;font-size:14px">\(e\)<div style="font-size:10px;color:#aaa;margin-top:2px">e</div></td><td><code style="font-size:11px">2.718281828459045235360287471353</code></td><td style="font-size:12px;color:#555">\(\sum_{n=0}^\infty\frac{1}{n!}\)</td><td><span class="pill pill-green">✓ proven_transc.</span></td><td style="text-align:center"><span style="color:#059669;font-weight:600">T</span></td><td id="cnt-e"><span style="color:#ddd;font-size:12px">—</span></td></tr>
+        <tr><td style="padding:11px 12px;font-weight:700;font-size:14px">\(\ln 2\)<div style="font-size:10px;color:#aaa;margin-top:2px">ln2</div></td><td><code style="font-size:11px">0.693147180559945309417232121458</code></td><td style="font-size:12px;color:#555">\(\sum_{n=1}^\infty\frac{(-1)^{n+1}}{n}\)</td><td><span class="pill pill-green">✓ proven_transc.</span></td><td style="text-align:center"><span style="color:#059669;font-weight:600">T</span></td><td id="cnt-ln2"><span style="color:#ddd;font-size:12px">—</span></td></tr>
+        <tr><td style="padding:11px 12px;font-weight:700;font-size:14px">\(\zeta(2)=\pi^2/6\)<div style="font-size:10px;color:#aaa;margin-top:2px">zeta2</div></td><td><code style="font-size:11px">1.644934066848226436472415166646</code></td><td style="font-size:12px;color:#555">\(\sum_{n=1}^\infty n^{-2}\)</td><td><span class="pill pill-green">✓ proven_transc.</span></td><td style="text-align:center"><span style="color:#059669;font-weight:600">T</span></td><td id="cnt-zeta2"><span style="color:#ddd;font-size:12px">—</span></td></tr>
+        <tr><td style="padding:11px 12px;font-weight:700;font-size:14px">\(\zeta(5)\)<div style="font-size:10px;color:#aaa;margin-top:2px">zeta5</div></td><td><code style="font-size:11px">1.036927755143369926331365486458</code></td><td style="font-size:12px;color:#555">\(\sum_{n=1}^\infty n^{-5}\)</td><td><span class="pill pill-amber">? open_question</span></td><td style="text-align:center"><span style="color:#b45309">?</span></td><td id="cnt-zeta5"><span style="color:#ddd;font-size:12px">—</span></td></tr>
+        <tr><td style="padding:11px 12px;font-weight:700;font-size:14px">\(G\)<div style="font-size:10px;color:#aaa;margin-top:2px">catalan</div></td><td><code style="font-size:11px">0.915965594177219015054603514932</code></td><td style="font-size:12px;color:#555">\(\sum_{n=0}^\infty\frac{(-1)^n}{(2n+1)^2}\)</td><td><span class="pill pill-amber">? open_question</span></td><td style="text-align:center"><span style="color:#b45309">?</span></td><td id="cnt-catalan"><span style="color:#ddd;font-size:12px">—</span></td></tr>
+        <tr><td style="padding:11px 12px;font-weight:700;font-size:14px">\(\sqrt{2}\)<div style="font-size:10px;color:#aaa;margin-top:2px">sqrt2</div></td><td><code style="font-size:11px">1.414213562373095048801688724210</code></td><td style="font-size:12px;color:#555">\(\sqrt{2}\)</td><td><span class="pill" style="background:#e0f2fe;color:#0369a1;border:1px solid #7dd3fc">✓ proven_irrational</span></td><td style="text-align:center"><span style="color:#aaa">No</span></td><td id="cnt-sqrt2"><span style="color:#ddd;font-size:12px">—</span></td></tr>
+        <tr><td style="padding:11px 12px;font-weight:700;font-size:14px">\(\pi/2\)<div style="font-size:10px;color:#aaa;margin-top:2px">pi_half</div></td><td><code style="font-size:11px">1.570796326794896619231321691640</code></td><td style="font-size:12px;color:#555">\(\pi/2\)</td><td><span class="pill pill-green">✓ proven_transc.</span></td><td style="text-align:center"><span style="color:#059669;font-weight:600">T</span></td><td id="cnt-pi_half"><span style="color:#ddd;font-size:12px">—</span></td></tr>
+        <tr><td style="padding:11px 12px;font-weight:700;font-size:14px">\(\pi/4\)<div style="font-size:10px;color:#aaa;margin-top:2px">pi_quarter</div></td><td><code style="font-size:11px">0.785398163397448309615660845820</code></td><td style="font-size:12px;color:#555">\(\pi/4\)</td><td><span class="pill pill-green">✓ proven_transc.</span></td><td style="text-align:center"><span style="color:#059669;font-weight:600">T</span></td><td id="cnt-pi_quarter"><span style="color:#ddd;font-size:12px">—</span></td></tr>
       </tbody>
     </table>
   </div>
@@ -120,7 +130,7 @@
 
 <footer style="border-top:1px solid #e2e8f0;background:#f9fafb;margin-top:20px">
   <div class="max-w-5xl mx-auto px-6 py-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3" style="font-size:13px;color:#888">
-    <div>CMF Atlas v2.2 &middot; David Vesterlund &middot; 2026</div>
+    <div>CMF Atlas v2.3 &middot; David Vesterlund &middot; 2026</div>
     <div class="flex gap-5">
       <a href="about.html" style="color:#888;text-decoration:none">About</a>
       <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" style="color:#888;text-decoration:none">CC BY 4.0</a>
@@ -144,27 +154,30 @@ function transcBadge(val) {
   return '<span style="color:#b45309">?</span>';
 }
 
+function statusBadge(s) {
+  if (s === 'proven_transcendental') return '<span class="pill pill-green">✓ proven_transc.</span>';
+  if (s === 'proven_irrational')    return '<span class="pill" style="background:#e0f2fe;color:#0369a1;border:1px solid #7dd3fc">✓ proven_irrational</span>';
+  if (s === 'open_question')        return '<span class="pill pill-amber">? open_question</span>';
+  if (s === 'algebraic')            return '<span class="pill pill-grey">– algebraic</span>';
+  return '<span class="pill pill-grey">—</span>';
+}
+
 async function load() {
-  const [cdata, stats] = await Promise.all([
-    fetch(`${API}/constants`).then(r => r.json()).catch(() => null),
-    fetch(`${API}/stats/detailed`).then(r => r.json()).catch(() => null),
-  ]);
+  const cdata = await fetch(`${API}/constants`).then(r => r.json()).catch(() => null);
   if (!cdata) return;
 
   document.getElementById('total-badge').textContent = `${cdata.count} constants`;
 
-  const cmfsByConst = {};
-  if (stats && stats.by_constant) {
-    Object.assign(cmfsByConst, stats.by_constant);
-  }
-
   const tbody = document.getElementById('const-tbody');
   tbody.innerHTML = cdata.constants.map(c => {
-    const count = cmfsByConst[c.label] || cmfsByConst[c.id] || '';
-    const browseLink = `browse.html?constant=${encodeURIComponent(c.label)}`;
+    const count = c.entry_count || 0;
+    const browseLink = `browse.html?q=${encodeURIComponent(c.label)}`;
     const countHtml = count
       ? `<a href="${browseLink}" style="color:#0bb4aa;font-size:12px;font-weight:600">${count} entries →</a>`
       : `<span style="color:#ddd;font-size:12px">—</span>`;
+    const transcSymbol = c.transcendental === true ? '<span style="color:#059669;font-weight:600">T</span>'
+      : c.transcendental === false ? '<span style="color:#aaa">No</span>'
+      : '<span style="color:#b45309">?</span>';
     return `<tr>
       <td>
         <div style="font-weight:700;font-size:14px">\\(${c.latex}\\)</div>
@@ -172,12 +185,12 @@ async function load() {
       </td>
       <td><code style="font-size:11px;word-break:break-all">${c.value_30d}</code></td>
       <td style="font-size:12px;color:#555">\\(${c.formula}\\)</td>
-      <td>${irrBadge(c.irrational, c.proven_irrational)}</td>
-      <td style="text-align:center">${transcBadge(c.transcendental)}</td>
+      <td>${statusBadge(c.irrationality_status)}</td>
+      <td style="text-align:center">${transcSymbol}</td>
       <td>${countHtml}</td>
     </tr>`;
   }).join('');
-  MathJax.typesetPromise && MathJax.typesetPromise([tbody]);
+  if (window.MathJax) MathJax.typesetPromise([tbody]);
 }
 
 load();

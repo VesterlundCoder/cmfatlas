@@ -49,7 +49,7 @@
       <a href="index.html" class="nav-link">Home</a>
       <a href="browse.html" class="nav-link">Browse</a>
       <a href="explorer.html" class="nav-link">Explorer</a>
-      <a href="conservative-test.html" class="nav-link">Conservative Test</a>
+      <a href="conservative-test.html" class="nav-link">Flatness Test</a>
       <a href="sources.html" class="nav-link">Sources</a>
       <a href="constants.html" class="nav-link">Constants</a>
       <a href="guide.html" class="nav-link active">Guide</a>
@@ -184,7 +184,7 @@
     <p>The terminology is analogous to conservative vector fields in calculus: path-independence means that the line integral depends only on the endpoints. In the CMF setting, the analogous statement is that matrix transport between lattice points depends only on the endpoints when the cocycle condition holds. The finite path-independence of matrix products is the structural property; limit-independence of the associated continued fraction is one of its consequences.</p>
 
     <h3>2D CMFs — Numerical flatness test</h3>
-    <p>For 2D CMFs with an explicit polynomial form, the <a href="conservative-test.html" style="color:#0bb4aa;font-weight:600">Conservative Test</a> page evaluates the residual</p>
+    <p>For 2D CMFs with an explicit polynomial form, the <a href="conservative-test.html" style="color:#0bb4aa;font-weight:600">2D Flatness Residual Test</a> page evaluates the residual</p>
     \[
       R(k,m) \;=\; K_x(k,m)\,K_y(k{+}1,m) \;-\; K_y(k,m)\,K_x(k,m{+}1)
     \]
@@ -192,7 +192,7 @@
 
     <h3>Implementation note for current 3D Atlas entries</h3>
     <div class="info-amber">
-      <strong>Implementation constraint.</strong> In the current Atlas, some 3D entries are stored through a reduced polynomial projection rather than the full operator-level data used to generate their trajectories. For such entries, the 2D residual test on the Conservative Test page should <strong>not</strong> be interpreted as a valid certification procedure for 3D flatness. A non-zero residual may reflect a mismatch between the projected display form and the full internal representation, rather than a genuine failure of path-independence.
+      <strong>Implementation constraint.</strong> In the current Atlas, some 3D entries are stored through a reduced polynomial projection rather than the full operator-level data used to generate their trajectories. For such entries, the 2D residual test on the <a href="conservative-test.html" style="color:#92400e;font-weight:600">2D Flatness Residual Test</a> page should <strong>not</strong> be interpreted as a valid certification procedure for 3D flatness. A non-zero residual may reflect a mismatch between the projected display form and the full internal representation, rather than a genuine failure of path-independence.
     </div>
     <p>In dimensions \(d \ge 3\), the rigorous notion is still given by the relevant cocycle identities among the generating matrices or operators. For rigorous certification, the Atlas should eventually expose either the full generating operator data or an exact symbolic identity implying the relevant cocycle relations.</p>
 
@@ -227,9 +227,8 @@
       <div>
         <label style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:6px">CMF</label>
         <select id="demo-cmf-id" style="background:#fff;border:1px solid #e2e8f0;color:#333;border-radius:8px;padding:8px 12px;font-size:13px;outline:none;min-width:220px">
-          <option value="5594">CMF #5594 — 3D, ζ(2)/π² (RamanujanTools)</option>
-          <option value="1845">CMF #1845 — 3D, CMF Hunter (deg=8)</option>
-          <option value="1847">CMF #1847 — 3D, CMF Hunter (deg=8)</option>
+          <option value="5594">CMF #5594 — 5D, pFq (RamanujanTools, A+)</option>
+          <option value="1845">CMF #1845 — 3D, CMF Hunter (deg=8, B)</option>
         </select>
       </div>
       <div>

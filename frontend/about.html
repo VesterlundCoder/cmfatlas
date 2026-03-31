@@ -60,7 +60,7 @@
       <a href="index.html" class="nav-link">Home</a>
       <a href="browse.html" class="nav-link">Browse</a>
       <a href="explorer.html" class="nav-link">Explorer</a>
-      <a href="conservative-test.html" class="nav-link">Conservative Test</a>
+      <a href="conservative-test.html" class="nav-link">Flatness Test</a>
       <a href="guide.html" class="nav-link">Guide</a>
       <a href="about.html" class="nav-link active">About</a>
     </div>
@@ -257,9 +257,9 @@ GET /cmfs/{id}/full</pre>
 <script>
 async function loadCount() {
   try {
-    const res = await fetch('https://cmfatlas-production.up.railway.app/stats/detailed');
+    const res = await fetch('https://cmfatlas-production.up.railway.app/release');
     const d = await res.json();
-    document.getElementById('total-count').textContent = `${d.total_cmfs?.toLocaleString()} entries`;
+    document.getElementById('total-count').textContent = `${d.total_cmfs?.toLocaleString()} entries (v${d.version})`;
   } catch(e) {}
 }
 loadCount();
