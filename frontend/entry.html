@@ -526,16 +526,86 @@ async function loadEntry() {
             </div>
           </div>
           ` : ''}
+
+          <!-- Relations panel (populated by loadRelations) -->
+          <div class="card p-5" id="relations-panel" style="min-height:40px"></div>
+
         </div>
       </div>
     `;
 
     if (window.MathJax) MathJax.typesetPromise([document.getElementById('main-content')]);
 
+    injectJsonLD(d);
+    loadRelations(d.id);
+
   } catch(e) {
     document.getElementById('main-content').innerHTML =
       `<div class="text-red-400 py-12 text-center">Failed to load entry: ${e.message}</div>`;
   }
+}
+
+function injectJsonLD(d) {
+  const existing = document.getElementById('entry-jsonld');
+  if (existing) existing.remove();
+  const el = document.createElement('script');
+  el.id = 'entry-jsonld';
+  el.type = 'application/ld+json';
+  const entryUri = `https://davidvesterlund.com/cmf-atlas/entry.html?id=${d.id}`;
+  el.textContent = JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "Dataset",
+    "name": `CMF Atlas Entry #${d.id}`,
+    "description": `Conservative Matrix Field #${d.id}: ${d.dimension}D, ${d.primary_constant || 'unidentified'}, ${d.certification_level || 'unknown certification'}.`,
+    "identifier": `cmf-atlas-entry-${d.id}`,
+    "url": entryUri,
+    "license": "https://creativecommons.org/licenses/by/4.0/",
+    "version": "2.3",
+    "creator": {"@type": "Person", "name": "David Vesterlund"},
+    "isPartOf": {"@type": "Dataset", "name": "CMF Atlas", "url": "https://davidvesterlund.com/cmf-atlas/"},
+    "keywords": ["Conservative Matrix Field", "CMF", d.primary_constant, `${d.dimension}D`, d.certification_level].filter(Boolean),
+    "additionalProperty": [
+      {"@type": "PropertyValue", "name": "dimension",           "value": d.dimension},
+      {"@type": "PropertyValue", "name": "proof_status",        "value": d.proof_status || "unverified"},
+      {"@type": "PropertyValue", "name": "identification_status","value": d.identification_status || "unidentified"},
+      {"@type": "PropertyValue", "name": "construction_type",   "value": d.construction_type || ""},
+      {"@type": "PropertyValue", "name": "source_family",       "value": d.source_family || d.source_category || ""},
+      {"@type": "PropertyValue", "name": "release_version",     "value": "2.3"},
+    ]
+  });
+  document.head.appendChild(el);
+  let canon = document.querySelector('link[rel="canonical"]');
+  if (!canon) { canon = document.createElement('link'); canon.rel = 'canonical'; document.head.appendChild(canon); }
+  canon.href = entryUri;
+  document.title = `CMF #${d.id} — ${d.primary_constant || 'CMF'} (${d.dimension}D) — CMF Atlas`;
+}
+
+async function loadRelations(cmfId) {
+  const rel = await fetch(`${API}/cmfs/${cmfId}/relations`).then(r => r.json()).catch(() => null);
+  if (!rel) return;
+  const panel = document.getElementById('relations-panel');
+  if (!panel) return;
+  const lc = rel.linked_constant;
+  const re = rel.related_entries || [];
+  panel.innerHTML = `
+    <div class="section-label">Related Objects</div>
+    ${lc ? `
+    <div style="margin-bottom:10px">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:4px">Linked Constant</div>
+      <a href="constants.html#${lc.id}" style="color:#0bb4aa;font-weight:600;font-size:13px;text-decoration:none">
+        \\(${lc.latex}\\) — ${lc.label}
+      </a>
+      <div style="font-size:11px;color:#aaa;margin-top:2px">irrationality: ${lc.irrationality_status || '—'} &nbsp;|&nbsp; transcendence: ${lc.transcendence_status || '—'}</div>
+    </div>
+    ` : ''}
+    ${re.length ? `
+    <div>
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:4px">Related Entries (same constant)</div>
+      ${re.map(r => `<div style="font-size:12px;margin-bottom:4px"><a href="entry.html?id=${r.id}" style="color:#0bb4aa;text-decoration:none;font-weight:600">#${r.id}</a> <span style="color:#aaa">${r.dimension}D · ${r.certification_level || ''}</span></div>`).join('')}
+    </div>` : ''}
+    ${!lc && !re.length ? '<div style="color:#aaa;font-size:12px">No linked objects found.</div>' : ''}
+  `;
+  if (window.MathJax) MathJax.typesetPromise([panel]);
 }
 
 function copyText(text, btn) {

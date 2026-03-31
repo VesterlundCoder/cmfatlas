@@ -21,7 +21,7 @@ import sympy as _sp
 from sympy import symbols as _sym, sympify as _sympify, lambdify as _lambdify, expand as _expand
 from fastapi.staticfiles import StaticFiles
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -1938,6 +1938,89 @@ def search(
         return {"query": q, "total_results": len(results), "results": results}
     finally:
         db.close()
+
+
+# --- CMF Relations (Sprint 3) ---
+
+@app.get("/cmfs/{cmf_id}/relations", tags=["cmfs"])
+def cmf_relations(cmf_id: int):
+    """Relational context for a CMF: linked constant, source family, related entries, proof artifact."""
+    db: Session = next(get_db())
+    try:
+        row = db.execute(
+            text("SELECT id, dimension, cmf_payload FROM cmf WHERE id = :id"),
+            {"id": cmf_id},
+        ).fetchone()
+        if not row:
+            raise HTTPException(404, "CMF not found")
+
+        payload = json.loads(row[2]) if row[2] else {}
+        primary_const = payload.get("primary_constant")
+        identified_const = payload.get("identified_constant")
+        source_cat = payload.get("source_category") or payload.get("source", "")
+        cert = payload.get("certification_level")
+
+        _proof_map = {
+            "A_plus": "symbolically_certified",
+            "A_certified": "verified",
+            "B_verified_numeric": "numeric_only",
+            "C_scouting": "unverified",
+        }
+
+        linked_const = None
+        for c in _CONSTANTS_REGISTRY:
+            all_labels = [c["label"]] + c.get("aliases", [])
+            if primary_const and (primary_const in all_labels or primary_const == c["id"]):
+                linked_const = {
+                    "id": c["id"], "label": c["label"], "latex": c["latex"],
+                    "irrationality_status": c.get("irrationality_status"),
+                    "transcendence_status": c.get("transcendence_status"),
+                    "constants_page_uri": f"https://davidvesterlund.com/cmf-atlas/constants.html#{c['id']}",
+                }
+                break
+
+        related: list = []
+        if primary_const:
+            rel_rows = db.execute(text(
+                "SELECT id, dimension, json_extract(cmf_payload,'$.certification_level') "
+                "FROM cmf WHERE json_extract(cmf_payload,'$.primary_constant') = :pc "
+                "AND id != :cid AND dimension >= 2 ORDER BY id LIMIT 5"
+            ), {"pc": primary_const, "cid": cmf_id}).fetchall()
+            related = [
+                {"id": r[0], "dimension": r[1], "certification_level": r[2],
+                 "entry_uri": f"https://davidvesterlund.com/cmf-atlas/entry.html?id={r[0]}"}
+                for r in rel_rows
+            ]
+
+        return {
+            "cmf_id": cmf_id,
+            "entry_uri": f"https://davidvesterlund.com/cmf-atlas/entry.html?id={cmf_id}",
+            "schema_version": "2.3",
+            "primary_constant": primary_const,
+            "identified_constant": identified_const,
+            "linked_constant": linked_const,
+            "source_family": source_cat,
+            "proof_status": _proof_map.get(cert, "unverified"),
+            "identification_status": (
+                "pslq_identified" if identified_const else
+                "matched" if primary_const else "unidentified"
+            ),
+            "proof_artifact": payload.get("symbolic_verification"),
+            "related_entries": related,
+        }
+    finally:
+        db.close()
+
+
+# --- API v1 versioned aliases (Sprint 3) ---
+
+@app.api_route("/api/v1/{path:path}", methods=["GET"], tags=["versioned"],
+               summary="Versioned API alias",
+               description="/api/v1/X is a stable alias for /X. Redirects 307 for forward compatibility.")
+async def v1_proxy(path: str, request: Request):
+    qs = str(request.url.query)
+    target = f"/{path}?{qs}" if qs else f"/{path}"
+    return RedirectResponse(url=target, status_code=307)
 
 
 # ---------------------------------------------------------------------------
