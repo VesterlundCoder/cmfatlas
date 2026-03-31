@@ -69,9 +69,9 @@
 
 <div style="background:linear-gradient(135deg,#f0fdfc 0%,#fff 60%);border-bottom:1px solid #e2e8f0;padding:28px 0 20px">
   <div class="max-w-7xl mx-auto px-6">
-    <h1 style="font-size:1.8rem;font-weight:800;color:#101010;margin-bottom:4px;letter-spacing:-0.5px">Conservative / Path-Independence Test</h1>
+    <h1 style="font-size:1.8rem;font-weight:800;color:#101010;margin-bottom:4px;letter-spacing:-0.5px">2D Flatness Residual Test</h1>
     <p style="font-size:13px;color:#666;max-width:640px">
-      A CMF is <em>conservative</em> (or <em>flat</em>) if matrix products are path-independent: any two admissible paths between the same endpoints yield the same product. Tested empirically at a grid of lattice points.
+      A CMF is <em>flat</em> (path-independent) if matrix products are path-independent: any two admissible paths between the same endpoints yield the same product. This page runs the exact 2D residual test. For 3D entries, only the path-independence heuristic applies.
     </p>
   </div>
 </div>
@@ -91,7 +91,7 @@
       </div>
       <div>
         <p style="margin-bottom:10px">This test checks the condition <strong style="color:#101010">numerically</strong> at each grid point using 20-digit mpmath arithmetic.</p>
-        <p style="margin-bottom:10px">The <strong style="color:#101010">residual</strong> = Frobenius norm of \(K_1 K_2 - K_2 K_1\).</p>
+        <p style="margin-bottom:10px">The <strong style="color:#101010">residual</strong> at each point \((k,m)\) is the Frobenius norm of \(K_1(k,m)\cdot K_2(k{+}1,m) - K_2(k,m)\cdot K_1(k,m{+}1)\).</p>
         <div style="font-size:12px;color:#888;padding:10px 12px;background:#fffbeb;border-radius:8px;border:1px solid #fcd34d">
           <strong style="color:#b45309">Note:</strong> Small residuals are empirical evidence only — not a formal proof. Symbolic verification via SymPy/Maple is required for certainty.
         </div>
@@ -204,11 +204,11 @@
         <div style="overflow-x:auto">
           <table style="width:100%;font-size:12px;font-family:monospace;border-collapse:collapse">
             <thead>
-              <tr style="border-bottom:2px solid #e2e8f0;color:#888">
-                ${d.is_3d ? '<th style="text-align:left;padding:8px 8px 8px 0">Pair</th>' : ''}
+              <tr style="border-bottom:2px solid #e2e8f0;color:#888" id="detail-thead-row">
+                <th style="text-align:left;padding:8px 8px 8px 0">Pair</th>
                 <th style="text-align:left;padding:8px 16px 8px 0">k</th>
                 <th style="text-align:left;padding:8px 16px 8px 0">m</th>
-                ${d.is_3d ? '<th style="text-align:left;padding:8px 8px 8px 0">n</th>' : ''}
+                <th style="text-align:left;padding:8px 8px 8px 0">n</th>
                 <th style="text-align:left;padding:8px 16px 8px 0">Residual</th>
                 <th style="text-align:left;padding:8px 0">log₁₀</th>
               </tr>

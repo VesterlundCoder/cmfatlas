@@ -66,7 +66,7 @@
   <div class="max-w-7xl mx-auto px-6">
     <div class="flex flex-wrap items-center gap-2 mb-5">
       <span class="badge badge-teal">Open Research Database</span>
-      <span class="badge badge-grey">v2.2</span>
+      <span class="badge badge-grey">v2.3</span>
       <span class="badge badge-violet">RamanujanTools pFq</span>
     </div>
     <h1 style="font-size:clamp(2.2rem,5vw,3.5rem);font-weight:800;color:#101010;line-height:1.1;margin-bottom:18px;letter-spacing:-1px">
@@ -75,7 +75,7 @@
     <p style="font-size:1.15rem;color:#444;line-height:1.75;max-width:640px;margin-bottom:16px">
       A public mathematical database of <strong style="color:#101010">Conservative Matrix Fields</strong> —
       path-independent matrix recurrences connecting continued fractions, pFq hypergeometric series,
-      and transcendental constants such as ζ(3), π, ln(2) and ζ(5).
+      and named constants such as ζ(3), π, ln(2) and ζ(5).
     </p>
     <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:10px;padding:14px 18px;max-width:640px;margin-bottom:28px;display:flex;align-items:flex-start;gap:12px">
       <span style="background:#fef3c7;color:#b45309;border:1px solid #fcd34d;padding:2px 10px;border-radius:9999px;font-size:11px;font-weight:700;letter-spacing:.05em;white-space:nowrap;margin-top:2px">BETA</span>
@@ -149,7 +149,7 @@
         <span class="badge badge-amber">Interactive Explorer</span>
       </div>
       <div style="font-size:14px;color:#333;margin-bottom:10px">Numerical convergence</div>
-      <p style="font-size:13px;color:#666;line-height:1.6;margin-bottom:14px">Walk any CMF with explicit f(x,y) up to depth 500 using 30-digit mpmath precision. Compare against 20+ known constants.</p>
+      <p style="font-size:13px;color:#666;line-height:1.6;margin-bottom:14px">Walk any CMF with explicit f(x,y) up to depth 2000 using 30-digit mpmath precision. Compare against known constants from the registry.</p>
       <a href="explorer.html" style="color:#b45309;font-size:13px;font-weight:600;text-decoration:none">Open Explorer →</a>
     </div>
   </div>
@@ -175,7 +175,30 @@
           </tr>
         </thead>
         <tbody id="featured-tbody">
-          <tr><td colspan="6" style="padding:32px;text-align:center;color:#aaa">Loading…</td></tr>
+          <tr class="entry-row">
+            <td style="padding:12px 16px;font-family:monospace;font-size:12px;color:#0bb4aa;font-weight:700">#1</td>
+            <td style="padding:12px 16px"><span class="badge badge-teal">2D</span></td>
+            <td style="padding:12px 16px;font-size:12px;color:#333">\((x+y)^3\)</td>
+            <td style="padding:12px 16px;font-size:12px;color:#b45309;font-weight:500">ζ(3)</td>
+            <td style="padding:12px 16px"><span class="badge badge-green">A</span></td>
+            <td style="padding:12px 16px"><a href="entry.html?id=1" style="color:#0bb4aa;font-size:12px;font-weight:600;text-decoration:none">View →</a></td>
+          </tr>
+          <tr class="entry-row">
+            <td style="padding:12px 16px;font-family:monospace;font-size:12px;color:#0bb4aa;font-weight:700">#2</td>
+            <td style="padding:12px 16px"><span class="badge badge-teal">2D</span></td>
+            <td style="padding:12px 16px;font-size:12px;color:#333">\((x+y)^3 + (x+y)\)</td>
+            <td style="padding:12px 16px;font-size:12px;color:#b45309;font-weight:500">ζ(3)</td>
+            <td style="padding:12px 16px"><span class="badge badge-green">A</span></td>
+            <td style="padding:12px 16px"><a href="entry.html?id=2" style="color:#0bb4aa;font-size:12px;font-weight:600;text-decoration:none">View →</a></td>
+          </tr>
+          <tr class="entry-row">
+            <td style="padding:12px 16px;font-family:monospace;font-size:12px;color:#0bb4aa;font-weight:700">#5594</td>
+            <td style="padding:12px 16px"><span class="badge badge-violet">5D</span></td>
+            <td style="padding:12px 16px;font-size:12px;color:#555;font-style:italic">pFq hypergeometric</td>
+            <td style="padding:12px 16px;font-size:12px;color:#b45309;font-weight:500">ζ(3)</td>
+            <td style="padding:12px 16px"><span class="badge" style="background:#fef3c7;color:#92400e;border:1px solid #fcd34d">A+</span></td>
+            <td style="padding:12px 16px"><a href="entry.html?id=5594" style="color:#0bb4aa;font-size:12px;font-weight:600;text-decoration:none">View →</a></td>
+          </tr>
         </tbody>
       </table>
     </div>
@@ -187,7 +210,7 @@
   <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
     <div>
       <p style="font-size:13px;font-weight:600;color:#101010;margin-bottom:4px">Cite CMF Atlas</p>
-      <p style="font-size:12px;color:#888;font-family:monospace">Vesterlund, D. (2026). <em>CMF Atlas: A Database of Conservative Matrix Fields.</em> davidvesterlund.com/cmfatlas</p>
+      <p style="font-size:12px;color:#888;font-family:monospace">Vesterlund, D. (2026). <em>CMF Atlas: A Database of Conservative Matrix Fields.</em> https://davidvesterlund.com/cmf-atlas/</p>
     </div>
     <div class="flex items-center gap-5">
       <span style="font-size:12px;color:#aaa">CC BY 4.0</span>
@@ -232,7 +255,7 @@ async function loadStats() {
       <div class="stat-card"><div class="stat-number">${(byDim['2']||0).toLocaleString()}</div><div style="font-size:11px;color:#888;margin-top:6px;text-transform:uppercase;letter-spacing:.05em">2D Entries</div></div>
       <div class="stat-card"><div class="stat-number">${(byDim['3']||0).toLocaleString()}</div><div style="font-size:11px;color:#888;margin-top:6px;text-transform:uppercase;letter-spacing:.05em">3D Entries</div></div>
       <div class="stat-card"><div class="stat-number" style="font-size:1.8rem">${((byDim['4']||0)+(byDim['5']||0)+(byDim['7']||0)+(byDim['9']||0)+(byDim['11']||0)).toLocaleString()}</div><div style="font-size:11px;color:#888;margin-top:6px;text-transform:uppercase;letter-spacing:.05em">4D+ / pFq</div></div>
-      <div class="stat-card"><div class="stat-number">${(byCert['A_certified']||0).toLocaleString()}</div><div style="font-size:11px;color:#888;margin-top:6px;text-transform:uppercase;letter-spacing:.05em">A-Certified</div></div>
+      <div class="stat-card"><div class="stat-number">${((byCert['A_plus']||0)+(byCert['A_certified']||0)).toLocaleString()}</div><div style="font-size:11px;color:#888;margin-top:6px;text-transform:uppercase;letter-spacing:.05em">A / A+ Certified</div></div>
       <div class="stat-card"><div class="stat-number">${(d.walkable_cmfs||0).toLocaleString()}</div><div style="font-size:11px;color:#888;margin-top:6px;text-transform:uppercase;letter-spacing:.05em">Walkable f(x,y)</div></div>
     `;
 
