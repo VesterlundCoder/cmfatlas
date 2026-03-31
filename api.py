@@ -286,6 +286,60 @@ def _build_walk_fns(f_poly_str: str, fbar_poly_str: str):
     return Kx2, Ky2, None, False
 
 
+def _build_matrix_walk_from_stored(matrices_dict: dict, axes: list, direction: str):
+    """
+    Build a K(step, fixed_vals) callable from the stored matrix expression strings
+    used by RamanujanTools / known_family CMFs.
+
+    matrices_dict: {axis_name: "[[expr, expr], [expr, expr]]"}
+    axes: list of axis variable names, e.g. ['x','y'] or ['a','b','c']
+    direction: 'x', 'y', 'z'
+    Returns (K_fn, step_axis, matrix_size) or None on failure.
+    """
+    import ast as _ast
+    dir_idx = {"x": 0, "y": 1, "z": 2}.get(direction, 0)
+    if dir_idx >= len(axes):
+        return None
+    step_axis = axes[dir_idx]
+    mat_str = matrices_dict.get(step_axis)
+    if not mat_str:
+        return None
+    try:
+        parsed_rows = _ast.literal_eval(mat_str)
+    except Exception:
+        return None
+    size = len(parsed_rows)
+    # Pre-compile each cell expression for speed
+    compiled = []
+    for row in parsed_rows:
+        crow = []
+        for cell in row:
+            try:
+                crow.append(compile(str(cell), "<cmf_expr>", "eval"))
+            except Exception:
+                crow.append(None)
+        compiled.append(crow)
+
+    def K_fn(step_val, fixed_vals: dict):
+        ns = {ax: float(v) for ax, v in fixed_vals.items()}
+        ns[step_axis] = float(step_val)
+        mat = mpmath.zeros(size)
+        for i in range(size):
+            for j in range(len(compiled[i])):
+                code = compiled[i][j]
+                if code is None:
+                    mat[i, j] = mpmath.mpf(0)
+                    continue
+                try:
+                    raw = eval(code, {"__builtins__": None}, ns)  # noqa: S307
+                    mat[i, j] = mpmath.mpf(str(raw))
+                except Exception:
+                    mat[i, j] = mpmath.mpf(0)
+        return mat
+
+    return K_fn, step_axis, size
+
+
 # ---------------------------------------------------------------------------
 # App
 # ---------------------------------------------------------------------------
@@ -294,6 +348,38 @@ def _build_walk_fns(f_poly_str: str, fbar_poly_str: str):
 async def lifespan(app: FastAPI):
     if not DB_PATH.exists():
         raise RuntimeError(f"Database not found at {DB_PATH}")
+    # Ensure category column exists (idempotent migration for Railway)
+    import sqlite3 as _sq, json as _js, re as _re
+    _TRANS_RE = _re.compile(
+        r"zeta|pi|log|ln\(|digamma|psi\(|catalan|euler|\be\b|harmonic|gamma|\bG\b"
+        r"|eta\(|hurwitz|dirichlet|3f2|hypergeometric|2f1|pfq|identified",
+        _re.IGNORECASE)
+    _RAT_RE = _re.compile(r"^-?\s*\d+\s*/\s*\d+\s*$")
+    _DISC_SRC = ["ramanujantools", "pfq", "3f2", "hypergeometric", "discovery"]
+    def _classify(payload, dim):
+        cert = (payload.get("certification_level") or "").lower()
+        src  = (payload.get("source_category") or payload.get("source") or "").lower()
+        pc   = (payload.get("primary_constant") or "").strip()
+        deg  = int(payload.get("degree") or 0)
+        if dim >= 3 or any(s in src for s in _DISC_SRC) or cert == "a_plus":
+            return "discovery"
+        if deg <= 1: return "reference"
+        if (not pc or pc.lower() in ("none", "", "null")) and deg <= 2: return "reference"
+        if _RAT_RE.match(pc): return "reference"
+        if pc and not _TRANS_RE.search(pc): return "reference"
+        return "interesting"
+    _conn = _sq.connect(DB_PATH)
+    _cur  = _conn.cursor()
+    _cols = [r[1] for r in _cur.execute("PRAGMA table_info(cmf)").fetchall()]
+    if "category" not in _cols:
+        _cur.execute("ALTER TABLE cmf ADD COLUMN category TEXT")
+    _cur.execute("CREATE INDEX IF NOT EXISTS idx_cmf_category ON cmf(category)")
+    _rows = _cur.execute("SELECT id, dimension, cmf_payload FROM cmf WHERE category IS NULL").fetchall()
+    for _rid, _dim, _pay in _rows:
+        try: _p = _js.loads(_pay) if _pay else {}
+        except: _p = {}
+        _cur.execute("UPDATE cmf SET category=? WHERE id=?", (_classify(_p, _dim or 2), _rid))
+    _conn.commit(); _conn.close()
     yield
 
 app = FastAPI(
@@ -899,7 +985,8 @@ def browse_cmfs(
                    json_extract(c.cmf_payload,'$.flatness_verified')   AS flat,
                    r.canonical_fingerprint, r.primary_group,
                    s.generator_type, s.name AS series_name,
-                   c.category
+                   c.category,
+                   json_extract(r.canonical_payload,'$.matrices')      AS has_stored_matrices
             FROM cmf c
             JOIN representation r ON r.id = c.representation_id
             JOIN series s ON s.id = r.series_id
@@ -926,7 +1013,7 @@ def browse_cmfs(
                 "primary_group":       r[12],
                 "generator_type":      r[13],
                 "series_name":         r[14],
-                "has_formula":         bool(r[2]),
+                "has_formula":         bool(r[2]) or bool(r[16]),
                 "category":            r[15] or "reference",
             })
 
@@ -1141,7 +1228,7 @@ def get_cmf_full(cmf_id: int):
             "is_3d":           payload.get("dimension", row[1]) == 3 or _poly_has_z(payload.get("f_poly", "")),
             "symbolic_verification": payload.get("symbolic_verification"),
             "category":        row[15] or "reference",
-            "walk_available":  bool(payload.get("f_poly")),
+            "walk_available":  bool(payload.get("f_poly")) or bool(canon.get("matrices")),
             "matrices": _compute_matrices(
                 payload.get("f_poly", ""),
                 payload.get("fbar_poly", ""),
@@ -1277,7 +1364,7 @@ def verify_steps(cmf_id: int):
 @app.get("/cmfs/{cmf_id}/walk", tags=["cmfs"])
 def walk_cmf(
     cmf_id: int,
-    depth: int = Query(100, ge=10, le=500),
+    depth: int = Query(100, ge=10, le=2000),
     m_fixed: int = Query(0, ge=0, le=50),
     n_fixed: int = Query(1, ge=1, le=50),
     k_fixed: int = Query(1, ge=1, le=50),
@@ -1301,57 +1388,96 @@ def walk_cmf(
         f_poly    = payload.get("f_poly", "")
         fbar_poly = payload.get("fbar_poly", "")
 
-        if not f_poly or not fbar_poly:
-            raise HTTPException(422, "CMF has no polynomial form — walk not available")
-
-        try:
-            walk_fns = _build_walk_fns(f_poly, fbar_poly)
-        except Exception as exc:
-            raise HTTPException(500, f"Polynomial parse error: {exc}")
-
-        Kx_fn, Ky_fn, Kz_fn, is_3d = walk_fns
-
-        mpmath.mp.dps = 30
-        P = mpmath.eye(2)
-        sequence = []
-
         dir_clean = direction.lower().strip() if direction else "x"
         if dir_clean not in ("x", "y", "z"):
             dir_clean = "x"
 
-        if dir_clean == "z" and not is_3d:
-            raise HTTPException(422, "Kz walk requires a 3D CMF")
-        if dir_clean == "y" and Ky_fn is None:
-            raise HTTPException(422, "Ky walk not available for this CMF")
+        # ── Fallback: RamanujanTools / known_family stored-expression walk ──
+        stored_walk = None
+        stored_axes = None
+        stored_size = 2
+        if not f_poly or not fbar_poly:
+            rep_row = db.execute(
+                text("SELECT r.canonical_payload FROM cmf c JOIN representation r ON r.id=c.representation_id WHERE c.id=:id"),
+                {"id": cmf_id},
+            ).fetchone()
+            if rep_row:
+                canon = _safe_json(rep_row[0]) or {}
+                mats  = canon.get("matrices", {})
+                axes  = canon.get("axes", [])
+                if mats and axes:
+                    stored_axes = axes
+                    result = _build_matrix_walk_from_stored(mats, axes, dir_clean)
+                    if result:
+                        stored_walk, _, stored_size = result
+            if not stored_walk:
+                raise HTTPException(422, "CMF has no polynomial form — walk not available")
 
-        # Determine step function and starting step
-        k_start = 0
-        if dir_clean == "y":
-            def _K(step): return Ky_fn(k_fixed, step, n_fixed)
+        is_3d = False
+        if stored_walk:
+            # RamanujanTools stored-expression walk
+            is_3d = len(stored_axes or []) >= 3
+            dim_dirs = {"x": 0, "y": 1, "z": 2}
+            step_idx = dim_dirs.get(dir_clean, 0)
+            fixed_axes = [ax for i, ax in enumerate(stored_axes) if i != step_idx]
+            fixed_vals_list = [m_fixed, n_fixed]  # default fixed values
+
+            def _K(step):
+                fv = {ax: fixed_vals_list[i] for i, ax in enumerate(fixed_axes[:2])}
+                return stored_walk(step, fv)
+
+            P = mpmath.eye(stored_size)
             k_start = 1
-        elif dir_clean == "z":
-            def _K(step): return Kz_fn(k_fixed, m_fixed, step)
-            for _s in range(1, 30):
+            # Find first non-degenerate step
+            for _ks in range(1, 20):
                 try:
-                    _b = abs(float(mpmath.re(Kz_fn(k_fixed, m_fixed, _s)[1, 0])))
-                    if _b > 1e-10:
-                        k_start = _s
+                    _m = _K(_ks)
+                    if abs(float(mpmath.re(_m[1, 0]))) > 1e-15 or abs(float(mpmath.re(_m[0, 1]))) > 1e-15:
+                        k_start = _ks
                         break
                 except Exception:
                     pass
-            if k_start == 0:
-                k_start = 1
         else:
-            def _K(step): return Kx_fn(step, m_fixed, n_fixed)
-            if is_3d:
-                for _k in range(30):
+            try:
+                walk_fns = _build_walk_fns(f_poly, fbar_poly)
+            except Exception as exc:
+                raise HTTPException(500, f"Polynomial parse error: {exc}")
+
+            Kx_fn, Ky_fn, Kz_fn, is_3d = walk_fns
+            P = mpmath.eye(2)
+
+            if dir_clean == "z" and not is_3d:
+                raise HTTPException(422, "Kz walk requires a 3D CMF")
+            if dir_clean == "y" and Ky_fn is None:
+                raise HTTPException(422, "Ky walk not available for this CMF")
+
+            k_start = 0
+            if dir_clean == "y":
+                def _K(step): return Ky_fn(k_fixed, step, n_fixed)
+                k_start = 1
+            elif dir_clean == "z":
+                def _K(step): return Kz_fn(k_fixed, m_fixed, step)
+                for _s in range(1, 30):
                     try:
-                        _b = abs(float(mpmath.re(Kx_fn(_k, 0, n_fixed)[1, 0])))
+                        _b = abs(float(mpmath.re(Kz_fn(k_fixed, m_fixed, _s)[1, 0])))
                         if _b > 1e-10:
-                            k_start = max(0, _k - 1)
+                            k_start = _s
                             break
                     except Exception:
                         pass
+                if k_start == 0:
+                    k_start = 1
+            else:
+                def _K(step): return Kx_fn(step, m_fixed, n_fixed)
+                if is_3d:
+                    for _k in range(30):
+                        try:
+                            _b = abs(float(mpmath.re(Kx_fn(_k, 0, n_fixed)[1, 0])))
+                            if _b > 1e-10:
+                                k_start = max(0, _k - 1)
+                                break
+                        except Exception:
+                            pass
 
         if k_start_override >= 0:
             k_start = k_start_override
