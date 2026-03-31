@@ -391,11 +391,17 @@ function renderResults(d) {
   verdCard.style.display = '';
   if (d.is_3d) {
     verdCard.innerHTML = `
-      <div class="verdict-box verdict-approx" style="font-size:13px">⚠ 3D CMF — Telescope residual test not applicable</div>
-      <div style="font-size:12px;color:#555;margin-top:10px;padding:10px 14px;background:#fef9e7;border:1px solid #fcd34d;border-radius:8px;line-height:1.7">
-        The polynomial projection used by this residual test does not match the internal matrix construction for 3D CMFs.
-        Large residuals above are expected and do <strong>not</strong> indicate a non-flat CMF.
-        Use the <strong>Path-Independence Heuristic Test</strong> below as the appropriate numerical check for this entry.
+      <div class="verdict-box verdict-approx" style="font-size:13px">⚠ 3D CMF — Residual grid not meaningful for this entry type</div>
+      <div style="font-size:12px;color:#555;margin-top:10px;padding:12px 16px;background:#fef9e7;border:1px solid #fcd34d;border-radius:8px;line-height:1.8">
+        <strong style="color:#92400e">Why residuals are large:</strong>
+        The conservative test computes K-matrices using the standard 2×2 telescope formula applied to the stored polynomial f(x,y,z).
+        CMF Hunter 3D entries were certified using an internal numerical method that is <em>not</em> the standard telescope — the polynomial
+        encodes the CMF algebraically but does not satisfy the 2×2 cocycle condition via the telescope construction.
+        Large residuals are therefore always expected here and carry no information about flatness.
+        <br/><br/>
+        <strong style="color:#92400e">Correct test for 3D CMFs:</strong>
+        Use the <strong>Path-Independence Heuristic</strong> below. It tests path-independence directly — if multiple Kx trajectories
+        with different fixed shifts all converge to the same numerical value, this is empirical evidence of flatness.
       </div>
     `;
     // Show heuristic card

@@ -386,8 +386,9 @@ async function loadEntry() {
               </div>
               <span class="badge badge-teal">✓ B-verified numeric</span>
             </div>
-            <div style="font-size:12px;color:#555;margin-bottom:14px;padding:10px 14px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;line-height:1.7">
-              The telescope residual test is not applicable to this 3D CMF (the polynomial projection does not match the internal matrix construction). The path-independence heuristic below is the appropriate numerical check: if trajectories with m&nbsp;=&nbsp;0,&nbsp;1,&nbsp;2 all converge to the same value, this is empirical evidence of flatness.
+            <div style="font-size:12px;color:#555;margin-bottom:14px;padding:10px 14px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;line-height:1.8">
+              The conservative test's 2&times;2 telescope formula is not applicable to this CMF: CMF Hunter 3D entries are certified using an internal method that is not the standard telescope construction, so the stored polynomial f(x,y,z) does not satisfy the 2&times;2 cocycle condition. Residuals from the conservative test are meaningless here.<br/>
+              <strong>Path-independence can still be tested directly</strong> using trajectories: a flat CMF always converges to the same value regardless of the starting shift. Run the heuristic below to verify.
             </div>
             <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px">
               <select id="heuristic-depth-${d.id}" style="background:#fff;border:1px solid #e2e8f0;color:#333;border-radius:8px;padding:7px 12px;font-size:13px;outline:none">
