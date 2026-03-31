@@ -153,18 +153,47 @@
 
   <!-- Schema -->
   <div class="card p-7">
-    <h2>Data Schema</h2>
-    <p style="font-size:13px;color:#888;margin-bottom:12px">Key fields for each CMF entry:</p>
-    <div style="font-size:13px">
-      <div class="field-row"><code>id</code><span>Unique integer identifier</span></div>
-      <div class="field-row"><code>dimension</code><span>Lattice dimension (2, 3, 4, 5…)</span></div>
-      <div class="field-row"><code>f_poly</code><span>SymPy polynomial f(x,y) defining the CMF (if available)</span></div>
+    <h2>Data Schema <span style="font-size:12px;font-weight:500;color:#888">v2.3</span></h2>
+    <p style="font-size:13px;color:#888;margin-bottom:16px">All public CMF entries expose the following canonical fields via <code>GET /cmfs/browse</code> and <code>GET /cmfs/{id}/full</code>:</p>
+
+    <h3 style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#0bb4aa;margin-bottom:8px">Core fields</h3>
+    <div style="font-size:13px;margin-bottom:16px">
+      <div class="field-row"><code>id</code><span>Unique integer identifier (stable across releases)</span></div>
+      <div class="field-row"><code>dimension</code><span>Lattice dimension (integer ≥ 2)</span></div>
+      <div class="field-row"><code>f_poly</code><span>SymPy polynomial f(x,y) — present for telescope-polynomial CMFs</span></div>
       <div class="field-row"><code>fbar_poly</code><span>Conjugate polynomial f̄(x,y)</span></div>
-      <div class="field-row"><code>degree</code><span>Total polynomial degree</span></div>
-      <div class="field-row"><code>primary_constant</code><span>Known limit / target constant (if identified)</span></div>
-      <div class="field-row"><code>certification_level</code><span>A_plus / A_certified / B_verified_numeric / C_scouting</span></div>
+      <div class="field-row"><code>degree</code><span>Total polynomial degree of f</span></div>
+      <div class="field-row"><code>primary_constant</code><span>Canonical label of the identified limit (e.g. “ζ(3)”, “π”)</span></div>
+      <div class="field-row"><code>identified_constant</code><span>PSLQ-identified exact form, if found</span></div>
+      <div class="field-row"><code>flatness_verified</code><span>Boolean — true if symbolic flatness proof exists</span></div>
       <div class="field-row"><code>canonical_fingerprint</code><span>Hash-based unique key for the representation</span></div>
+      <div class="field-row"><code>entry_uri</code><span>Canonical URL for the entry page</span></div>
+      <div class="field-row"><code>release_version</code><span>Atlas version in which this entry is included</span></div>
     </div>
+
+    <h3 style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#0bb4aa;margin-bottom:8px">Enum fields (canonical vocabulary)</h3>
+    <div style="font-size:13px;margin-bottom:16px">
+      <div class="field-row">
+        <code>certification_level</code>
+        <span style="font-size:12px">
+          <span class="badge" style="background:#fef3c7;color:#92400e;border:1px solid #fcd34d">A_plus</span>
+          <span class="badge badge-green" style="margin-left:4px">A_certified</span>
+          <span class="badge badge-teal" style="margin-left:4px">B_verified_numeric</span>
+          <span class="badge badge-amber" style="margin-left:4px">C_scouting</span>
+        </span>
+      </div>
+      <div class="field-row"><code>proof_status</code><span style="font-size:12px"><code>symbolically_certified</code> | <code>verified</code> | <code>numeric_only</code> | <code>unverified</code></span></div>
+      <div class="field-row"><code>identification_status</code><span style="font-size:12px"><code>pslq_identified</code> | <code>matched</code> | <code>unidentified</code></span></div>
+      <div class="field-row"><code>construction_type</code><span style="font-size:12px"><code>telescope_polynomial</code> | <code>hypergeometric_pfq</code> | <code>matrix_explicit</code></span></div>
+      <div class="field-row"><code>source_family</code><span style="font-size:12px"><code>RamanujanTools</code> | <code>Gauge Transformed</code> | <code>CMF Hunter</code> | …</span></div>
+    </div>
+
+    <h3 style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#0bb4aa;margin-bottom:8px">Arithmetic status (constants registry)</h3>
+    <div style="font-size:13px;margin-bottom:8px">
+      <div class="field-row"><code>irrationality_status</code><span style="font-size:12px"><code>proven_transcendental</code> | <code>proven_irrational</code> | <code>open_question</code> | <code>algebraic</code></span></div>
+      <div class="field-row"><code>transcendence_status</code><span style="font-size:12px"><code>proven_transcendental</code> | <code>open_question</code> | <code>algebraic</code></span></div>
+    </div>
+    <p style="font-size:12px;color:#aaa">Full schema: <a href="https://cmfatlas-production.up.railway.app/docs" target="_blank" style="color:#0bb4aa">/docs</a> · Machine-readable release manifest: <a href="https://cmfatlas-production.up.railway.app/release" target="_blank" style="color:#0bb4aa">/release</a></p>
   </div>
 
   <!-- Citation -->
@@ -204,16 +233,19 @@
   <div class="card p-7">
     <h2>REST API</h2>
     <p>CMF Atlas is served by a FastAPI backend at <a href="https://cmfatlas-production.up.railway.app" target="_blank">cmfatlas-production.up.railway.app</a>. Interactive Swagger docs: <a href="https://cmfatlas-production.up.railway.app/docs" target="_blank"><code>/docs</code></a>.</p>
+    <p style="font-size:12px;color:#888;margin-top:8px">All endpoints are available at both <code>/endpoint</code> and <code>/api/v1/endpoint</code> (stable versioned alias, redirects 307).</p>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-3" style="margin-top:16px">
-      <div class="api-block"><div style="font-size:10px;color:#0bb4aa;font-weight:700;margin-bottom:4px">GET</div><div style="color:#0bb4aa;font-weight:600">/stats/detailed</div><div style="font-size:11px;color:#888;margin-top:4px">Dashboard statistics &amp; counts</div></div>
+      <div class="api-block"><div style="font-size:10px;color:#0bb4aa;font-weight:700;margin-bottom:4px">GET</div><div style="color:#0bb4aa;font-weight:600">/release</div><div style="font-size:11px;color:#888;margin-top:4px">Release manifest &mdash; version, counts, schema</div></div>
+      <div class="api-block"><div style="font-size:10px;color:#0bb4aa;font-weight:700;margin-bottom:4px">GET</div><div style="color:#0bb4aa;font-weight:600">/constants</div><div style="font-size:11px;color:#888;margin-top:4px">Constants registry with entry counts</div></div>
       <div class="api-block"><div style="font-size:10px;color:#0bb4aa;font-weight:700;margin-bottom:4px">GET</div><div style="color:#0bb4aa;font-weight:600">/cmfs/browse</div><div style="font-size:11px;color:#888;margin-top:4px">Search &amp; filter CMFs</div></div>
       <div class="api-block"><div style="font-size:10px;color:#0bb4aa;font-weight:700;margin-bottom:4px">GET</div><div style="color:#0bb4aa;font-weight:600">/cmfs/{id}/full</div><div style="font-size:11px;color:#888;margin-top:4px">Full entry with K-matrices</div></div>
-      <div class="api-block"><div style="font-size:10px;color:#0bb4aa;font-weight:700;margin-bottom:4px">GET</div><div style="color:#0bb4aa;font-weight:600">/cmfs/{id}/matrices</div><div style="font-size:11px;color:#888;margin-top:4px">Computed K-matrix LaTeX entries</div></div>
+      <div class="api-block"><div style="font-size:10px;color:#0bb4aa;font-weight:700;margin-bottom:4px">GET</div><div style="color:#0bb4aa;font-weight:600">/cmfs/{id}/relations</div><div style="font-size:11px;color:#888;margin-top:4px">Linked constant, source family, related entries</div></div>
       <div class="api-block"><div style="font-size:10px;color:#0bb4aa;font-weight:700;margin-bottom:4px">GET</div><div style="color:#0bb4aa;font-weight:600">/cmfs/{id}/walk</div><div style="font-size:11px;color:#888;margin-top:4px">Numerical walk / convergence</div></div>
-      <div class="api-block"><div style="font-size:10px;color:#0bb4aa;font-weight:700;margin-bottom:4px">GET</div><div style="color:#0bb4aa;font-weight:600">/cmfs/{id}/conservative-test</div><div style="font-size:11px;color:#888;margin-top:4px">Path-independence residual test</div></div>
-      <div class="api-block"><div style="font-size:10px;color:#0bb4aa;font-weight:700;margin-bottom:4px">GET</div><div style="color:#0bb4aa;font-weight:600">/export/cmfs.json</div><div style="font-size:11px;color:#888;margin-top:4px">Bulk dataset download (JSON)</div></div>
-      <div class="api-block"><div style="font-size:10px;color:#0bb4aa;font-weight:700;margin-bottom:4px">GET</div><div style="color:#0bb4aa;font-weight:600">/constants</div><div style="font-size:11px;color:#888;margin-top:4px">Known constants registry</div></div>
+      <div class="api-block"><div style="font-size:10px;color:#0bb4aa;font-weight:700;margin-bottom:4px">GET</div><div style="color:#0bb4aa;font-weight:600">/cmfs/{id}/conservative-test</div><div style="font-size:11px;color:#888;margin-top:4px">2D flatness residual test</div></div>
+      <div class="api-block"><div style="font-size:10px;color:#0bb4aa;font-weight:700;margin-bottom:4px">GET</div><div style="color:#0bb4aa;font-weight:600">/export/cmfs.json</div><div style="font-size:11px;color:#888;margin-top:4px">Bulk dataset download (CC BY 4.0, JSON)</div></div>
+      <div class="api-block"><div style="font-size:10px;color:#0bb4aa;font-weight:700;margin-bottom:4px">GET</div><div style="color:#0bb4aa;font-weight:600">/stats/detailed</div><div style="font-size:11px;color:#888;margin-top:4px">Dashboard statistics &amp; breakdown</div></div>
     </div>
+    <p style="font-size:12px;color:#aaa;margin-top:12px">Versioned alias example: <code>GET /api/v1/cmfs/browse?dimension=2</code></p>
   </div>
 
   <!-- RamanujanTools -->
