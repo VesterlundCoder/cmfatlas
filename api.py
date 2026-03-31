@@ -1479,6 +1479,9 @@ def walk_cmf(
                         except Exception:
                             pass
 
+        mpmath.mp.dps = 30
+        sequence = []
+
         if k_start_override >= 0:
             k_start = k_start_override
         for _iter, step in enumerate(range(k_start, k_start + depth)):
