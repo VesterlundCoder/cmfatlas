@@ -160,13 +160,16 @@
   <!-- ── 3. Path-Independence ───────────────────────────────────────────── -->
   <div class="card" id="path-independence">
     <h2>3 · Path-Independence</h2>
-    <p>A <strong>Continued Matrix Fraction (CMF)</strong> is called <em>flat</em> (or <em>path-independent</em>) if the limit of the matrix walk does not depend on which path through the integer lattice \(\mathbb{Z}^d\) is taken. Formally, for 2D CMFs the flatness condition requires:</p>
+    <p>A <strong>Conservative Matrix Field (CMF)</strong> is called <em>conservative</em> — equivalently, <em>flat</em> or <em>path-independent</em> — if the limit of the matrix walk does not depend on which path through the integer lattice \(\mathbb{Z}^d\) is taken. The word <strong>Conservative</strong> is borrowed from vector calculus: just as a conservative vector field has path-independent line integrals, a CMF has path-independent matrix products. Formally, for 2D CMFs the flatness condition requires:</p>
 
     \[
       K_x(k,\,m) \cdot K_y(k+1,\,m) \;=\; K_y(k,\,m) \cdot K_x(k,\,m+1)
     \]
 
     <p>This is the <strong>matrix commutativity condition</strong> on every lattice square. It guarantees that both the zig-zag path (x first, then y) and the alternate path (y first, then x) produce the same matrix product — and hence the same convergent.</p>
+
+    <h3>Why "Conservative"?</h3>
+    <p>In a conservative vector field, any two paths between the same endpoints give the same line integral. In a CMF the analogous statement is: any two monotone lattice paths between the same lattice points give the same matrix product (up to the limit). This is path-independence, and it is <em>exactly</em> the property that makes the continued fraction converge to a well-defined value independent of how you approach infinity.</p>
 
     <h3>2D CMFs — Conservative Test</h3>
     <p>For 2D CMFs with an explicit polynomial form f(x,y), the <a href="conservative-test.html" style="color:#0bb4aa;font-weight:600">Conservative Test</a> page evaluates the residual matrix</p>
@@ -196,16 +199,16 @@
         <label style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:6px">CMF</label>
         <select id="demo-cmf-id" style="background:#fff;border:1px solid #e2e8f0;color:#333;border-radius:8px;padding:8px 12px;font-size:13px;outline:none;min-width:220px">
           <option value="5594">CMF #5594 — 3D, ζ(2)/π² (RamanujanTools)</option>
-          <option value="1845">CMF #1845 — 3D, CMF Hunter deg=8</option>
-          <option value="1846">CMF #1846 — 3D, CMF Hunter deg=8</option>
+          <option value="1845">CMF #1845 — 3D, CMF Hunter (deg=8)</option>
+          <option value="1847">CMF #1847 — 3D, CMF Hunter (deg=8)</option>
         </select>
       </div>
       <div>
         <label style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:6px">Depth</label>
         <select id="demo-depth" style="background:#fff;border:1px solid #e2e8f0;color:#333;border-radius:8px;padding:8px 12px;font-size:13px;outline:none">
-          <option value="80">80 steps</option>
-          <option value="150" selected>150 steps</option>
-          <option value="300">300 steps</option>
+          <option value="500" selected>500 steps</option>
+          <option value="1000">1000 steps</option>
+          <option value="2000">2000 steps</option>
         </select>
       </div>
       <div style="margin-top:18px">
@@ -213,6 +216,7 @@
       </div>
     </div>
 
+    <div class="info-amber" style="margin-bottom:14px;font-size:12px">⚠ 3D CMFs converge slowly — use at least 500 steps for a clear result. CMF Hunter entries (degree 8) may need 1000–2000 steps before all trajectories visibly agree. The RamanujanTools entry (#5594) is recommended for the clearest demonstration.</div>
     <div id="demo-status" style="font-size:13px;color:#888;margin-bottom:12px">Click <strong>Run Demo</strong> to start.</div>
 
     <div id="demo-chart-wrap" style="display:none">
