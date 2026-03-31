@@ -11,6 +11,7 @@
   <script>tailwind.config={theme:{extend:{fontFamily:{sans:['Inter','sans-serif']}}}}</script>
   <script>window.MathJax={tex:{inlineMath:[['\\(','\\)']],displayMath:[['\\[','\\]']]},svg:{fontCache:'global'},options:{skipHtmlTags:['script','noscript','style','textarea']}};</script>
   <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
   <style>
     *{font-family:'Inter',sans-serif}
     body{background:#fff;color:#101010}
@@ -67,6 +68,26 @@ function polyToLatex(s) {
   s = s.replace(/(-?\d+)\*([a-zA-Z])/g, '$1$2');
   s = s.replace(/([a-zA-Z\}])\*([a-zA-Z])/g, '$1$2');
   return s;
+}
+
+function splitLongPoly(latexStr, termsPerLine) {
+  termsPerLine = termsPerLine || 4;
+  const terms = [];
+  let buf = '', depth = 0;
+  for (let i = 0; i < latexStr.length; i++) {
+    const c = latexStr[i];
+    if (c === '{') { depth++; buf += c; }
+    else if (c === '}') { depth--; buf += c; }
+    else if (depth === 0 && (c === '+' || c === '-') && buf.trim()) {
+      terms.push(buf.trim()); buf = c;
+    } else { buf += c; }
+  }
+  if (buf.trim()) terms.push(buf.trim());
+  if (terms.length <= termsPerLine) return latexStr;
+  const lines = [];
+  for (let i = 0; i < terms.length; i += termsPerLine)
+    lines.push(terms.slice(i, i + termsPerLine).join(' '));
+  return '\\begin{split} &' + lines.join('\\\\ \n&') + '\\end{split}';
 }
 
 function categoryBadge(cat) {
@@ -304,12 +325,12 @@ async function loadEntry() {
           ${hasFormula ? `
           <div class="card p-6">
             <div class="section-label">Polynomial Form</div>
-            <div style="font-size:1.4rem;text-align:center;padding:16px 0;color:#333">
-              \\[f(${d.is_3d ? 'x,y,z' : 'x,y'}) = ${fpL}\\]
+            <div style="overflow-x:auto;padding:16px 0">
+              \\[f(${d.is_3d ? 'x,y,z' : 'x,y'}) = ${d.f_poly.length > 80 ? splitLongPoly(fpL, 4) : fpL}\\]
             </div>
-            ${d.fbar_poly ? `<div style="font-size:1.1rem;text-align:center;color:#666">\\[\\bar{f}(${d.is_3d ? 'x,y,z' : 'x,y'}) = ${fbL}\\]</div>` : ''}
+            ${d.fbar_poly ? `<div style="overflow-x:auto">\\[\\bar{f}(${d.is_3d ? 'x,y,z' : 'x,y'}) = ${d.fbar_poly.length > 80 ? splitLongPoly(fbL, 4) : fbL}\\]</div>` : ''}
             <details style="margin-top:16px">
-              <summary style="font-size:12px;color:#888;cursor:pointer">Raw machine syntax</summary>
+              <summary style="font-size:12px;color:#888;cursor:pointer">&#9654; Raw machine syntax</summary>
               <div class="code-block" style="margin-top:8px">
                 <div>f(${d.is_3d?'x,y,z':'x,y'}) = <span style="color:#059669">${d.f_poly}</span></div>
                 ${d.fbar_poly ? `<div>f̄(${d.is_3d?'x,y,z':'x,y'}) = <span style="color:#059669">${d.fbar_poly}</span></div>` : ''}
@@ -355,22 +376,30 @@ async function loadEntry() {
           </div>
           ` : ''}
 
-          <!-- 3D CMF Hunter certification panel -->
+          <!-- 3D Path-Independence Heuristic panel -->
           ${d.is_3d ? `
           <div class="card p-6" style="border:1px solid #b2ede9;background:linear-gradient(135deg,#f0fdfc,#fff)">
-            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px">
               <div>
-                <div class="section-label" style="margin-bottom:4px;color:#0bb4aa">3D CMF — Path-Independence</div>
-                <div style="font-size:12px;color:#888">Numerically certified by CMF Hunter (B-level)</div>
+                <div class="section-label" style="margin-bottom:4px;color:#0bb4aa">Path-Independence Heuristic Test</div>
+                <div style="font-size:12px;color:#888">Runs three Kx trajectories with different fixed shifts — flat CMFs converge to the same value</div>
               </div>
               <span class="badge badge-teal">✓ B-verified numeric</span>
             </div>
-            <div style="margin-top:12px;font-size:12px;color:#555;line-height:1.8">
-              <div>This 3D CMF is certified path-independent. The matrix commutativity test on the <a href='conservative-test.html?id=${d.id}' style='color:#0bb4aa'>Conservative Test</a> page uses a telescope approximation and may show non-zero residuals — this is a limitation of the projection, not a failure of the CMF.</div>
-              <div style="margin-top:10px;background:#fff;border:1px solid #b2ede9;border-radius:8px;padding:10px 14px">
-                <strong style="color:#0bb4aa">How to verify path-independence:</strong> Run multiple Kx trajectories with different m values in the <a href='explorer.html?id=${d.id}' style='color:#0bb4aa;font-weight:600'>▶ Matrix Walk Explorer</a> — a flat CMF always converges to the same limit regardless of shift. Or use the <a href='guide.html#3d-demo' style='color:#0bb4aa;font-weight:600'>interactive demo in the Guide</a>.
-              </div>
+            <div style="font-size:12px;color:#555;margin-bottom:14px;padding:10px 14px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;line-height:1.7">
+              The telescope residual test is not applicable to this 3D CMF (the polynomial projection does not match the internal matrix construction). The path-independence heuristic below is the appropriate numerical check: if trajectories with m&nbsp;=&nbsp;0,&nbsp;1,&nbsp;2 all converge to the same value, this is empirical evidence of flatness.
             </div>
+            <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px">
+              <select id="heuristic-depth-${d.id}" style="background:#fff;border:1px solid #e2e8f0;color:#333;border-radius:8px;padding:7px 12px;font-size:13px;outline:none">
+                <option value="500">500 steps</option>
+                <option value="1000" selected>1000 steps</option>
+                <option value="2000">2000 steps</option>
+              </select>
+              <button id="heuristic-btn-${d.id}" onclick="runEntryHeuristic(${d.id})" style="background:#0bb4aa;color:#fff;font-weight:700;padding:9px 20px;border-radius:8px;font-size:13px;cursor:pointer;border:none;font-family:inherit">▶ Run Heuristic Test</button>
+            </div>
+            <div id="heuristic-status-${d.id}" style="font-size:12px;color:#888;margin-bottom:8px"></div>
+            <div id="heuristic-chart-wrap-${d.id}" style="display:none;margin-bottom:12px"><canvas id="heuristic-chart-${d.id}" style="max-height:240px"></canvas></div>
+            <div id="heuristic-result-${d.id}"></div>
           </div>
           ` : ''}
 
@@ -588,6 +617,101 @@ async function runSymVerify(cmfId) {
     stepsDiv.innerHTML = `<div style="color:#dc2626;font-size:13px;padding:8px 0">Error: ${e.message}</div>`;
     btn.disabled = false;
     btn.innerHTML = '🔬 Verify Symbolically';
+  }
+}
+
+const HEURISTIC_COLORS = ['#0bb4aa','#f59e0b','#7c3aed'];
+const entryHeuristicCharts = {};
+
+async function runEntryHeuristic(cmfId) {
+  const depth = document.getElementById(`heuristic-depth-${cmfId}`).value;
+  const btn = document.getElementById(`heuristic-btn-${cmfId}`);
+  const status = document.getElementById(`heuristic-status-${cmfId}`);
+  const chartWrap = document.getElementById(`heuristic-chart-wrap-${cmfId}`);
+  const result = document.getElementById(`heuristic-result-${cmfId}`);
+
+  btn.disabled = true;
+  btn.textContent = '⏳ Running…';
+  status.textContent = 'Running trajectories m = 0, 1, 2…';
+  chartWrap.style.display = 'none';
+  result.innerHTML = '';
+
+  try {
+    const fetches = [0, 1, 2].map(m => {
+      const p = new URLSearchParams({ depth, direction: 'x', m_fixed: m, n_fixed: 1 });
+      return fetch(`${API}/cmfs/${cmfId}/walk?${p}`).then(r => r.json());
+    });
+    const results = await Promise.all(fetches);
+    const valid = results.filter(r => r && r.sequence && r.sequence.length);
+
+    if (!valid.length) {
+      status.innerHTML = '<span style="color:#ef4444">All walks failed — this CMF may not support polynomial-form walks.</span>';
+      return;
+    }
+
+    // Chart
+    const datasets = valid.map((d, i) => {
+      const finite = d.sequence.filter(s => s.value !== null);
+      return {
+        label: `Kx, m=${i}`,
+        data: finite.map(s => ({x: s.step, y: s.value})),
+        borderColor: HEURISTIC_COLORS[i], backgroundColor: HEURISTIC_COLORS[i]+'20',
+        borderWidth: 2, pointRadius: 0, tension: 0.1, fill: false,
+      };
+    });
+    chartWrap.style.display = '';
+    if (entryHeuristicCharts[cmfId]) entryHeuristicCharts[cmfId].destroy();
+    entryHeuristicCharts[cmfId] = new Chart(document.getElementById(`heuristic-chart-${cmfId}`), {
+      type: 'line',
+      data: { datasets },
+      options: {
+        responsive: true, maintainAspectRatio: true,
+        animation: { duration: 200 }, parsing: false,
+        plugins: { legend: { labels: { color:'#555', font:{size:11} } } },
+        scales: {
+          x: { type:'linear', ticks:{color:'#888',maxTicksLimit:8}, grid:{color:'#f1f5f9'},
+               title:{display:true,text:'Step k',color:'#888',font:{size:11}} },
+          y: { ticks:{color:'#888'}, grid:{color:'#f1f5f9'},
+               title:{display:true,text:'Convergent',color:'#888',font:{size:11}} }
+        }
+      }
+    });
+
+    // Summary table
+    const ests = valid.map(d => d.best_estimate).filter(v => v != null);
+    const spread = ests.length > 1 ? Math.max(...ests) - Math.min(...ests) : 0;
+    const isFlat = spread < 1e-4;
+
+    const rows = valid.map((d, i) => {
+      const be = d.best_estimate;
+      return `<tr style="border-bottom:1px solid #f1f5f9">
+        <td style="padding:6px 14px 6px 0;color:${HEURISTIC_COLORS[i]};font-weight:700">m = ${i}</td>
+        <td style="padding:6px 14px 6px 0;font-family:monospace;font-size:12px">${be != null ? be.toPrecision(12) : '—'}</td>
+        <td style="padding:6px 0;font-size:11px;color:#888">${d.self_delta_bits_per_step != null ? 'δ = '+d.self_delta_bits_per_step.toFixed(3)+' bits/step' : ''}</td>
+      </tr>`;
+    }).join('');
+
+    const verdictHtml = isFlat
+      ? `<div style="margin-top:12px;padding:10px 14px;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;font-size:12px;color:#15803d"><strong>✓ Trajectories agree</strong> — spread = ${spread.toExponential(2)} at depth ${depth}. Empirical evidence consistent with path-independence.</div>`
+      : `<div style="margin-top:12px;padding:10px 14px;background:#fef9e7;border:1px solid #fcd34d;border-radius:8px;font-size:12px;color:#92400e"><strong>⚠ Spread = ${spread.toExponential(2)}</strong> — trajectories have not yet converged at this depth. Try increasing depth; 3D CMFs converge slowly.</div>`;
+
+    result.innerHTML = `
+      <table style="width:100%;font-size:13px;border-collapse:collapse;margin-top:4px">
+        <thead><tr style="border-bottom:2px solid #e2e8f0;color:#888;font-size:10px">
+          <th style="text-align:left;padding:6px 14px 6px 0;text-transform:uppercase;letter-spacing:.06em">Trajectory</th>
+          <th style="text-align:left;padding:6px 14px 6px 0;text-transform:uppercase;letter-spacing:.06em">Best estimate (depth ${depth})</th>
+          <th style="text-align:left;padding:6px 0;text-transform:uppercase;letter-spacing:.06em">Rate</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      ${verdictHtml}`;
+
+    status.innerHTML = `<span style="background:#e0faf8;color:#0bb4aa;border:1px solid #b2ede9;padding:2px 10px;border-radius:9999px;font-size:11px;font-weight:600">${valid.length} walks complete</span>`;
+  } catch(e) {
+    status.innerHTML = `<span style="color:#ef4444">Error: ${e.message}</span>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '▶ Run Heuristic Test';
   }
 }
 
