@@ -21,6 +21,12 @@
     .badge-amber{background:#fef9e7;color:#b45309;border:1px solid #fcd34d}
     .badge-grey{background:#f1f5f9;color:#64748b;border:1px solid #cbd5e1}
     .badge-violet{background:#f3f0ff;color:#7c3aed;border:1px solid #c4b5fd}
+    .badge-ref{background:#f1f5f9;color:#64748b;border:1px solid #cbd5e1}
+    .badge-int{background:#fef3c7;color:#92400e;border:1px solid #fcd34d}
+    .badge-disc{background:#f0fdf4;color:#166534;border:1px solid #86efac}
+    .cat-ref{background:#f1f5f9;color:#64748b;border:1px solid #cbd5e1}
+    .cat-int{background:#fefce8;color:#b45309;border:1px solid #fde68a}
+    .cat-disc{background:#dcfce7;color:#15803d;border:1px solid #86efac}
     .nav-link{color:#555;font-size:14px;font-weight:500;transition:color .15s;text-decoration:none}
     .nav-link:hover,.nav-link.active{color:#0bb4aa}
     .entry-row{border-bottom:1px solid #e2e8f0;transition:background .1s}
@@ -49,6 +55,7 @@
       <a href="conservative-test.html" class="nav-link">Conservative Test</a>
       <a href="sources.html" class="nav-link">Sources</a>
       <a href="constants.html" class="nav-link">Constants</a>
+      <a href="guide.html" class="nav-link">Guide</a>
       <a href="about.html" class="nav-link">About</a>
     </div>
   </div>
@@ -114,6 +121,15 @@
         </select>
       </div>
       <div>
+        <label style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:6px">Category</label>
+        <select id="category">
+          <option value="">All</option>
+          <option value="reference">Reference</option>
+          <option value="interesting">Interesting</option>
+          <option value="discovery">Discovery</option>
+        </select>
+      </div>
+      <div>
         <label style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:6px">Formula</label>
         <select id="has_formula">
           <option value="">All</option>
@@ -143,6 +159,7 @@
         <thead>
           <tr style="border-bottom:2px solid #e2e8f0;background:#f9fafb">
             <th style="text-align:left;padding:12px 14px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#888">ID</th>
+            <th style="text-align:left;padding:12px 14px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#888">Category</th>
             <th style="text-align:left;padding:12px 14px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#888">Dim</th>
             <th style="text-align:left;padding:12px 14px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#888">Deg</th>
             <th style="text-align:left;padding:12px 14px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#888;min-width:200px">f(x,y) / Type</th>
@@ -154,7 +171,7 @@
           </tr>
         </thead>
         <tbody id="results-tbody">
-          <tr><td colspan="9" style="padding:40px;text-align:center;color:#aaa">Loading…</td></tr>
+          <tr><td colspan="10" style="padding:40px;text-align:center;color:#aaa">Loading…</td></tr>
         </tbody>
       </table>
     </div>
@@ -178,6 +195,16 @@ function polyToLatex(s) {
   s = s.replace(/(-?\d+)\*([a-zA-Z])/g, '$1$2');
   s = s.replace(/([a-zA-Z\}])\*([a-zA-Z])/g, '$1$2');
   return s;
+}
+
+function categoryBadge(cat) {
+  if (!cat) return '<span class="badge badge-ref">ref</span>';
+  const map = {
+    'reference':  '<span class="badge cat-ref" title="Trivial / rational limit">Reference</span>',
+    'interesting':'<span class="badge cat-int" title="Converges to known or unknown transcendental">Interesting</span>',
+    'discovery':  '<span class="badge cat-disc" title="Higher-dimensional or Ramanujan-type">Discovery</span>',
+  };
+  return map[cat] || `<span class="badge badge-grey">${cat}</span>`;
 }
 
 function certBadge(c) {
@@ -205,6 +232,7 @@ function buildUrl(offset) {
   const cert = document.getElementById('certification').value;
   const src = document.getElementById('source_category').value;
   const hf = document.getElementById('has_formula').value;
+  const cat = document.getElementById('category').value;
   const lim = document.getElementById('limit').value;
   params.set('offset', offset);
   params.set('limit', lim);
@@ -214,13 +242,14 @@ function buildUrl(offset) {
   if (cert) params.set('certification', cert);
   if (src) params.set('source_category', src);
   if (hf) params.set('has_formula', hf);
+  if (cat) params.set('category', cat);
   return `${API}/cmfs/browse?${params}`;
 }
 
 async function search(offset) {
   currentOffset = offset;
   const tbody = document.getElementById('results-tbody');
-  tbody.innerHTML = '<tr><td colspan="9" style="padding:40px;text-align:center;color:#aaa">Loading…</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="10" style="padding:40px;text-align:center;color:#aaa">Loading…</td></tr>';
 
   try {
     const res = await fetch(buildUrl(offset));
@@ -231,7 +260,7 @@ async function search(offset) {
     document.getElementById('total-label').textContent = `${totalCount.toLocaleString()} entries found`;
 
     if (!d.items?.length) {
-      tbody.innerHTML = '<tr><td colspan="9" style="padding:40px;text-align:center;color:#aaa">No results found.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="10" style="padding:40px;text-align:center;color:#aaa">No results found.</td></tr>';
       return;
     }
 
@@ -251,6 +280,7 @@ async function search(offset) {
       return `
         <tr class="entry-row">
           <td style="padding:11px 14px;font-family:monospace;font-size:12px;color:#0bb4aa;font-weight:700">#${item.id}</td>
+          <td style="padding:11px 14px">${categoryBadge(item.category)}</td>
           <td style="padding:11px 14px">${dimBadge(item.dimension)}</td>
           <td style="padding:11px 14px;font-size:12px;color:#888">${item.degree||'—'}</td>
           <td style="padding:11px 14px;max-width:220px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${fp}</td>
@@ -280,12 +310,12 @@ async function search(offset) {
     document.getElementById('pagination').innerHTML = btns;
 
   } catch(e) {
-    tbody.innerHTML = `<tr><td colspan="9" style="padding:40px;text-align:center;color:#e53e3e;font-size:12px">API error: ${e.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="10" style="padding:40px;text-align:center;color:#e53e3e;font-size:12px">API error: ${e.message}</td></tr>`;
   }
 }
 
 function clearFilters() {
-  ['q','dimension','degree','certification','source_category','has_formula'].forEach(id => {
+  ['q','dimension','degree','certification','source_category','has_formula','category'].forEach(id => {
     const el = document.getElementById(id);
     el.value = '';
   });
@@ -298,6 +328,7 @@ if (urlParams.get('dimension')) document.getElementById('dimension').value = url
 if (urlParams.get('has_formula')) document.getElementById('has_formula').value = urlParams.get('has_formula');
 if (urlParams.get('certification')) document.getElementById('certification').value = urlParams.get('certification');
 if (urlParams.get('source_category')) document.getElementById('source_category').value = urlParams.get('source_category');
+if (urlParams.get('category')) document.getElementById('category').value = urlParams.get('category');
 
 document.getElementById('q').addEventListener('keyup', e => { if (e.key === 'Enter') search(0); });
 search(0);

@@ -824,6 +824,7 @@ def browse_cmfs(
     source_category: Optional[str] = None,
     has_formula: Optional[bool] = None,
     primary_constant: Optional[str] = None,
+    category: Optional[str] = None,
 ):
     """Browse CMFs with filtering and search."""
     db: Session = next(get_db())
@@ -862,6 +863,9 @@ def browse_cmfs(
         if primary_constant:
             where_clauses.append("json_extract(c.cmf_payload,'$.primary_constant') LIKE :pc")
             params["pc"] = f"%{primary_constant}%"
+        if category:
+            where_clauses.append("c.category = :category")
+            params["category"] = category
         if q:
             where_clauses.append(
                 "(c.cmf_payload LIKE :q OR r.canonical_fingerprint LIKE :q OR s.definition LIKE :q)"
@@ -894,7 +898,8 @@ def browse_cmfs(
                    json_extract(c.cmf_payload,'$.source_category')     AS source_category,
                    json_extract(c.cmf_payload,'$.flatness_verified')   AS flat,
                    r.canonical_fingerprint, r.primary_group,
-                   s.generator_type, s.name AS series_name
+                   s.generator_type, s.name AS series_name,
+                   c.category
             FROM cmf c
             JOIN representation r ON r.id = c.representation_id
             JOIN series s ON s.id = r.series_id
@@ -922,6 +927,7 @@ def browse_cmfs(
                 "generator_type":      r[13],
                 "series_name":         r[14],
                 "has_formula":         bool(r[2]),
+                "category":            r[15] or "reference",
             })
 
         return {"total": total, "offset": offset, "limit": limit, "items": items}
@@ -1083,7 +1089,7 @@ def get_cmf_full(cmf_id: int):
             SELECT c.id, c.dimension, c.direction_policy, c.cmf_payload, c.created_at,
                    r.id, r.primary_group, r.canonical_fingerprint, r.canonical_payload,
                    s.id, s.name, s.generator_type, s.definition, s.provenance,
-                   f.feature_json
+                   f.feature_json, c.category
             FROM cmf c
             JOIN representation r ON r.id = c.representation_id
             JOIN series s ON s.id = r.series_id
@@ -1134,6 +1140,7 @@ def get_cmf_full(cmf_id: int):
             "features":        feats,
             "is_3d":           payload.get("dimension", row[1]) == 3 or _poly_has_z(payload.get("f_poly", "")),
             "symbolic_verification": payload.get("symbolic_verification"),
+            "category":        row[15] or "reference",
             "walk_available":  bool(payload.get("f_poly")),
             "matrices": _compute_matrices(
                 payload.get("f_poly", ""),
@@ -1370,8 +1377,9 @@ def walk_cmf(
         finite = [s["value"] for s in sequence if s["value"] is not None]
         best = finite[-1] if finite else None
 
-        # Convergence rate over last 20 values
+        # Convergence rate — self-delta (bits per step)
         conv_rate = None
+        self_delta = None
         if best is not None and len(finite) >= 20:
             diffs = [abs(v - best) for v in finite[-20:] if abs(v - best) > 0]
             if len(diffs) >= 2:
@@ -1379,6 +1387,17 @@ def walk_cmf(
                     conv_rate = round(
                         (math.log10(diffs[-1]) - math.log10(diffs[0])) / len(diffs), 3
                     )
+                except Exception:
+                    pass
+        # self_delta: bits of new precision gained per step (milestone method)
+        if len(finite) >= 6:
+            n = len(finite)
+            e1 = abs(finite[n//3] - finite[-1]) if abs(finite[n//3] - finite[-1]) > 0 else None
+            e2 = abs(finite[2*n//3] - finite[-1]) if abs(finite[2*n//3] - finite[-1]) > 0 else None
+            if e1 and e2 and e2 < e1:
+                try:
+                    import math as _m
+                    self_delta = round(_m.log2(e1 / e2) / (n // 3), 4)
                 except Exception:
                     pass
 
@@ -1405,6 +1424,7 @@ def walk_cmf(
             "sequence":        sequence,
             "best_estimate":   best,
             "conv_rate_log10_per_step": conv_rate,
+            "self_delta_bits_per_step": self_delta,
             "constant_matches": _compare_constants(best) if best is not None else [],
             "primary_constant": payload.get("primary_constant"),
             "certification_level": payload.get("certification_level"),

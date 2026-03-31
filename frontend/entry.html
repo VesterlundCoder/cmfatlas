@@ -48,6 +48,7 @@
       <a href="conservative-test.html" class="nav-link">Conservative Test</a>
       <a href="sources.html" class="nav-link">Sources</a>
       <a href="constants.html" class="nav-link">Constants</a>
+      <a href="guide.html" class="nav-link">Guide</a>
       <a href="about.html" class="nav-link">About</a>
     </div>
   </div>
@@ -66,6 +67,16 @@ function polyToLatex(s) {
   s = s.replace(/(-?\d+)\*([a-zA-Z])/g, '$1$2');
   s = s.replace(/([a-zA-Z\}])\*([a-zA-Z])/g, '$1$2');
   return s;
+}
+
+function categoryBadge(cat) {
+  if (!cat) return '';
+  const map = {
+    'reference':  '<span class="badge" style="background:#f1f5f9;color:#64748b;border:1px solid #cbd5e1" title="Trivial / rational limit">Reference</span>',
+    'interesting':'<span class="badge" style="background:#fefce8;color:#b45309;border:1px solid #fde68a" title="Converges to known transcendental or irrational">Interesting</span>',
+    'discovery':  '<span class="badge" style="background:#dcfce7;color:#15803d;border:1px solid #86efac" title="Higher-dimensional or Ramanujan-type">Discovery</span>',
+  };
+  return map[cat] || '';
 }
 
 function certBadge(c) {
@@ -254,6 +265,7 @@ async function loadEntry() {
             <h1 style="font-size:2rem;font-weight:800;color:#101010;margin-bottom:10px;letter-spacing:-0.5px">CMF #${d.id}</h1>
             <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
               <span class="badge badge-teal">${d.dimension}D</span>
+              ${categoryBadge(d.category)}
               ${certBadge(d.certification_level)}
               ${d.flatness_verified ? '<span class="badge badge-green">✓ Flatness Verified</span>' : ''}
               ${d.symbolic_verification?.result === 'PASS' ? '<span class="badge" style="background:#dcfce7;color:#15803d;border:1px solid #86efac">🔬 Symbolically Proven</span>' : ''}
@@ -348,14 +360,16 @@ async function loadEntry() {
           <div class="card p-6" style="border:1px solid #b2ede9;background:linear-gradient(135deg,#f0fdfc,#fff)">
             <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
               <div>
-                <div class="section-label" style="margin-bottom:4px;color:#0bb4aa">3D CMF — CMF Hunter Certification</div>
+                <div class="section-label" style="margin-bottom:4px;color:#0bb4aa">3D CMF — Path-Independence</div>
                 <div style="font-size:12px;color:#888">Numerically certified by CMF Hunter (B-level)</div>
               </div>
               <span class="badge badge-teal">✓ B-verified numeric</span>
             </div>
             <div style="margin-top:12px;font-size:12px;color:#555;line-height:1.8">
-              <div>This 3D CMF is certified path-independent by CMF Hunter's own numerical B-level verification.</div>
-              <div style="margin-top:6px;color:#888">The walk and path-independence test below use a telescope formula approximation — large residuals are <em>expected</em> and do not invalidate this CMF.</div>
+              <div>This 3D CMF is certified path-independent. The matrix commutativity test on the <a href='conservative-test.html?id=${d.id}' style='color:#0bb4aa'>Conservative Test</a> page uses a telescope approximation and may show non-zero residuals — this is a limitation of the projection, not a failure of the CMF.</div>
+              <div style="margin-top:10px;background:#fff;border:1px solid #b2ede9;border-radius:8px;padding:10px 14px">
+                <strong style="color:#0bb4aa">How to verify path-independence:</strong> Run multiple Kx trajectories with different m values in the <a href='explorer.html?id=${d.id}' style='color:#0bb4aa;font-weight:600'>▶ Matrix Walk Explorer</a> — a flat CMF always converges to the same limit regardless of shift. Or use the <a href='guide.html#3d-demo' style='color:#0bb4aa;font-weight:600'>interactive demo in the Guide</a>.
+              </div>
             </div>
           </div>
           ` : ''}
