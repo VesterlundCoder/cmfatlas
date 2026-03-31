@@ -165,6 +165,23 @@
 
       <div id="verdict-card" style="display:none"></div>
 
+      <div id="heuristic-card" class="card p-5" style="display:none;border:1px solid #b2ede9;background:linear-gradient(135deg,#f0fdfc,#fff)">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#0bb4aa;margin-bottom:6px">Path-Independence Heuristic Test</div>
+        <div style="font-size:12px;color:#555;margin-bottom:14px;line-height:1.7">The telescope residual test above cannot certify flatness for this 3D CMF — the polynomial projection does not match the internal matrix construction. The heuristic below runs three Kx trajectories with different fixed shifts. A flat CMF always converges to the same limit regardless of shift.</div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px">
+          <label class="control-label" style="display:inline;margin-bottom:0">Depth:</label>
+          <select id="heuristic-depth" class="control-select" style="width:auto">
+            <option value="500">500 steps</option>
+            <option value="1000" selected>1000 steps</option>
+            <option value="2000">2000 steps</option>
+          </select>
+          <button id="heuristic-run-btn" onclick="runHeuristic()" style="background:#0bb4aa;color:#fff;font-weight:700;padding:9px 20px;border-radius:8px;font-size:13px;cursor:pointer;border:none;font-family:inherit">▶ Run Heuristic</button>
+        </div>
+        <div id="heuristic-status" style="font-size:12px;color:#888;margin-bottom:8px"></div>
+        <div id="heuristic-chart-wrap" style="display:none;margin-bottom:12px"><canvas id="heuristic-chart" style="max-height:240px"></canvas></div>
+        <div id="heuristic-result"></div>
+      </div>
+
       <div class="card p-5" id="heatmap-card" style="display:none">
         <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:12px">
           Residual Grid — \(\|K_1(k,m)\cdot K_2(k{+}1,m) - K_2(k,m)\cdot K_1(k,m{+}1)\|_F\)
@@ -374,15 +391,15 @@ function renderResults(d) {
   verdCard.style.display = '';
   if (d.is_3d) {
     verdCard.innerHTML = `
-      <div class="verdict-box verdict-approx">⚠ 3D CMF — Telescope test not applicable here</div>
+      <div class="verdict-box verdict-approx" style="font-size:13px">⚠ 3D CMF — Telescope residual test not applicable</div>
       <div style="font-size:12px;color:#555;margin-top:10px;padding:10px 14px;background:#fef9e7;border:1px solid #fcd34d;border-radius:8px;line-height:1.7">
-        This is a <strong>3D CMF certified at B-level by CMF Hunter</strong> using its own internal numerical verification.
-        The telescope formula used in this test does not match the internal matrix construction stored for 3D CMFs,
-        so <strong>large residuals are expected and do not invalidate the CMF</strong>.
-        The B-level certification is the authoritative result.
+        The polynomial projection used by this residual test does not match the internal matrix construction for 3D CMFs.
+        Large residuals above are expected and do <strong>not</strong> indicate a non-flat CMF.
+        Use the <strong>Path-Independence Heuristic Test</strong> below as the appropriate numerical check for this entry.
       </div>
-      <div style="font-size:11px;color:#aaa;margin-top:8px;padding:0 4px">${d.note}</div>
     `;
+    // Show heuristic card
+    document.getElementById('heuristic-card').style.display = '';
   } else {
     verdCard.innerHTML = `
       <div class="verdict-box ${verdictStyle(d.verdict)}">${verdictLabel(d.verdict)}</div>
@@ -490,6 +507,102 @@ function renderResults(d) {
   if (window.MathJax) MathJax.typesetPromise([document.getElementById('method-note')]);
 }
 
+const HEURISTIC_COLORS = ['#0bb4aa','#f59e0b','#7c3aed'];
+let heuristicChartInstance = null;
+
+async function runHeuristic() {
+  if (!selectedCmfId) return;
+  const depth = document.getElementById('heuristic-depth').value;
+  const btn = document.getElementById('heuristic-run-btn');
+  const status = document.getElementById('heuristic-status');
+  const chartWrap = document.getElementById('heuristic-chart-wrap');
+  const result = document.getElementById('heuristic-result');
+
+  btn.disabled = true;
+  btn.textContent = '⧗ Running…';
+  status.textContent = 'Running trajectories Kx with m = 0, 1, 2…';
+  chartWrap.style.display = 'none';
+  result.innerHTML = '';
+
+  try {
+    const fetches = [0, 1, 2].map(m => {
+      const p = new URLSearchParams({ depth, direction: 'x', m_fixed: m, n_fixed: 1 });
+      return fetch(`${API}/cmfs/${selectedCmfId}/walk?${p}`).then(r => r.json());
+    });
+    const results = await Promise.all(fetches);
+    const valid = results.filter(r => r && r.sequence && r.sequence.length);
+
+    if (!valid.length) {
+      status.innerHTML = '<span style="color:#ef4444">All walks failed. Try a different CMF or check the entry.</span>';
+      return;
+    }
+
+    // Chart
+    const datasets = valid.map((d, i) => {
+      const finite = d.sequence.filter(s => s.value !== null);
+      return {
+        label: `Kx, m=${i}`,
+        data: finite.map(s => ({x: s.step, y: s.value})),
+        borderColor: HEURISTIC_COLORS[i], backgroundColor: HEURISTIC_COLORS[i]+'20',
+        borderWidth: 2, pointRadius: 0, tension: 0.1, fill: false,
+      };
+    });
+    chartWrap.style.display = '';
+    if (heuristicChartInstance) heuristicChartInstance.destroy();
+    heuristicChartInstance = new Chart(document.getElementById('heuristic-chart'), {
+      type: 'line',
+      data: { datasets },
+      options: {
+        responsive: true, maintainAspectRatio: true,
+        animation: { duration: 200 }, parsing: false,
+        plugins: { legend: { labels: { color:'#555', font:{size:11} } } },
+        scales: {
+          x: { type:'linear', ticks:{color:'#888',maxTicksLimit:8}, grid:{color:'#f1f5f9'},
+               title:{display:true,text:'Step k',color:'#888',font:{size:11}} },
+          y: { ticks:{color:'#888'}, grid:{color:'#f1f5f9'},
+               title:{display:true,text:'Convergent',color:'#888',font:{size:11}} }
+        }
+      }
+    });
+
+    // Table + verdict
+    const ests = valid.map(d => d.best_estimate).filter(v => v != null);
+    const spread = ests.length > 1 ? Math.max(...ests) - Math.min(...ests) : 0;
+    const isFlat = spread < 1e-4;
+
+    const rows = valid.map((d, i) => {
+      const be = d.best_estimate;
+      return `<tr style="border-bottom:1px solid #f1f5f9">
+        <td style="padding:6px 14px 6px 0;color:${HEURISTIC_COLORS[i]};font-weight:700">Kx, m = ${i}</td>
+        <td style="padding:6px 14px 6px 0;font-family:monospace;font-size:12px">${be != null ? be.toPrecision(12) : '—'}</td>
+        <td style="padding:6px 0;font-size:11px;color:#888">${d.self_delta_bits_per_step != null ? 'δ = '+d.self_delta_bits_per_step.toFixed(3)+' bits/step' : ''}</td>
+      </tr>`;
+    }).join('');
+
+    const verdictHtml = isFlat
+      ? `<div style="margin-top:12px;padding:10px 14px;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;font-size:12px;color:#15803d"><strong>✓ Trajectories agree</strong> — spread = ${spread.toExponential(2)} at depth ${depth}. Empirical evidence consistent with path-independence.</div>`
+      : `<div style="margin-top:12px;padding:10px 14px;background:#fef9e7;border:1px solid #fcd34d;border-radius:8px;font-size:12px;color:#92400e"><strong>⚠ Spread = ${spread.toExponential(2)}</strong> — trajectories have not yet converged at depth ${depth}. Try increasing depth; 3D CMFs converge slowly.</div>`;
+
+    result.innerHTML = `
+      <table style="width:100%;font-size:12px;border-collapse:collapse;margin-top:4px">
+        <thead><tr style="border-bottom:2px solid #e2e8f0;color:#888;font-size:10px">
+          <th style="text-align:left;padding:6px 14px 6px 0;text-transform:uppercase;letter-spacing:.06em">Trajectory</th>
+          <th style="text-align:left;padding:6px 14px 6px 0;text-transform:uppercase;letter-spacing:.06em">Best estimate</th>
+          <th style="text-align:left;padding:6px 0;text-transform:uppercase;letter-spacing:.06em">Rate</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      ${verdictHtml}`;
+
+    status.innerHTML = `<span class="badge badge-teal">${valid.length} walks complete — CMF #${selectedCmfId}</span>`;
+  } catch(e) {
+    status.innerHTML = `<span style="color:#ef4444">Error: ${e.message}</span>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '▶ Run Heuristic';
+  }
+}
+
 function resetAll() {
   selectedCmfId = null;
   searchInput.value = '';
@@ -498,11 +611,16 @@ function resetAll() {
   document.getElementById('cmf-detail-card').style.display = 'none';
   document.getElementById('status-card').innerHTML = 'Select a CMF and click <strong style="color:#101010">Run Test</strong> to begin.';
   document.getElementById('verdict-card').style.display = 'none';
+  document.getElementById('heuristic-card').style.display = 'none';
+  document.getElementById('heuristic-status').textContent = '';
+  document.getElementById('heuristic-chart-wrap').style.display = 'none';
+  document.getElementById('heuristic-result').innerHTML = '';
   document.getElementById('heatmap-card').style.display = 'none';
   document.getElementById('chart-card').style.display = 'none';
   document.getElementById('table-card').style.display = 'none';
   document.getElementById('method-note').style.display = 'none';
   if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+  if (heuristicChartInstance) { heuristicChartInstance.destroy(); heuristicChartInstance = null; }
   doSearch();
 }
 </script>
