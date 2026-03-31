@@ -454,11 +454,17 @@ def export_cmfs():
                 "series_name":          row[6],
                 "provenance":           row[7],
                 "created_at":           _str(row[3]),
+                "entry_uri":            payload.get("entry_uri"),
+                "proof_status":         payload.get("proof_status"),
+                "identification_status": payload.get("identification_status"),
+                "source_family":        payload.get("source_family"),
+                "construction_type":    payload.get("construction_type"),
             })
         from fastapi.responses import JSONResponse
         return JSONResponse(
             content={
-                "version": "2.2",
+                "version": "2.3",
+                "schema_version": "2.3",
                 "license": "CC BY 4.0",
                 "url": "https://davidvesterlund.com/cmf-atlas/",
                 "total": len(out),
@@ -472,65 +478,75 @@ def export_cmfs():
 
 # Known constants referenced by CMF Atlas entries
 _CONSTANTS_REGISTRY = [
-    {"id": "zeta3",      "label": "ζ(3)",         "latex": "\\zeta(3)",
+    {"id": "zeta3",      "label": "\u03b6(3)",         "latex": "\\zeta(3)",
      "aliases": ["Apery's constant", "zeta(3)"],
      "value_30d": "1.202056903159594285399738161511",
      "formula": "\\sum_{n=1}^\\infty n^{-3}",
      "irrational": True,  "proven_irrational": True,  "transcendental": None,
+     "irrationality_status": "proven_irrational",  "transcendence_status": "open_question",
      "reference": "https://mathworld.wolfram.com/AperysConstant.html"},
-    {"id": "pi",         "label": "π",             "latex": "\\pi",
+    {"id": "pi",         "label": "\u03c0",             "latex": "\\pi",
      "aliases": ["pi", "Archimedes constant"],
      "value_30d": "3.141592653589793238462643383280",
      "formula": "4 \\sum_{n=0}^\\infty \\frac{(-1)^n}{2n+1}",
      "irrational": True,  "proven_irrational": True,  "transcendental": True,
+     "irrationality_status": "proven_transcendental",  "transcendence_status": "proven_transcendental",
      "reference": "https://mathworld.wolfram.com/Pi.html"},
     {"id": "e",          "label": "e",             "latex": "e",
      "aliases": ["Euler's number", "exp(1)"],
      "value_30d": "2.718281828459045235360287471353",
      "formula": "\\sum_{n=0}^\\infty \\frac{1}{n!}",
      "irrational": True,  "proven_irrational": True,  "transcendental": True,
+     "irrationality_status": "proven_transcendental",  "transcendence_status": "proven_transcendental",
      "reference": "https://mathworld.wolfram.com/e.html"},
     {"id": "ln2",        "label": "ln 2",          "latex": "\\ln 2",
      "aliases": ["log(2)", "ln(2)"],
      "value_30d": "0.693147180559945309417232121458",
      "formula": "\\sum_{n=1}^\\infty \\frac{(-1)^{n+1}}{n}",
      "irrational": True,  "proven_irrational": True,  "transcendental": True,
+     "irrationality_status": "proven_transcendental",  "transcendence_status": "proven_transcendental",
      "reference": "https://mathworld.wolfram.com/NaturalLogarithmof2.html"},
-    {"id": "zeta2",      "label": "ζ(2) = π²/6",  "latex": "\\zeta(2) = \\pi^2/6",
+    {"id": "zeta2",      "label": "\u03b6(2) = \u03c0\u00b2/6",  "latex": "\\zeta(2) = \\pi^2/6",
      "aliases": ["pi^2/6", "zeta(2)"],
      "value_30d": "1.644934066848226436472415166646",
      "formula": "\\sum_{n=1}^\\infty n^{-2} = \\pi^2/6",
      "irrational": True,  "proven_irrational": True,  "transcendental": True,
+     "irrationality_status": "proven_transcendental",  "transcendence_status": "proven_transcendental",
      "reference": "https://mathworld.wolfram.com/RiemannZetaFunction.html"},
-    {"id": "zeta5",      "label": "ζ(5)",          "latex": "\\zeta(5)",
+    {"id": "zeta5",      "label": "\u03b6(5)",          "latex": "\\zeta(5)",
      "aliases": ["zeta(5)"],
      "value_30d": "1.036927755143369926331365486458",
      "formula": "\\sum_{n=1}^\\infty n^{-5}",
      "irrational": None,  "proven_irrational": False,  "transcendental": None,
+     "irrationality_status": "open_question",  "transcendence_status": "open_question",
      "reference": "https://mathworld.wolfram.com/RiemannZetaFunction.html"},
     {"id": "catalan",    "label": "G (Catalan)",   "latex": "G",
      "aliases": ["Catalan's constant", "Catalan"],
      "value_30d": "0.915965594177219015054603514932",
      "formula": "\\sum_{n=0}^\\infty \\frac{(-1)^n}{(2n+1)^2}",
      "irrational": None,  "proven_irrational": False,  "transcendental": None,
+     "irrationality_status": "open_question",  "transcendence_status": "open_question",
      "reference": "https://mathworld.wolfram.com/CatalansConstant.html"},
-    {"id": "sqrt2",      "label": "√2",            "latex": "\\sqrt{2}",
+    {"id": "sqrt2",      "label": "\u221a2",            "latex": "\\sqrt{2}",
      "aliases": ["sqrt(2)", "Pythagoras constant"],
      "value_30d": "1.414213562373095048801688724210",
      "formula": "\\sqrt{2}",
      "irrational": True,  "proven_irrational": True,  "transcendental": False,
+     "irrationality_status": "proven_irrational",  "transcendence_status": "algebraic",
      "reference": "https://mathworld.wolfram.com/PythagorassConstant.html"},
-    {"id": "pi_half",    "label": "π/2",           "latex": "\\pi/2",
+    {"id": "pi_half",    "label": "\u03c0/2",           "latex": "\\pi/2",
      "aliases": ["pi/2"],
      "value_30d": "1.570796326794896619231321691640",
      "formula": "\\pi/2",
      "irrational": True,  "proven_irrational": True,  "transcendental": True,
+     "irrationality_status": "proven_transcendental",  "transcendence_status": "proven_transcendental",
      "reference": "https://mathworld.wolfram.com/Pi.html"},
-    {"id": "pi_quarter", "label": "π/4",           "latex": "\\pi/4",
+    {"id": "pi_quarter", "label": "\u03c0/4",           "latex": "\\pi/4",
      "aliases": ["pi/4", "Leibniz formula limit"],
      "value_30d": "0.785398163397448309615660845820",
      "formula": "\\pi/4 = 1 - 1/3 + 1/5 - \\cdots",
      "irrational": True,  "proven_irrational": True,  "transcendental": True,
+     "irrationality_status": "proven_transcendental",  "transcendence_status": "proven_transcendental",
      "reference": "https://mathworld.wolfram.com/Pi.html"},
 ]
 
@@ -538,12 +554,66 @@ _CONSTANTS_REGISTRY = [
 @app.get("/constants", tags=["meta"])
 def get_constants():
     """Registry of known mathematical constants referenced by CMF Atlas entries."""
-    return {
-        "version": "2.2",
-        "description": "Constants appearing as identified limits of CMFs in the atlas",
-        "count": len(_CONSTANTS_REGISTRY),
-        "constants": _CONSTANTS_REGISTRY,
-    }
+    db: Session = next(get_db())
+    try:
+        counts_rows = db.execute(text(
+            "SELECT json_extract(cmf_payload,'$.primary_constant'), COUNT(*) "
+            "FROM cmf WHERE json_extract(cmf_payload,'$.primary_constant') IS NOT NULL "
+            "GROUP BY json_extract(cmf_payload,'$.primary_constant')"
+        )).fetchall()
+        counts_by_label = {r[0]: r[1] for r in counts_rows}
+        enriched = []
+        for c in _CONSTANTS_REGISTRY:
+            entry = dict(c)
+            all_labels = [c["label"]] + c.get("aliases", [])
+            cnt = max((counts_by_label.get(lbl, 0) for lbl in all_labels), default=0)
+            entry["entry_count"] = cnt
+            enriched.append(entry)
+        return {
+            "version": "2.3",
+            "schema_version": "2.3",
+            "description": "Constants appearing as identified limits of CMFs in the atlas",
+            "count": len(enriched),
+            "constants": enriched,
+        }
+    finally:
+        db.close()
+
+
+@app.get("/release", tags=["meta"])
+def release_manifest():
+    """Release manifest — version, schema, counts, and URLs for the current Atlas release."""
+    db: Session = next(get_db())
+    try:
+        total = db.execute(text("SELECT COUNT(*) FROM cmf WHERE dimension >= 2")).scalar() or 0
+        dims = db.execute(text(
+            "SELECT dimension, COUNT(*) FROM cmf WHERE dimension >= 2 GROUP BY dimension"
+        )).fetchall()
+        certs = db.execute(text(
+            "SELECT json_extract(cmf_payload,'$.certification_level'), COUNT(*) "
+            "FROM cmf WHERE dimension >= 2 "
+            "GROUP BY json_extract(cmf_payload,'$.certification_level')"
+        )).fetchall()
+        walkable = db.execute(text(
+            "SELECT COUNT(*) FROM cmf WHERE dimension >= 2 AND "
+            "json_extract(cmf_payload,'$.f_poly') IS NOT NULL AND "
+            "json_extract(cmf_payload,'$.f_poly') != ''"
+        )).scalar() or 0
+        return {
+            "version": "2.3",
+            "schema_version": "2.3",
+            "release_date": "2026-03-31",
+            "license": "CC BY 4.0",
+            "url": "https://davidvesterlund.com/cmf-atlas/",
+            "api_base": "https://cmfatlas-production.up.railway.app",
+            "export_url": "https://cmfatlas-production.up.railway.app/export/cmfs.json",
+            "total_cmfs": total,
+            "walkable_cmfs": walkable,
+            "by_dimension": {str(d): c for d, c in dims},
+            "by_certification": {c: n for c, n in certs if c},
+        }
+    finally:
+        db.close()
 
 
 @app.get("/stats", response_model=StatsOut, tags=["meta"])
@@ -612,13 +682,15 @@ def stats_detailed():
             "json_extract(cmf_payload,'$.f_poly') != ''"
         )).scalar() or 0
 
+        const_sorted = dict(sorted(constants.items(), key=lambda x: -x[1])[:20])
         return {
             "total_cmfs": sum(v for _, v in dims),
             "by_dimension": {str(d): c for d, c in dims},
             "by_certification": certs,
             "by_source": dict(sorted(sources.items(), key=lambda x: -x[1])[:15]),
             "by_degree": dict(sorted(degrees.items(), key=lambda x: int(x[0]) if x[0] not in (None, "None") else -1)),
-            "known_constants": dict(sorted(constants.items(), key=lambda x: -x[1])[:20]),
+            "known_constants": const_sorted,
+            "by_constant": const_sorted,
             "walkable_cmfs": walkable,
         }
     finally:
@@ -995,26 +1067,57 @@ def browse_cmfs(
             LIMIT :limit OFFSET :offset
         """), params).fetchall()
 
+        _CERT_PROOF_STATUS = {
+            "A_plus": "symbolically_certified",
+            "A_certified": "verified",
+            "B_verified_numeric": "numeric_only",
+            "C_scouting": "unverified",
+        }
         items = []
         for r in rows:
+            cert = r[7]
+            f_poly = r[2] or ""
+            gen_type = r[13] or ""
+            src_cat = r[9] or r[8] or ""
+            primary_const = r[5]
+            identified_const = r[6]
+            proof_status = _CERT_PROOF_STATUS.get(cert, "unverified")
+            if identified_const:
+                identification_status = "pslq_identified"
+            elif primary_const:
+                identification_status = "matched"
+            else:
+                identification_status = "unidentified"
+            if f_poly:
+                construction_type = "telescope_polynomial"
+            elif "pfq" in gen_type.lower() or "hypergeometric" in gen_type.lower():
+                construction_type = "hypergeometric_pfq"
+            else:
+                construction_type = "matrix_explicit"
             items.append({
                 "id":                  r[0],
                 "dimension":           r[1],
-                "f_poly":              r[2] or "",
+                "f_poly":              f_poly,
                 "fbar_poly":           r[3] or "",
                 "degree":              int(r[4]) if r[4] is not None else 0,
-                "primary_constant":    r[5],
-                "identified_constant": r[6],
-                "certification_level": r[7],
+                "primary_constant":    primary_const,
+                "identified_constant": identified_const,
+                "certification_level": cert,
                 "source":              r[8],
-                "source_category":     r[9] or r[8] or "",
+                "source_category":     src_cat,
+                "source_family":       src_cat,
                 "flatness_verified":   bool(r[10]) if r[10] is not None else False,
                 "canonical_fingerprint": r[11],
                 "primary_group":       r[12],
-                "generator_type":      r[13],
+                "generator_type":      gen_type,
                 "series_name":         r[14],
-                "has_formula":         bool(r[2]) or bool(r[16]),
+                "has_formula":         bool(f_poly) or bool(r[16]),
                 "category":            r[15] or "reference",
+                "proof_status":        proof_status,
+                "identification_status": identification_status,
+                "construction_type":   construction_type,
+                "entry_uri":           f"https://davidvesterlund.com/cmf-atlas/entry.html?id={r[0]}",
+                "release_version":     "2.3",
             })
 
         return {"total": total, "offset": offset, "limit": limit, "items": items}
