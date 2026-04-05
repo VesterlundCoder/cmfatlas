@@ -28,15 +28,7 @@ from dreams_runner import (
 OUT_DIR = HERE / "campaign_out"
 OUT_DIR.mkdir(exist_ok=True)
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)-7s — %(message)s",
-    datefmt="%H:%M:%S",
-    handlers=[
-        logging.StreamHandler(sys.stdout),
-        logging.FileHandler(OUT_DIR / "campaign.log"),
-    ],
-)
+# Logger is configured after --run-name is parsed (see main())
 log = logging.getLogger("campaign")
 
 # ── Global config (overridden by CLI) ─────────────────────────────────────────
@@ -48,6 +40,7 @@ TIER_BUDGETS: dict = {
     "A": {"n_traj": 80,  "depth_deep": 1500, "depth_shallow": 400},
     "B": {"n_traj": 60,  "depth_deep": 1200, "depth_shallow": 300},
     "C": {"n_traj": 50,  "depth_deep": 1000, "depth_shallow": 200},
+    "X": {"n_traj": 20,  "depth_deep": 600,  "depth_shallow": 150},
 }
 
 CP_FRACTIONS = [0.0, 0.25, 0.50, 0.75, 1.00]
@@ -584,11 +577,25 @@ def main():
                     help="Only run seeds whose ID contains FILTER")
     ap.add_argument("--dry-run", action="store_true",
                     help="Print plan and exit without running")
+    ap.add_argument("--run-name", type=str, default="campaign",
+                    help="Output file prefix (default: campaign)")
     args = ap.parse_args()
 
     global DPS
     DPS = args.dps
     mp.mp.dps = DPS + 20
+
+    # Configure logging with run-specific log file
+    log_file = OUT_DIR / f"{args.run_name}.log"
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)-7s — %(message)s",
+        datefmt="%H:%M:%S",
+        handlers=[
+            logging.StreamHandler(sys.stdout),
+            logging.FileHandler(log_file),
+        ],
+    )
 
     basis_vals, basis_names = (
         _make_focused_basis(DPS) if args.focused_basis else _make_basis(DPS)
@@ -614,9 +621,10 @@ def main():
         log.info("Total trajectories: %d", total_traj)
         return
 
-    out_file   = OUT_DIR / "campaign_results.jsonl"
-    promo_file = OUT_DIR / "promotions.json"
-    plan_file  = OUT_DIR / "campaign_plan.json"
+    run        = args.run_name
+    out_file   = OUT_DIR / f"{run}_results.jsonl"
+    promo_file = OUT_DIR / f"{run}_promotions.json"
+    plan_file  = OUT_DIR / f"{run}_plan.json"
 
     # Save the plan
     plan_file.write_text(json.dumps({
