@@ -984,6 +984,7 @@ def browse_cmfs(
     has_formula: Optional[bool] = None,
     primary_constant: Optional[str] = None,
     category: Optional[str] = None,
+    matrix_size: Optional[int] = None,
 ):
     """Browse CMFs with filtering and search."""
     db: Session = next(get_db())
@@ -1025,6 +1026,9 @@ def browse_cmfs(
         if category:
             where_clauses.append("c.category = :category")
             params["category"] = category
+        if matrix_size is not None:
+            where_clauses.append("CAST(json_extract(c.cmf_payload,'$.matrix_size') AS INTEGER) = :matrix_size")
+            params["matrix_size"] = matrix_size
         if q:
             where_clauses.append(
                 "(c.cmf_payload LIKE :q OR r.canonical_fingerprint LIKE :q OR s.definition LIKE :q)"
@@ -1059,7 +1063,8 @@ def browse_cmfs(
                    r.canonical_fingerprint, r.primary_group,
                    s.generator_type, s.name AS series_name,
                    c.category,
-                   json_extract(r.canonical_payload,'$.matrices')      AS has_stored_matrices
+                   json_extract(r.canonical_payload,'$.matrices')      AS has_stored_matrices,
+                   json_extract(c.cmf_payload,'$.matrix_size')          AS matrix_size
             FROM cmf c
             JOIN representation r ON r.id = c.representation_id
             JOIN series s ON s.id = r.series_id
@@ -1110,6 +1115,7 @@ def browse_cmfs(
                 "flatness_verified":   bool(r[10]) if r[10] is not None else False,
                 "canonical_fingerprint": r[11],
                 "primary_group":       r[12],
+                "matrix_size":         int(r[17]) if r[17] is not None else None,
                 "generator_type":      gen_type,
                 "series_name":         r[14],
                 "has_formula":         bool(f_poly) or bool(r[16]),
@@ -1309,12 +1315,18 @@ def get_cmf_full(cmf_id: int):
             "identification_updated_at": payload.get("identification_updated_at"),
             "certification_level": payload.get("certification_level"),
             "source":              payload.get("source"),
+            "source_category":     payload.get("source_category"),
+            "matrix_size":         payload.get("matrix_size"),
+            "agent_type":          payload.get("agent_type"),
+            "total_score":         payload.get("total_score"),
+            "best_delta":          payload.get("best_delta"),
             "flatness_verified":   payload.get("flatness_verified", False),
             "representation": {
                 "id":                  row[5],
                 "primary_group":       row[6],
                 "canonical_fingerprint": row[7],
                 "source_type":         canon.get("source_type"),
+                "axes":                canon.get("axes"),
                 "order":               canon.get("order"),
                 "deg_x":               canon.get("deg_x"),
                 "deg_y":               canon.get("deg_y"),

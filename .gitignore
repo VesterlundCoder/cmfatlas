@@ -35,3 +35,6 @@ gauge_agents/campaign_out/campaign_results.jsonl
 gauge_agents/campaign_out/campaign_500_results.jsonl
 gauge_agents/campaign_out/campaign.log
 gauge_agents/campaign_out/campaign_500.log
+data/atlas_2d.db
+data/atlas_2d.db-shm
+data/atlas_2d.db-wal
