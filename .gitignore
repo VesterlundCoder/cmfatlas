@@ -19,3 +19,19 @@ data/verified_2d_catalog.json
 experiments_gen2/
 *.log
 deploy/
+
+# gauge_agents — large derived/pipeline files (regenerable from store_*.jsonl)
+gauge_agents/classified_bucket*.jsonl
+gauge_agents/coupling_summary.json
+gauge_agents/coupling_report.md
+gauge_agents/__pycache__/
+gauge_agents/logs/
+gauge_agents/pipeline_out/
+gauge_agents/ramanujan_out/
+gauge_agents/STOP_AGENTS
+gauge_agents/cmf_matrices_latex.tex
+gauge_agents/cmf_matrices_report.md
+gauge_agents/campaign_out/campaign_results.jsonl
+gauge_agents/campaign_out/campaign_500_results.jsonl
+gauge_agents/campaign_out/campaign.log
+gauge_agents/campaign_out/campaign_500.log

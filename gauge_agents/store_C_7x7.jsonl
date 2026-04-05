@@ -1,0 +1,2 @@
+
+{"dim": 7, "n_matrices": 7, "matrix_size": 7, "agent": "C", "fingerprint": "b2b4dc50f27c5aa5", "best_delta": 8.856, "deltas": [6.212, 7.534, 7.534, 7.534, 7.534, 7.534, 8.856], "n_converging_axes": 7, "path_independence_verified": true, "max_flatness_error": 0.0, "n_pairs_checked": 21, "coupling_bucket": 3, "bidir_ratio": 0.25, "params": {"dim": 7, "D_params": [[1.0, 2.0], [-1.0, 0.0], [-2.0, 2.0], [-1.0, 1.0], [-2.0, 2.0], [1.0, 2.0], [-1.0, 2.0]], "L_off": {"(5, 4)": 0.25, "(6, 0)": 0.5}, "U_off": {"(2, 6)": 0.25, "(4, 5)": 0.25}}, "timestamp": 1775196555.0350442}
