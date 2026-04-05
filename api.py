@@ -1546,11 +1546,13 @@ def walk_cmf(
 
             P = mpmath.eye(stored_size)
             k_start = 1
-            # Find first non-degenerate step
+            # Find first non-degenerate step (use last col for NxN generality)
+            _nc_s = stored_size - 1
+            _nr_s = stored_size - 2
             for _ks in range(1, 20):
                 try:
                     _m = _K(_ks)
-                    if abs(float(mpmath.re(_m[1, 0]))) > 1e-15 or abs(float(mpmath.re(_m[0, 1]))) > 1e-15:
+                    if abs(float(mpmath.re(_m[_nr_s, _nc_s]))) > 1e-15 or abs(float(mpmath.re(_m[_nc_s, _nc_s]))) > 1e-15:
                         k_start = _ks
                         break
                 except Exception:
@@ -1607,12 +1609,15 @@ def walk_cmf(
                 K = _K(step)
                 P = P * K
                 # Normalize every 20 iterations to prevent overflow
+                _sz = P.rows
+                _nc = _sz - 1          # last col index
+                _nr = _sz - 2          # second-to-last row index
                 if (_iter + 1) % 20 == 0:
-                    scale = max(abs(float(mpmath.re(P[0, 0]))),
-                                abs(float(mpmath.re(P[0, 1]))), 1e-300)
+                    scale = max(abs(float(mpmath.re(P[_nr, _nc]))),
+                                abs(float(mpmath.re(P[_nc, _nc]))), 1e-300)
                     P = P / scale
-                denom = P[1, 1]
-                numer = P[0, 1]
+                denom = P[_nc, _nc]
+                numer = P[_nr, _nc]
                 if mpmath.fabs(denom) > mpmath.mpf("1e-200"):
                     val = float(mpmath.re(numer / denom))
                     sequence.append({"step": step + 1, "value": val if math.isfinite(val) else None})

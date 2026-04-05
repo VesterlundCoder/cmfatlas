@@ -265,6 +265,7 @@ async function loadEntry() {
     const fpL = polyToLatex(d.f_poly);
     const fbL = polyToLatex(d.fbar_poly);
     const bibtex = buildBibTeX(d.id, d.f_poly, d.dimension);
+    const displayDim = d.matrix_size || d.dimension;
 
     const identConst = d.identified_constant;
     const identMethod = d.identification_method;
@@ -285,8 +286,8 @@ async function loadEntry() {
           <div>
             <h1 style="font-size:2rem;font-weight:800;color:#101010;margin-bottom:10px;letter-spacing:-0.5px">CMF #${d.id}</h1>
             <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
-              <span class="badge badge-teal">${d.dimension}D</span>
-              ${d.matrix_size ? `<span class="badge" style="background:#f3e8ff;color:#7e22ce;border:1px solid #d8b4fe">${d.matrix_size}×${d.matrix_size} matrix</span>` : ''}
+              <span class="badge badge-teal">${displayDim}D</span>
+              ${d.matrix_size && d.matrix_size !== d.dimension ? `<span class="badge" style="background:#f3e8ff;color:#7e22ce;border:1px solid #d8b4fe">${d.matrix_size}\u00d7${d.matrix_size} matrix</span>` : ''}
               ${categoryBadge(d.category)}
               ${certBadge(d.certification_level)}
               ${d.flatness_verified ? '<span class="badge badge-green">✓ Flatness Verified</span>' : ''}
@@ -448,7 +449,7 @@ async function loadEntry() {
               </div>
               <div class="meta-row">
                 <span style="color:#888">Dimension</span>
-                <span style="color:#333;font-weight:500">${d.dimension}D</span>
+                <span style="color:#333;font-weight:500">${displayDim}D</span>
               </div>
               ${d.matrix_size ? `
               <div class="meta-row">
@@ -599,7 +600,7 @@ function injectJsonLD(d) {
   let canon = document.querySelector('link[rel="canonical"]');
   if (!canon) { canon = document.createElement('link'); canon.rel = 'canonical'; document.head.appendChild(canon); }
   canon.href = entryUri;
-  document.title = `CMF #${d.id} — ${d.primary_constant || 'CMF'} (${d.dimension}D) — CMF Atlas`;
+  document.title = `CMF #${d.id} — ${d.primary_constant || 'CMF'} (${displayDim}D) — CMF Atlas`;
 }
 
 async function loadRelations(cmfId) {
