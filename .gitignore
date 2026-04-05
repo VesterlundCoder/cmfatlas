@@ -6,8 +6,10 @@ __pycache__/
 .env
 .DS_Store
 
-# Keep atlas_2d.db (published DB), exclude the full one
+# DB files — atlas_2d.db uploaded via railway up (not git-tracked)
 data/atlas.db
+data/atlas_2d.db-shm
+data/atlas_2d.db-wal
 data/gap_fill_results.json
 data/ml_hits_verification.json
 data/smart_gap_fill_results.json

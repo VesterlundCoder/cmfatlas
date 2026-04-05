@@ -464,8 +464,8 @@ def export_cmfs():
         from fastapi.responses import JSONResponse
         return JSONResponse(
             content={
-                "version": "2.4",
-                "schema_version": "2.4",
+                "version": "2.5",
+                "schema_version": "2.5",
                 "license": "CC BY 4.0",
                 "url": "https://davidvesterlund.com/cmf-atlas/",
                 "total": len(out),
