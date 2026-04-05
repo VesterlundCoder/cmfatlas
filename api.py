@@ -1192,9 +1192,11 @@ def _compute_matrices(f_poly: str, fbar_poly: str, canonical_payload: dict) -> l
                         except Exception:
                             row_l.append(str(e))
                     rows_latex.append(row_l)
+                _axis_labels = {"x": "K₁", "y": "K₂", "z": "K₃", "G": "G", "D": "D₀"}
+                label = _axis_labels.get(axis, f"K{subs_k[i] if i < len(subs_k) else str(i+1)}")
                 result.append({
                     "index": i + 1,
-                    "label": f"K{subs_k[i] if i < len(subs_k) else str(i+1)}",
+                    "label": label,
                     "axis": axis,
                     "source": "explicit",
                     "rows": rows_latex,
