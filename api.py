@@ -389,23 +389,15 @@ async def lifespan(app: FastAPI):
             f"[auto-ingest] DB has only {_cmf_count} CMFs — ingesting gauge_agents store files..."
         )
         try:
-            _store_dir = Path(__file__).parent / "gauge_agents"
+            _compact_path = Path(__file__).parent / "gauge_agents" / "gauge_compact.jsonl"
             _NOW2 = __import__("datetime").datetime.utcnow().isoformat()
-            _IDENTIFIED = {
-                "gauge_A_c02c792c009aa6b8": "-2",
-                "gauge_A_4341aad295915872": "5/4",
-                "gauge_A_af50bd587fe67d57": "1/7",
-                "gauge_A_6ce2fcaa88fbd632": "-5/2",
-                "gauge_A_35e44a13db2f46e6": "1/3",
-            }
+            if not _compact_path.exists():
+                raise FileNotFoundError(f"gauge_compact.jsonl not found at {_compact_path}")
             _ic = _sq.connect(DB_PATH)
             _ic.row_factory = _sq.Row
             _icc = _ic.cursor()
-            # Ensure category column
-            _icols = [r[1] for r in _icc.execute("PRAGMA table_info(cmf)").fetchall()]
-            if "category" not in _icols:
+            if "category" not in [r[1] for r in _icc.execute("PRAGMA table_info(cmf)").fetchall()]:
                 _icc.execute("ALTER TABLE cmf ADD COLUMN category TEXT")
-            # Get or create project
             _prow = _icc.execute("SELECT id FROM project WHERE name='Gauge Bootstrap Research'").fetchone()
             if _prow:
                 _pid = _prow["id"]
@@ -413,7 +405,6 @@ async def lifespan(app: FastAPI):
                 _icc.execute("INSERT INTO project (name, created_at) VALUES (?,?)",
                              ("Gauge Bootstrap Research", _NOW2))
                 _pid = _icc.lastrowid
-            # Existing fingerprints
             _efps = set(r[0] for r in _icc.execute(
                 "SELECT canonical_fingerprint FROM representation WHERE primary_group='gauge_agent'"
             ).fetchall())
@@ -428,52 +419,52 @@ async def lifespan(app: FastAPI):
                 _icc.execute(
                     "INSERT INTO series (project_id,name,definition,generator_type,provenance,created_at) VALUES (?,?,?,?,?,?)",
                     (_pid, sn, f"Gauge Agent {agent} {dim}x{dim} matrix CMF",
-                     "gauge_matrix", "Gauge Bootstrap Research (Vesterlund 2026)", _NOW2)
-                )
+                     "gauge_matrix", "Gauge Bootstrap Research (Vesterlund 2026)", _NOW2))
                 _scache[k] = _icc.lastrowid; return _icc.lastrowid
             _total_ins = 0
-            for _sf in sorted(_store_dir.glob("store_*.jsonl")):
-                for _ln in _sf.read_text(errors="replace").splitlines():
-                    _ln = _ln.strip()
-                    if not _ln: continue
-                    try: _rec = _js.loads(_ln)
-                    except: continue
-                    _fp16  = (_rec.get("fingerprint") or "")[:16]
-                    _agent = _rec.get("agent", "A")
-                    _dim   = int(_rec.get("dim", 3))
-                    _cid   = f"gauge_{_agent}_{_fp16}"
-                    if _fp16 in _efps: continue
-                    _sid = _get_series(_agent, _dim)
-                    _pc  = _IDENTIFIED.get(_cid)
-                    _sc  = float(_rec.get("score", 0) or 0)
-                    _cert = ("A_plus" if _pc else ("A_certified" if _sc >= 0.75 else
-                              ("B_verified_numeric" if _sc >= 0.50 else "C_scouting")))
-                    _cat  = "discovery" if _pc else ("interesting" if _sc >= 0.60 else "reference")
-                    _pl   = _js.dumps({
-                        "gauge_id": _cid, "fingerprint": _fp16,
-                        "matrix_size": _dim, "dimension": 3, "agent_type": _agent,
-                        "best_delta": _rec.get("best_delta"), "total_score": _sc,
-                        "certification_level": _cert, "source": "gauge_agents",
-                        "source_category": f"Gauge Agent {_agent}",
-                        "primary_constant": _pc, "identified_constant": _pc,
-                        "flatness_verified": False, "degree": 0, "hidden": False,
-                        "construction_type": "matrix_explicit",
-                        "source_family": f"gauge_agent_{_agent.lower()}_{_dim}x{_dim}",
-                    })
-                    _cp = _js.dumps({"fingerprint": _fp16, "matrix_size": _dim,
-                                     "axes": 3, "source_type": "gauge_agent", "agent_type": _agent})
-                    _icc.execute(
-                        "INSERT INTO representation (series_id,primary_group,canonical_fingerprint,canonical_payload,created_at) VALUES (?,?,?,?,?)",
-                        (_sid, "gauge_agent", _fp16, _cp, _NOW2)
-                    )
-                    _rid = _icc.lastrowid
-                    _icc.execute(
-                        "INSERT INTO cmf (representation_id,cmf_payload,dimension,direction_policy,created_at,category) VALUES (?,?,?,?,?,?)",
-                        (_rid, _pl, 3, None, _NOW2, _cat)
-                    )
-                    _efps.add(_fp16)
-                    _total_ins += 1
-                _ic.commit()
+            for _ln in _compact_path.read_text(errors="replace").splitlines():
+                _ln = _ln.strip()
+                if not _ln: continue
+                try: _rec = _js.loads(_ln)
+                except: continue
+                _fp16  = _rec.get("fp", "")
+                _agent = _rec.get("ag", "A")
+                _dim   = int(_rec.get("d", 3))
+                _cid   = f"gauge_{_agent}_{_fp16}"
+                if _fp16 in _efps: continue
+                _sid = _get_series(_agent, _dim)
+                _pc  = _rec.get("lim")
+                _sc  = float(_rec.get("sc", 0) or 0)
+                _cert = ("A_plus" if _pc else ("A_certified" if _sc >= 0.75 else
+                          ("B_verified_numeric" if _sc >= 0.50 else "C_scouting")))
+                _cat  = "discovery" if _pc else ("interesting" if _sc >= 0.60 else "reference")
+                _pl   = _js.dumps({
+                    "gauge_id": _cid, "fingerprint": _fp16,
+                    "matrix_size": _dim, "dimension": 3, "agent_type": _agent,
+                    "best_delta": _rec.get("bd"), "total_score": _sc,
+                    "P_score": _rec.get("ps"), "DIO_score": _rec.get("ds"),
+                    "congruence_depth": _rec.get("cd"), "coupling_bucket": _rec.get("pb"),
+                    "certification_level": _cert, "source": "gauge_agents",
+                    "source_category": f"Gauge Agent {_agent}",
+                    "primary_constant": _pc, "identified_constant": _pc,
+                    "flatness_verified": bool(_rec.get("sf")), "degree": 0, "hidden": False,
+                    "construction_type": "matrix_explicit",
+                    "source_family": f"gauge_agent_{_agent.lower()}_{_dim}x{_dim}",
+                })
+                _cp = _js.dumps({"fingerprint": _fp16, "matrix_size": _dim,
+                                 "axes": 3, "source_type": "gauge_agent", "agent_type": _agent})
+                _icc.execute(
+                    "INSERT INTO representation (series_id,primary_group,canonical_fingerprint,canonical_payload,created_at) VALUES (?,?,?,?,?)",
+                    (_sid, "gauge_agent", _fp16, _cp, _NOW2))
+                _rid = _icc.lastrowid
+                _icc.execute(
+                    "INSERT INTO cmf (representation_id,cmf_payload,dimension,direction_policy,created_at,category) VALUES (?,?,?,?,?,?)",
+                    (_rid, _pl, 3, None, _NOW2, _cat))
+                _efps.add(_fp16)
+                _total_ins += 1
+                if _total_ins % 5000 == 0:
+                    _ic.commit()
+            _ic.commit()
             _ic.close()
             _log.getLogger("uvicorn.error").info(
                 f"[auto-ingest] Done — inserted {_total_ins} gauge CMFs."

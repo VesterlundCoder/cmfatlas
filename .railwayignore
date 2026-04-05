@@ -12,3 +12,10 @@ data/truly_2d_verification.json
 data/verified_2d_catalog.json
 tests/
 *.log
+# Large store files — data served via gauge_compact.jsonl at startup
+gauge_agents/store_A_3x3.jsonl
+gauge_agents/store_A_4x4.jsonl
+gauge_agents/store_A_5x5.jsonl
+gauge_agents/store_B_3x3.jsonl
+gauge_agents/store_B_4x4.jsonl
+gauge_agents/store_B_5x5.jsonl
