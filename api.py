@@ -463,8 +463,8 @@ def export_cmfs():
         from fastapi.responses import JSONResponse
         return JSONResponse(
             content={
-                "version": "2.3",
-                "schema_version": "2.3",
+                "version": "2.4",
+                "schema_version": "2.4",
                 "license": "CC BY 4.0",
                 "url": "https://davidvesterlund.com/cmf-atlas/",
                 "total": len(out),
@@ -570,8 +570,8 @@ def get_constants():
             entry["entry_count"] = cnt
             enriched.append(entry)
         return {
-            "version": "2.3",
-            "schema_version": "2.3",
+            "version": "2.4",
+            "schema_version": "2.4",
             "description": "Constants appearing as identified limits of CMFs in the atlas",
             "count": len(enriched),
             "constants": enriched,
@@ -600,9 +600,9 @@ def release_manifest():
             "json_extract(cmf_payload,'$.f_poly') != ''"
         )).scalar() or 0
         return {
-            "version": "2.3",
-            "schema_version": "2.3",
-            "release_date": "2026-03-31",
+            "version": "2.4",
+            "schema_version": "2.4",
+            "release_date": "2026-04-05",
             "license": "CC BY 4.0",
             "url": "https://davidvesterlund.com/cmf-atlas/",
             "api_base": "https://cmfatlas-production.up.railway.app",
@@ -1995,7 +1995,7 @@ def cmf_relations(cmf_id: int):
         return {
             "cmf_id": cmf_id,
             "entry_uri": f"https://davidvesterlund.com/cmf-atlas/entry.html?id={cmf_id}",
-            "schema_version": "2.3",
+            "schema_version": "2.4",
             "primary_constant": primary_const,
             "identified_constant": identified_const,
             "linked_constant": linked_const,
