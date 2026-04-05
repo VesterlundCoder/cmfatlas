@@ -19,3 +19,14 @@ gauge_agents/store_A_5x5.jsonl
 gauge_agents/store_B_3x3.jsonl
 gauge_agents/store_B_4x4.jsonl
 gauge_agents/store_B_5x5.jsonl
+gauge_agents/store_C_6x6.jsonl
+gauge_agents/store_C_7x7.jsonl
+gauge_agents/store_C_8x8.jsonl
+gauge_agents/store_C_10x10.jsonl
+gauge_agents/store_C_12x12.jsonl
+gauge_agents/store_C_15x15.jsonl
+gauge_agents/store_C_20x20.jsonl
+gauge_agents/store_C_28x28.jsonl
+gauge_agents/campaign_out/
+# Explicitly include the populated DB (overrides .gitignore)
+!data/atlas_2d.db
