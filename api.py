@@ -683,10 +683,17 @@ def stats_detailed():
             "json_extract(cmf_payload,'$.f_poly') != ''"
         )).scalar() or 0
 
+        matrix_sizes = db.execute(text(
+            "SELECT json_extract(cmf_payload,'$.matrix_size'), COUNT(*) "
+            "FROM cmf GROUP BY 1 ORDER BY 1"
+        )).fetchall()
+        by_ms = {str(int(ms)): c for ms, c in matrix_sizes if ms is not None}
+
         const_sorted = dict(sorted(constants.items(), key=lambda x: -x[1])[:20])
         return {
             "total_cmfs": sum(v for _, v in dims),
             "by_dimension": {str(d): c for d, c in dims},
+            "by_matrix_size": by_ms,
             "by_certification": certs,
             "by_source": dict(sorted(sources.items(), key=lambda x: -x[1])[:15]),
             "by_degree": dict(sorted(degrees.items(), key=lambda x: int(x[0]) if x[0] not in (None, "None") else -1)),
@@ -1602,22 +1609,36 @@ def walk_cmf(
         mpmath.mp.dps = 30
         sequence = []
 
+        # Detect lower-triangular structure (gauge CMFs) vs upper-triangular
+        # Lower-tri: first column is the non-trivial one → readout P[N-1,0]/P[0,0]
+        # Upper-tri: last column is non-trivial → readout P[N-2,N-1]/P[N-1,N-1]
+        _K1 = _K(k_start)
+        _lower_tri = (abs(float(mpmath.re(_K1[_K1.rows - 1, 0]))) > 1e-15 and
+                      abs(float(mpmath.re(_K1[0, _K1.rows - 1]))) < 1e-15)
+
         if k_start_override >= 0:
             k_start = k_start_override
         for _iter, step in enumerate(range(k_start, k_start + depth)):
             try:
                 K = _K(step)
                 P = P * K
-                # Normalize every 20 iterations to prevent overflow
                 _sz = P.rows
-                _nc = _sz - 1          # last col index
-                _nr = _sz - 2          # second-to-last row index
-                if (_iter + 1) % 20 == 0:
-                    scale = max(abs(float(mpmath.re(P[_nr, _nc]))),
-                                abs(float(mpmath.re(P[_nc, _nc]))), 1e-300)
-                    P = P / scale
-                denom = P[_nc, _nc]
-                numer = P[_nr, _nc]
+                _nc = _sz - 1
+                if _lower_tri:
+                    # Normalize using first-column diagonal
+                    if (_iter + 1) % 20 == 0:
+                        scale = max(abs(float(mpmath.re(P[0, 0]))), 1e-300)
+                        P = P / scale
+                    denom = P[0, 0]
+                    numer = P[_nc, 0]
+                else:
+                    _nr = _sz - 2
+                    if (_iter + 1) % 20 == 0:
+                        scale = max(abs(float(mpmath.re(P[_nr, _nc]))),
+                                    abs(float(mpmath.re(P[_nc, _nc]))), 1e-300)
+                        P = P / scale
+                    denom = P[_nc, _nc]
+                    numer = P[_nr, _nc]
                 if mpmath.fabs(denom) > mpmath.mpf("1e-200"):
                     val = float(mpmath.re(numer / denom))
                     sequence.append({"step": step + 1, "value": val if math.isfinite(val) else None})
