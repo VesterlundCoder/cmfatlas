@@ -47,10 +47,12 @@
       <a href="browse.html" class="nav-link">Browse</a>
       <a href="explorer.html" class="nav-link">Explorer</a>
       <a href="conservative-test.html" class="nav-link">Flatness Test</a>
+      <a href="generator.html" class="nav-link" style="color:#0bb4aa;font-weight:600">Generator</a>
       <a href="sources.html" class="nav-link">Sources</a>
       <a href="constants.html" class="nav-link">Constants</a>
       <a href="guide.html" class="nav-link">Guide</a>
       <a href="about.html" class="nav-link">About</a>
+      <a href="annotate_login.html" class="nav-link" style="color:#0bb4aa;font-weight:700;border:1px solid #b2ede9;border-radius:20px;padding:4px 14px;background:#f0fdfc">Annotate</a>
     </div>
   </div>
 </nav>
@@ -100,6 +102,18 @@ function categoryBadge(cat) {
   return map[cat] || '';
 }
 
+function taxonomyBadge(n, m, p, peff) {
+  const sizeColors = {2:'#0bb4aa',3:'#7c3aed',4:'#b45309',5:'#059669',6:'#2563eb',8:'#dc2626',10:'#9333ea'};
+  const c = sizeColors[n] || '#64748b';
+  let html = `<span style="display:inline-flex;align-items:center;gap:6px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:4px 12px;font-family:monospace;font-size:12px">`;
+  html += `<span style="font-weight:800;color:${c}" title="Matrix size">${n}\u00d7${n}</span>`;
+  if (m) html += `<span style="color:#94a3b8;font-size:10px">\u00b7</span><span style="color:#475569" title="Matrix count (number of stepping matrices)">${m}&#8239;matrices</span>`;
+  if (p) html += `<span style="color:#94a3b8;font-size:10px">\u00b7</span><span style="color:#b45309" title="Parameter dimension (independent scalar variables)">p\u200a=\u200a${p}</span>`;
+  if (peff && peff !== p) html += `<span style="color:#94a3b8;font-size:10px">\u00b7</span><span style="color:#6b7280;font-size:11px" title="Effective dimension (gauge-reduced)">${peff}&#8239;eff</span>`;
+  html += `</span>`;
+  return html;
+}
+
 function certBadge(c) {
   if (!c) return '<span class="badge badge-grey">Unknown</span>';
   const map = {
@@ -111,8 +125,17 @@ function certBadge(c) {
   return map[c] || `<span class="badge badge-grey">${c}</span>`;
 }
 
-function renderMatrices(matrices) {
-  if (!matrices || !matrices.length) return '<div style="color:#aaa;font-size:13px;padding:8px 0">No matrix representation available.</div>';
+function renderMatrices(matrices, d) {
+  if (!matrices || !matrices.length) {
+    const isGauge = d && (d.agent_type || (d.source_category && d.source_category.toLowerCase().includes('gauge')));
+    if (isGauge) {
+      return `<div style="background:#fef9e7;border:1px solid #fcd34d;border-radius:8px;padding:14px 16px;font-size:13px;color:#78350f;line-height:1.6">
+        <strong>Matrix entries not stored</strong> — This is a gauge-agent CMF (${d.agent_type || 'type unknown'}, ${d.matrix_size}×${d.matrix_size}). Only scores and fingerprints were written to the DB at ingestion; the symbolic matrix polynomials were not persisted.<br/>
+        <span style="color:#94a3b8;font-size:12px;margin-top:4px;display:inline-block">To recover them, re-run the gauge agent on fingerprint <code style="background:#fef3c7;padding:0 4px;border-radius:3px">${d.fingerprint || '—'}</code> and backfill <code>canonical_payload.matrices</code>.</span>
+      </div>`;
+    }
+    return '<div style="color:#aaa;font-size:13px;padding:8px 0">No matrix representation available.</div>';
+  }
   const axisNames = {'k':'k','m':'m','x':'x','y':'y','a':'a','b':'b','c':'c','d':'d'};
   const parts = matrices.map(mx => {
     const rows = mx.rows;
@@ -265,6 +288,11 @@ async function loadEntry() {
     const fpL = polyToLatex(d.f_poly);
     const fbL = polyToLatex(d.fbar_poly);
     const bibtex = buildBibTeX(d.id, d.f_poly, d.dimension);
+    const matrixSize  = d.matrix_size  || d.dimension;
+    const matrixCount = d.matrix_count;
+    const paramDim    = d.parameter_dimension;
+    const effDim      = d.effective_dimension;
+    const displayDim  = matrixSize;
 
     const identConst = d.identified_constant;
     const identMethod = d.identification_method;
@@ -285,16 +313,16 @@ async function loadEntry() {
           <div>
             <h1 style="font-size:2rem;font-weight:800;color:#101010;margin-bottom:10px;letter-spacing:-0.5px">CMF #${d.id}</h1>
             <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
-              <span class="badge badge-teal">${d.dimension}D</span>
+              ${taxonomyBadge(matrixSize, matrixCount, paramDim, effDim)}
               ${categoryBadge(d.category)}
               ${certBadge(d.certification_level)}
               ${d.flatness_verified ? '<span class="badge badge-green">✓ Flatness Verified</span>' : ''}
               ${d.symbolic_verification?.result === 'PASS' ? '<span class="badge" style="background:#dcfce7;color:#15803d;border:1px solid #86efac">🔬 Symbolically Proven</span>' : ''}
-              ${hasFormula ? '<span class="badge" style="background:#e0faf8;color:#0bb4aa;border:1px solid #b2ede9">▶ Walkable</span>' : ''}
+              ${d.walk_available ? '<span class="badge" style="background:#e0faf8;color:#0bb4aa;border:1px solid #b2ede9">▶ Walkable</span>' : ''}
             </div>
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
-            ${hasFormula ? `<a href="explorer.html?id=${d.id}" style="background:#0bb4aa;color:#fff;font-weight:600;padding:9px 18px;border-radius:8px;font-size:13px;text-decoration:none;display:inline-flex;align-items:center;gap:6px">▶ Matrix Walk</a>` : ''}
+            ${d.walk_available ? `<a href="explorer.html?id=${d.id}" style="background:#0bb4aa;color:#fff;font-weight:600;padding:9px 18px;border-radius:8px;font-size:13px;text-decoration:none;display:inline-flex;align-items:center;gap:6px">▶ Matrix Walk</a>` : ''}
             ${hasFormula ? `<a href="conservative-test.html?id=${d.id}" style="border:2px solid #0bb4aa;color:#0bb4aa;font-weight:600;padding:8px 16px;border-radius:8px;font-size:13px;text-decoration:none;background:#fff">Flatness Test</a>` : ''}
           </div>
         </div>
@@ -346,13 +374,11 @@ async function loadEntry() {
           `}
 
           <!-- Matrix structure -->
-          ${d.matrices && d.matrices.length ? `
           <div class="card p-6">
             <div class="section-label">K-Matrix Structure</div>
-            ${renderMatrices(d.matrices)}
-            ${buildTelescopeDerivation(d)}
+            ${renderMatrices(d.matrices, d)}
+            ${d.matrices && d.matrices.length ? buildTelescopeDerivation(d) : ''}
           </div>
-          ` : ''}
 
           <!-- Symbolic verification / certification panel -->
           ${hasFormula && !d.is_3d ? `
@@ -410,7 +436,7 @@ async function loadEntry() {
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 24px;font-size:13px">
               <div><span style="color:#888">Group:</span> <span style="color:#333;font-weight:500">${d.representation?.primary_group || '—'}</span></div>
               <div><span style="color:#888">Source type:</span> <span style="color:#333;font-weight:500">${d.representation?.source_type || '—'}</span></div>
-              ${d.representation?.axes ? `<div><span style="color:#888">Axes:</span> <span style="color:#333;font-family:monospace">(${Array.isArray(d.representation.axes) ? d.representation.axes.join(', ') : d.representation.axes})</span></div>` : ''}
+              ${d.representation?.axes ? `<div><span style="color:#888">Axes:</span> <span style="color:#333;font-family:monospace">(${d.representation.axes.join(', ')})</span></div>` : ''}
               <div><span style="color:#888">Conjugacy:</span> <span style="color:#333;font-family:monospace">${d.representation?.conjugacy || '(none)'}</span></div>
               <div><span style="color:#888">Monomials:</span> <span style="color:#333">${d.representation?.n_monomials ?? '—'}</span></div>
             </div>
@@ -447,8 +473,28 @@ async function loadEntry() {
               </div>
               <div class="meta-row">
                 <span style="color:#888">Dimension</span>
-                <span style="color:#333;font-weight:500">${d.dimension}D</span>
+                <span style="color:#333;font-weight:500">${displayDim}D</span>
               </div>
+              ${d.matrix_size ? `
+              <div class="meta-row">
+                <span style="color:#888">Matrix size</span>
+                <span style="color:#7e22ce;font-weight:600">${d.matrix_size}×${d.matrix_size}</span>
+              </div>` : ''}
+              ${d.agent_type ? `
+              <div class="meta-row">
+                <span style="color:#888">Agent type</span>
+                <span style="color:#333">Gauge Agent ${d.agent_type}</span>
+              </div>` : ''}
+              ${d.total_score != null && d.total_score > 0 ? `
+              <div class="meta-row">
+                <span style="color:#888">Total score</span>
+                <span style="color:#333">${d.total_score.toFixed(3)}</span>
+              </div>` : ''}
+              ${d.best_delta != null && d.best_delta > 0 ? `
+              <div class="meta-row">
+                <span style="color:#888">Best Δ</span>
+                <span style="color:#333">${d.best_delta.toFixed(3)}</span>
+              </div>` : ''}
               <div class="meta-row">
                 <span style="color:#888">Degree</span>
                 <span style="color:#333">${d.degree ?? '—'}</span>
@@ -578,7 +624,7 @@ function injectJsonLD(d) {
   let canon = document.querySelector('link[rel="canonical"]');
   if (!canon) { canon = document.createElement('link'); canon.rel = 'canonical'; document.head.appendChild(canon); }
   canon.href = entryUri;
-  document.title = `CMF #${d.id} — ${d.primary_constant || 'CMF'} (${d.dimension}D) — CMF Atlas`;
+  document.title = `CMF #${d.id} — ${d.primary_constant || 'CMF'} (${d.matrix_size || d.dimension}D) — CMF Atlas`;
 }
 
 async function loadRelations(cmfId) {
