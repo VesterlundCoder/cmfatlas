@@ -59,6 +59,19 @@
     <div class="stat-box"><div class="stat-num" id="s-comparisons">—</div><div class="stat-label">comparisons</div></div>
   </div>
 
+  <!-- Irrational banner -->
+  <div style="background:linear-gradient(135deg,#fff7ed,#fffbeb);border:1px solid #fb923c;border-radius:10px;padding:12px 18px;margin-bottom:16px;display:flex;align-items:center;gap:12px">
+    <span style="font-size:20px">🔥</span>
+    <div>
+      <div style="font-size:13px;font-weight:800;color:#c2410c">Irrational CMF Annotation Queue</div>
+      <div style="font-size:12px;color:#9a3412;margin-top:2px">Showing only CMFs with potentially irrational limits — classify &amp; compare to build the paper.</div>
+    </div>
+    <label style="margin-left:auto;display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;font-weight:600;color:#c2410c">
+      <input type="checkbox" id="irr-toggle" checked style="accent-color:#c2410c;width:16px;height:16px"/>
+      Irrational only
+    </label>
+  </div>
+
   <!-- Filters -->
   <div class="flex items-center gap-3 flex-wrap mb-5">
     <span style="font-size:12px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em">Status</span>
@@ -70,10 +83,12 @@
     <span style="margin-left:16px;font-size:12px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em">Size</span>
     <select id="size-filter">
       <option value="">Any size</option>
-      <option value="2">2×2</option>
       <option value="3">3×3</option>
       <option value="4">4×4</option>
       <option value="5">5×5</option>
+      <option value="6">6×6</option>
+      <option value="7">7×7</option>
+      <option value="10">10×10</option>
     </select>
   </div>
 
@@ -87,8 +102,8 @@
         <button id="next-btn" class="filter-btn" style="padding:5px 12px">Next →</button>
       </div>
     </div>
-    <div style="display:grid;grid-template-columns:60px 80px 80px 80px 1fr 120px 100px;gap:0;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em;padding:8px 16px;border-bottom:1px solid #f1f5f9;background:#f8fafc">
-      <span>CMF ID</span><span>Size</span><span>Matrices</span><span>Degree</span><span>Constant</span><span>Cert. Level</span><span>Status</span>
+    <div style="display:grid;grid-template-columns:70px 60px 60px 60px 1fr 180px 80px 100px;gap:0;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em;padding:8px 16px;border-bottom:1px solid #f1f5f9;background:#f8fafc">
+      <span>CMF ID</span><span>Agent</span><span>Size</span><span>Δ</span><span>Limit Classification</span><span>Source / Constant</span><span>Cert.</span><span>Status</span>
     </div>
     <div id="queue-list"></div>
   </div>
@@ -100,6 +115,7 @@ const PAGE_SIZE = 50;
 let page = 0;
 let statusFilter = 'all';
 let sizeFilter = '';
+let irrationalOnly = true;
 
 const user = JSON.parse(localStorage.getItem('annotator_user') || '{}');
 if (user.display_name) document.getElementById('user-name').textContent = user.display_name;
@@ -127,6 +143,7 @@ async function loadQueue() {
   const params = new URLSearchParams({
     offset: page * PAGE_SIZE,
     limit: PAGE_SIZE,
+    irrational_only: irrationalOnly ? 'true' : 'false',
   });
   if (sizeFilter) params.set('matrix_size', sizeFilter);
   if (statusFilter !== 'all') params.set('status_filter', statusFilter);
@@ -150,17 +167,26 @@ async function loadQueue() {
       return;
     }
 
-    list.innerHTML = d.items.map(item => `
-      <a href="annotate_cmf.html?id=${item.id}" class="row-item" style="display:grid;grid-template-columns:60px 80px 80px 80px 1fr 120px 100px;align-items:center;gap:0">
-        <span style="font-size:12px;font-weight:700;color:#0bb4aa">#${item.id}</span>
+    list.innerHTML = d.items.map(item => {
+      const irrBadge = item.looks_irrational
+        ? `<span style="background:#fff7ed;border:1px solid #fb923c;color:#c2410c;font-weight:700;padding:0px 5px;border-radius:9999px;font-size:10px;margin-right:4px">🔥</span>`
+        : '';
+      const limitLabel = item.limit_label
+        ? `<span style="font-size:11px;color:#92400e;font-family:monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%" title="${item.limit_label}">${item.limit_label.length>55?item.limit_label.slice(0,55)+'…':item.limit_label}</span>`
+        : `<span style="color:#94a3b8;font-size:11px">${item.primary_constant||'—'}</span>`;
+      const delta = item.best_delta ? parseFloat(item.best_delta).toFixed(1) : '—';
+      return `
+      <a href="annotate_cmf.html?id=${item.id}" class="row-item" style="display:grid;grid-template-columns:70px 60px 60px 60px 1fr 180px 80px 100px;align-items:center;gap:0">
+        <span style="font-size:12px;font-weight:700;color:#0bb4aa">${irrBadge}#${item.id}</span>
+        <span style="font-size:11px;color:#64748b;font-weight:600">${item.agent_type||'—'}</span>
         <span style="font-size:12px">${item.matrix_size ? item.matrix_size+'×'+item.matrix_size : '—'}</span>
-        <span style="font-size:12px">${item.n_matrices || item.dimension || '—'}</span>
-        <span style="font-size:12px">${item.degree || '—'}</span>
-        <span style="font-size:12px;color:#475569;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${item.primary_constant || '—'}</span>
-        <span style="font-size:11px;color:#94a3b8">${item.cert_level || '—'}</span>
+        <span style="font-size:11px;color:#0bb4aa;font-weight:700">${delta}</span>
+        <span style="font-size:12px;overflow:hidden;padding-right:8px">${limitLabel}</span>
+        <span style="font-size:11px;color:#475569;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${item.source_category||'—'}</span>
+        <span style="font-size:11px;color:#94a3b8">${item.cert_level||'—'}</span>
         <span>${statusBadge(item.annotation_status)}</span>
-      </a>
-    `).join('');
+      </a>`;
+    }).join('');
   } catch (e) {
     list.innerHTML = `<div style="padding:24px;color:#dc2626;font-size:13px">${e.message}</div>`;
   }
@@ -178,6 +204,11 @@ document.querySelectorAll('.filter-btn[data-status]').forEach(btn => {
 });
 document.getElementById('size-filter').addEventListener('change', e => {
   sizeFilter = e.target.value;
+  page = 0;
+  loadQueue();
+});
+document.getElementById('irr-toggle').addEventListener('change', e => {
+  irrationalOnly = e.target.checked;
   page = 0;
   loadQueue();
 });

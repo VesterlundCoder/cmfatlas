@@ -82,13 +82,15 @@
   </div>
 </nav>
 
-<!-- Top bar: CMF metadata -->
+  <!-- Top bar: CMF metadata -->
 <div style="background:#fff;border-bottom:1px solid #f1f5f9;padding:10px 24px">
   <div class="max-w-7xl mx-auto flex items-center gap-5 flex-wrap">
     <span id="cmf-id-badge" style="font-size:15px;font-weight:800;color:#0bb4aa">CMF #—</span>
     <span id="cmf-cert" class="badge badge-c">—</span>
     <span id="cmf-source" style="font-size:12px;color:#94a3b8">—</span>
     <span id="cmf-const" style="font-size:12px;color:#475569"></span>
+    <span id="irr-banner" style="display:none;background:#fff7ed;border:1px solid #fb923c;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;color:#c2410c">🔥 Irrational candidate</span>
+    <span id="limit-label-display" style="display:none;font-size:11px;font-family:monospace;color:#92400e;background:#fef3c7;padding:3px 8px;border-radius:6px;max-width:400px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
     <a id="cmf-atlas-link" href="#" target="_blank" style="font-size:12px;color:#0bb4aa;text-decoration:none;margin-left:auto">View in Atlas →</a>
   </div>
 </div>
@@ -491,6 +493,16 @@ function renderCMF(data) {
   document.getElementById('cmf-const').textContent = p.primary_constant ? `≈ ${p.primary_constant}` : '';
   document.getElementById('cmf-atlas-link').href = `entry.html?id=${data.id}`;
 
+  if (p.looks_irrational) {
+    document.getElementById('irr-banner').style.display = 'inline-flex';
+  }
+  if (p.limit_label) {
+    const ll = document.getElementById('limit-label-display');
+    ll.style.display = 'inline-block';
+    ll.textContent = p.limit_label;
+    ll.title = p.limit_label + (p.limit_value ? `  ≈ ${p.limit_value}` : '');
+  }
+
   // Auto-fill form metadata
   const ms = p.matrix_size ? parseInt(p.matrix_size) : null;
   const nm = p.n_matrices ? parseInt(p.n_matrices) : (data.dimension || null);
@@ -520,20 +532,29 @@ function renderCMF(data) {
   }
   document.getElementById('cmf-formula').innerHTML = formulaHtml;
 
-  // Build matrix display
+  // Build matrix display — prefer canonical.matrices, fall back to payload
   const matEl = document.getElementById('matrices-display');
-  const matrixKeys = Object.keys(p).filter(k => k.match(/^K\d+/) || k.match(/^matrix_\d+/));
+  const canon = data.canonical || {};
+  const canonMats = canon.matrices;
 
-  if (p.matrices && Array.isArray(p.matrices)) {
+  if (canonMats && Array.isArray(canonMats) && canonMats.length) {
+    matEl.innerHTML = canonMats.map((m, i) => {
+      const label = m.label || `K${i+1}`;
+      const rows = m.rows || m;
+      return renderMatrixLatex(label, rows);
+    }).join('');
+  } else if (p.matrices && Array.isArray(p.matrices)) {
     matEl.innerHTML = p.matrices.map((m, i) => renderMatrixLatex(`K${i+1}`, m)).join('');
-  } else if (matrixKeys.length) {
-    matEl.innerHTML = matrixKeys.map(k => renderMatrixLatex(k, p[k])).join('');
   } else {
-    matEl.innerHTML = `<div style="color:#94a3b8;font-size:12px;padding:12px">
-      Matrix entries not embedded in payload.
-      Use the <a href="entry.html?id=${data.id}" style="color:#0bb4aa" target="_blank">Atlas entry page</a>
-      to view rendered matrices, then return here to annotate.
-    </div>`;
+    const matrixKeys = Object.keys(p).filter(k => k.match(/^K\d+/) || k.match(/^matrix_\d+/));
+    if (matrixKeys.length) {
+      matEl.innerHTML = matrixKeys.map(k => renderMatrixLatex(k, p[k])).join('');
+    } else {
+      matEl.innerHTML = `<div style="color:#94a3b8;font-size:12px;padding:12px">
+        Matrix entries not embedded. See
+        <a href="entry.html?id=${data.id}" style="color:#0bb4aa" target="_blank">Atlas entry</a>.
+      </div>`;
+    }
   }
 
   document.getElementById('loading-msg').style.display = 'none';

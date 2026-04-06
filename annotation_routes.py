@@ -170,6 +170,7 @@ def get_queue(
     x_token: Optional[str] = Header(None, alias="x-token"),
     matrix_size: Optional[int] = Query(None),
     status_filter: Optional[str] = Query(None, description="unlabeled|draft|submitted|reviewed"),
+    irrational_only: bool = Query(True, description="If true, only return CMFs marked looks_irrational"),
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
     request: Request = None,
@@ -197,6 +198,8 @@ def get_queue(
             clauses = ["c.dimension >= 2"]
             params: dict[str, Any] = {}
 
+            if irrational_only:
+                clauses.append("json_extract(c.cmf_payload,'$.looks_irrational') = 1")
             if matrix_size is not None:
                 clauses.append("CAST(json_extract(c.cmf_payload,'$.matrix_size') AS INTEGER) = :ms")
                 params["ms"] = matrix_size
@@ -217,7 +220,12 @@ def get_queue(
                            json_extract(c.cmf_payload,'$.primary_constant') AS primary_constant,
                            json_extract(c.cmf_payload,'$.certification_level') AS cert_level,
                            json_extract(c.cmf_payload,'$.source_category') AS source_category,
-                           json_extract(c.cmf_payload,'$.degree') AS degree
+                           json_extract(c.cmf_payload,'$.degree') AS degree,
+                           json_extract(c.cmf_payload,'$.looks_irrational') AS looks_irrational,
+                           json_extract(c.cmf_payload,'$.limit_label') AS limit_label,
+                           json_extract(c.cmf_payload,'$.limit_value') AS limit_value,
+                           json_extract(c.cmf_payload,'$.agent_type') AS agent_type,
+                           json_extract(c.cmf_payload,'$.best_delta') AS best_delta
                     FROM cmf c {where}
                     ORDER BY c.id
                     LIMIT :lim OFFSET :off
@@ -246,6 +254,11 @@ def get_queue(
             "source_category": row[6],
             "degree": row[7],
             "annotation_status": ann_status,
+            "looks_irrational":  bool(row[8]) if row[8] is not None else False,
+            "limit_label":       row[9],
+            "limit_value":       row[10],
+            "agent_type":        row[11],
+            "best_delta":        row[12],
         })
         if len(items) >= limit:
             break
@@ -259,7 +272,7 @@ def get_queue(
 
 @router.get("/cmf/{cmf_id}")
 def get_cmf(cmf_id: int, token: Optional[str] = Cookie(None), x_token: Optional[str] = Header(None, alias="x-token")):
-    _require_user(token, x_token)
+    user = _require_user(token, x_token)
     try:
         from sqlalchemy import create_engine, text
         import os
@@ -271,7 +284,8 @@ def get_cmf(cmf_id: int, token: Optional[str] = Cookie(None), x_token: Optional[
         eng = create_engine(f"sqlite:///{db_path}", connect_args={"check_same_thread": False})
         with eng.connect() as con:
             row = con.execute(
-                text("SELECT c.id, c.cmf_payload, c.dimension, r.canonical_fingerprint "
+                text("SELECT c.id, c.cmf_payload, c.dimension, r.canonical_fingerprint, "
+                     "r.canonical_payload "
                      "FROM cmf c LEFT JOIN representation r ON r.id=c.representation_id "
                      "WHERE c.id=:cid"),
                 {"cid": cmf_id},
@@ -287,14 +301,20 @@ def get_cmf(cmf_id: int, token: Optional[str] = Cookie(None), x_token: Optional[
         payload = json.loads(row[1]) if row[1] else {}
     except Exception:
         pass
+    canonical = {}
+    try:
+        canonical = json.loads(row[4]) if row[4] else {}
+    except Exception:
+        pass
 
-    existing_annotation = db.get_annotation_for_cmf(cmf_id)
+    existing_annotation = db.get_annotation_for_cmf(cmf_id, user["id"])
 
     return {
         "id": row[0],
         "dimension": row[2],
         "fingerprint": row[3],
         "payload": payload,
+        "canonical": canonical,
         "annotation": existing_annotation,
     }
 
