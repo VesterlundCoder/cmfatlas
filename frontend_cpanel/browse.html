@@ -51,12 +51,14 @@
     <div class="flex items-center gap-7">
       <a href="index.html" class="nav-link">Home</a>
       <a href="browse.html" class="nav-link active">Browse</a>
+      <a href="generator.html" class="nav-link" style="color:#0bb4aa;font-weight:600">Generator</a>
       <a href="explorer.html" class="nav-link">Explorer</a>
       <a href="conservative-test.html" class="nav-link">Flatness Test</a>
       <a href="sources.html" class="nav-link">Sources</a>
       <a href="constants.html" class="nav-link">Constants</a>
       <a href="guide.html" class="nav-link">Guide</a>
       <a href="about.html" class="nav-link">About</a>
+      <a href="annotate_login.html" class="nav-link" style="color:#0bb4aa;font-weight:700;border:1px solid #b2ede9;border-radius:20px;padding:4px 14px;background:#f0fdfc">Annotate</a>
     </div>
   </div>
 </nav>
@@ -77,15 +79,6 @@
       <div style="flex:1;min-width:220px">
         <label style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:6px">Search</label>
         <input type="text" id="q" placeholder="f(x,y), fingerprint, constant, definition…"/>
-      </div>
-      <div>
-        <label style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:6px">Dimension</label>
-        <select id="dimension">
-          <option value="">All (2D+)</option>
-          <option value="2">2D only</option>
-          <option value="3">3D only</option>
-          <option value="5">5D only (pFq)</option>
-        </select>
       </div>
       <div>
         <label style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:6px">Degree</label>
@@ -136,6 +129,7 @@
         <label style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:6px">Matrix Size</label>
         <select id="matrix_size">
           <option value="">All</option>
+          <option value="2">2×2</option>
           <option value="3">3×3</option>
           <option value="4">4×4</option>
           <option value="5">5×5</option>
@@ -147,6 +141,29 @@
           <option value="15">15×15</option>
           <option value="20">20×20</option>
           <option value="28">28×28</option>
+        </select>
+      </div>
+      <div>
+        <label style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:6px">Matrix Count</label>
+        <select id="matrix_count">
+          <option value="">All</option>
+          <option value="2">2 matrices</option>
+          <option value="3">3 matrices</option>
+          <option value="4">4 matrices</option>
+          <option value="5">5 matrices</option>
+          <option value="6">6 matrices</option>
+          <option value="8">8 matrices</option>
+          <option value="10">10 matrices</option>
+        </select>
+      </div>
+      <div>
+        <label style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:6px">Param Dimension</label>
+        <select id="parameter_dimension">
+          <option value="">All</option>
+          <option value="2">p = 2</option>
+          <option value="3">p = 3</option>
+          <option value="4">p = 4</option>
+          <option value="5">p = 5</option>
         </select>
       </div>
       <div>
@@ -180,7 +197,7 @@
           <tr style="border-bottom:2px solid #e2e8f0;background:#f9fafb">
             <th style="text-align:left;padding:12px 14px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#888">ID</th>
             <th style="text-align:left;padding:12px 14px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#888">Category</th>
-            <th style="text-align:left;padding:12px 14px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#888">Dim</th>
+            <th style="text-align:left;padding:12px 14px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#888;min-width:120px" title="Matrix Size × Matrix Count · Param Dim">Signature</th>
             <th style="text-align:left;padding:12px 14px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#888">Deg</th>
             <th style="text-align:left;padding:12px 14px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#888;min-width:200px">f(x,y) / Type</th>
             <th style="text-align:left;padding:12px 14px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#888">Constant</th>
@@ -238,33 +255,43 @@ function certBadge(c) {
   return map[c] || `<span class="badge badge-grey">${c.split('_')[0]}</span>`;
 }
 
-function dimBadge(d) {
-  const colors = {2:'badge-teal',3:'badge-violet',4:'badge-amber'};
-  const cls = colors[d] || 'badge-grey';
-  return `<span class="badge ${cls}">${d}D</span>`;
+function signatureBadge(item) {
+  const n  = item.matrix_size  || item.dimension || '?';
+  const m  = item.matrix_count || '?';
+  const p  = item.parameter_dimension || '?';
+  const pe = item.effective_dimension;
+  const sizeColor = {2:'#0bb4aa',3:'#7c3aed',4:'#b45309',5:'#059669',6:'#2563eb',8:'#dc2626',10:'#9333ea'};
+  const c = sizeColor[n] || '#64748b';
+  const nLabel = `<span style="font-weight:700;color:${c}">${n}×${n}</span>`;
+  const mLabel = `<span style="color:#64748b" title="Matrix count">${m}m</span>`;
+  const pLabel = `<span style="color:#b45309" title="Parameter dimension">p=${p}</span>`;
+  const peLabel = pe ? `<span style="color:#6b7280;font-size:10px" title="Effective dimension">(${pe}eff)</span>` : '';
+  return `<div style="display:flex;flex-wrap:wrap;gap:3px;align-items:center;font-size:11px;font-family:monospace">${nLabel}<span style="color:#ccc">·</span>${mLabel}<span style="color:#ccc">·</span>${pLabel}${peLabel ? '<span style="color:#ccc">·</span>'+peLabel : ''}</div>`;
 }
 
 function buildUrl(offset) {
   const params = new URLSearchParams();
-  const q = document.getElementById('q').value.trim();
-  const dim = document.getElementById('dimension').value;
+  const q   = document.getElementById('q').value.trim();
   const deg = document.getElementById('degree').value;
-  const cert = document.getElementById('certification').value;
+  const cert= document.getElementById('certification').value;
   const src = document.getElementById('source_category').value;
-  const hf = document.getElementById('has_formula').value;
+  const hf  = document.getElementById('has_formula').value;
   const cat = document.getElementById('category').value;
-  const ms = document.getElementById('matrix_size').value;
+  const ms  = document.getElementById('matrix_size').value;
+  const mc  = document.getElementById('matrix_count').value;
+  const pd  = document.getElementById('parameter_dimension').value;
   const lim = document.getElementById('limit').value;
   params.set('offset', offset);
   params.set('limit', lim);
-  if (q) params.set('q', q);
-  if (dim) params.set('dimension', dim);
+  if (q)   params.set('q', q);
   if (deg) params.set('degree', deg);
-  if (cert) params.set('certification', cert);
+  if (cert)params.set('certification', cert);
   if (src) params.set('source_category', src);
-  if (hf) params.set('has_formula', hf);
+  if (hf)  params.set('has_formula', hf);
   if (cat) params.set('category', cat);
-  if (ms) params.set('matrix_size', ms);
+  if (ms)  params.set('matrix_size', ms);
+  if (mc)  params.set('matrix_count', mc);
+  if (pd)  params.set('parameter_dimension', pd);
   return `${API}/cmfs/browse?${params}`;
 }
 
@@ -303,7 +330,7 @@ async function search(offset) {
         <tr class="entry-row">
           <td style="padding:11px 14px;font-family:monospace;font-size:12px;color:#0bb4aa;font-weight:700">#${item.id}</td>
           <td style="padding:11px 14px">${categoryBadge(item.category)}</td>
-          <td style="padding:11px 14px">${dimBadge(item.dimension)}</td>
+          <td style="padding:11px 14px">${signatureBadge(item)}</td>
           <td style="padding:11px 14px;font-size:12px;color:#888">${item.degree||'—'}</td>
           <td style="padding:11px 14px;max-width:220px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${fp}</td>
           <td style="padding:11px 14px;font-size:12px">${pc}</td>
@@ -337,21 +364,21 @@ async function search(offset) {
 }
 
 function clearFilters() {
-  ['q','dimension','degree','certification','source_category','has_formula','category','matrix_size'].forEach(id => {
-    const el = document.getElementById(id);
-    el.value = '';
+  ['q','degree','certification','source_category','has_formula','category',
+   'matrix_size','matrix_count','parameter_dimension'].forEach(id => {
+    document.getElementById(id).value = '';
   });
   document.getElementById('limit').value = '50';
   search(0);
 }
 
 const urlParams = new URLSearchParams(window.location.search);
-if (urlParams.get('dimension')) document.getElementById('dimension').value = urlParams.get('dimension');
-if (urlParams.get('has_formula')) document.getElementById('has_formula').value = urlParams.get('has_formula');
-if (urlParams.get('certification')) document.getElementById('certification').value = urlParams.get('certification');
-if (urlParams.get('source_category')) document.getElementById('source_category').value = urlParams.get('source_category');
-if (urlParams.get('matrix_size')) document.getElementById('matrix_size').value = urlParams.get('matrix_size');
-if (urlParams.get('category')) document.getElementById('category').value = urlParams.get('category');
+['has_formula','certification','source_category','matrix_size',
+ 'matrix_count','parameter_dimension','category','degree','q'].forEach(k => {
+  const v = urlParams.get(k);
+  const el = document.getElementById(k);
+  if (v && el) el.value = v;
+});
 
 document.getElementById('q').addEventListener('keyup', e => { if (e.key === 'Enter') search(0); });
 search(0);

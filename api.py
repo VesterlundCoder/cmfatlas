@@ -397,9 +397,13 @@ app.add_middleware(
         "https://davidvesterlund.com",
         "https://www.davidvesterlund.com",
     ],
-    allow_methods=["GET"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
+    allow_credentials=True,
 )
+
+from annotation_routes import router as _annotation_router
+app.include_router(_annotation_router)
 
 
 # ---------------------------------------------------------------------------
@@ -992,6 +996,8 @@ def browse_cmfs(
     primary_constant: Optional[str] = None,
     category: Optional[str] = None,
     matrix_size: Optional[int] = None,
+    matrix_count: Optional[int] = None,
+    parameter_dimension: Optional[int] = None,
 ):
     """Browse CMFs with filtering and search."""
     db: Session = next(get_db())
@@ -1036,6 +1042,17 @@ def browse_cmfs(
         if matrix_size is not None:
             where_clauses.append("CAST(json_extract(c.cmf_payload,'$.matrix_size') AS INTEGER) = :matrix_size")
             params["matrix_size"] = matrix_size
+        if matrix_count is not None:
+            where_clauses.append(
+                "CAST(COALESCE(json_extract(c.cmf_payload,'$.n_matrices'), c.dimension) AS INTEGER) = :matrix_count"
+            )
+            params["matrix_count"] = matrix_count
+        if parameter_dimension is not None:
+            where_clauses.append(
+                "CAST(COALESCE(json_extract(c.cmf_payload,'$.nvars'), "
+                "json_extract(c.cmf_payload,'$.parameter_dimension'), c.dimension) AS INTEGER) = :parameter_dimension"
+            )
+            params["parameter_dimension"] = parameter_dimension
         if q:
             where_clauses.append(
                 "(c.cmf_payload LIKE :q OR r.canonical_fingerprint LIKE :q OR s.definition LIKE :q)"
@@ -1071,7 +1088,13 @@ def browse_cmfs(
                    s.generator_type, s.name AS series_name,
                    c.category,
                    json_extract(r.canonical_payload,'$.matrices')      AS has_stored_matrices,
-                   json_extract(c.cmf_payload,'$.matrix_size')          AS matrix_size
+                   json_extract(c.cmf_payload,'$.matrix_size')          AS matrix_size,
+                   COALESCE(json_extract(c.cmf_payload,'$.n_matrices'), c.dimension)  AS matrix_count,
+                   COALESCE(json_extract(c.cmf_payload,'$.nvars'),
+                            json_extract(c.cmf_payload,'$.parameter_dimension'),
+                            c.dimension)                                  AS parameter_dimension,
+                   COALESCE(json_extract(c.cmf_payload,'$.effective_vars'),
+                            json_extract(c.cmf_payload,'$.effective_dimension'))       AS effective_dimension
             FROM cmf c
             JOIN representation r ON r.id = c.representation_id
             JOIN series s ON s.id = r.series_id
@@ -1123,6 +1146,9 @@ def browse_cmfs(
                 "canonical_fingerprint": r[11],
                 "primary_group":       r[12],
                 "matrix_size":         int(r[17]) if r[17] is not None else None,
+                "matrix_count":        int(r[18]) if r[18] is not None else None,
+                "parameter_dimension": int(r[19]) if r[19] is not None else None,
+                "effective_dimension": int(r[20]) if r[20] is not None else None,
                 "generator_type":      gen_type,
                 "series_name":         r[14],
                 "has_formula":         bool(f_poly) or bool(r[16]),
@@ -1131,10 +1157,111 @@ def browse_cmfs(
                 "identification_status": identification_status,
                 "construction_type":   construction_type,
                 "entry_uri":           f"https://davidvesterlund.com/cmf-atlas/entry.html?id={r[0]}",
-                "release_version":     "2.3",
+                "release_version":     "2.5",
             })
 
         return {"total": total, "offset": offset, "limit": limit, "items": items}
+    finally:
+        db.close()
+
+
+@app.get("/generator", tags=["cmfs"])
+def generator(
+    matrix_size: int = Query(..., ge=2, le=50, description="Size n of each n×n matrix"),
+    matrix_count: Optional[int] = Query(None, ge=1, le=50, description="Number of stepping matrices"),
+    parameter_dimension: Optional[int] = Query(None, ge=1, le=20, description="Number of independent scalar variables"),
+    random: bool = Query(False, description="Return a random match instead of the first"),
+):
+    """
+    CMF Generator endpoint.
+
+    Given a structural signature (matrix_size, matrix_count, parameter_dimension),
+    return a representative CMF from the database that matches.
+
+    Falls back to progressively looser matches if an exact match is not found:
+      1. Exact match on all three axes
+      2. Match on matrix_size + parameter_dimension (any matrix_count)
+      3. Match on matrix_size only
+      4. Any CMF (should not happen)
+    """
+    db: Session = next(get_db())
+    try:
+        def _build_match_query(ms=None, mc=None, pd=None, rand=False) -> str:
+            clauses = [
+                "(json_extract(c.cmf_payload,'$.hidden') IS NULL OR json_extract(c.cmf_payload,'$.hidden') = 0)"
+            ]
+            if ms is not None:
+                clauses.append(f"CAST(json_extract(c.cmf_payload,'$.matrix_size') AS INTEGER) = {ms}")
+            if mc is not None:
+                clauses.append(
+                    f"CAST(COALESCE(json_extract(c.cmf_payload,'$.n_matrices'), c.dimension) AS INTEGER) = {mc}"
+                )
+            if pd is not None:
+                clauses.append(
+                    f"CAST(COALESCE(json_extract(c.cmf_payload,'$.nvars'),"
+                    f"json_extract(c.cmf_payload,'$.parameter_dimension'),c.dimension) AS INTEGER) = {pd}"
+                )
+            w = "WHERE " + " AND ".join(clauses)
+            order = "RANDOM()" if rand else "c.id"
+            return f"""
+                SELECT c.id, c.dimension,
+                       json_extract(c.cmf_payload,'$.matrix_size')  AS matrix_size,
+                       COALESCE(json_extract(c.cmf_payload,'$.n_matrices'), c.dimension) AS matrix_count,
+                       COALESCE(json_extract(c.cmf_payload,'$.nvars'),
+                                json_extract(c.cmf_payload,'$.parameter_dimension'),
+                                c.dimension)                         AS parameter_dimension,
+                       COALESCE(json_extract(c.cmf_payload,'$.effective_vars'),
+                                json_extract(c.cmf_payload,'$.effective_dimension'))  AS effective_dimension,
+                       json_extract(c.cmf_payload,'$.certification_level') AS cert,
+                       json_extract(c.cmf_payload,'$.source_category') AS source_cat,
+                       json_extract(c.cmf_payload,'$.primary_constant') AS primary_const,
+                       json_extract(c.cmf_payload,'$.flatness_verified') AS flat_verified,
+                       COUNT(*) OVER() AS total_matches
+                FROM cmf c
+                JOIN representation r ON r.id = c.representation_id
+                JOIN series s ON s.id = r.series_id
+                {w}
+                ORDER BY {order}
+                LIMIT 1
+            """
+
+        # Try progressively looser matches
+        row = None
+        match_level = "exact"
+        for ms_v, mc_v, pd_v, lvl in [
+            (matrix_size, matrix_count, parameter_dimension, "exact"),
+            (matrix_size, None,         parameter_dimension, "matrix_size+param_dim"),
+            (matrix_size, matrix_count, None,                "matrix_size+matrix_count"),
+            (matrix_size, None,         None,                "matrix_size_only"),
+            (None,        None,         None,                "any"),
+        ]:
+            row = db.execute(text(_build_match_query(ms_v, mc_v, pd_v, random))).fetchone()
+            if row:
+                match_level = lvl
+                break
+
+        if not row:
+            raise HTTPException(404, "No CMF found for the requested signature")
+
+        return {
+            "id":                   row[0],
+            "match_level":          match_level,
+            "matched_matrix_size":  int(row[2]) if row[2] else None,
+            "matched_matrix_count": int(row[3]) if row[3] else None,
+            "matched_parameter_dimension": int(row[4]) if row[4] else None,
+            "effective_dimension":  int(row[5]) if row[5] else None,
+            "total_matches":        int(row[10]) if row[10] else 0,
+            "certification_level":  row[6],
+            "source_category":      row[7],
+            "primary_constant":     row[8],
+            "flatness_verified":    bool(row[9]) if row[9] is not None else False,
+            "entry_url":            f"entry.html?id={row[0]}",
+            "requested": {
+                "matrix_size":        matrix_size,
+                "matrix_count":       matrix_count,
+                "parameter_dimension": parameter_dimension,
+            },
+        }
     finally:
         db.close()
 
@@ -1353,6 +1480,8 @@ def get_cmf_full(cmf_id: int):
             "is_3d":           payload.get("dimension", row[1]) == 3 or _poly_has_z(payload.get("f_poly", "")),
             "symbolic_verification": payload.get("symbolic_verification"),
             "category":        row[15] or "reference",
+            "fingerprint":     payload.get("fingerprint") or canon.get("fingerprint"),
+            "matrix_count":    payload.get("n_matrices") or (len(canon.get("matrices", {})) or None),
             "walk_available":  bool(payload.get("f_poly")) or bool(canon.get("matrices")),
             "matrices": _compute_matrices(
                 payload.get("f_poly", ""),
