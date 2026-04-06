@@ -77,19 +77,26 @@ def gauge_to_atlas(rec: dict, source_file: str) -> dict:
     pi_ok   = rec.get("path_independence_verified", None)
 
     # Flat by numerical construction for Agents A/B
-    if pi_ok is None and agent in ("A", "B"):
-        pi_ok = True   # evaluated by reward_engine at accept time
+    if pi_ok is None and agent in ("A", "B", "D", "E", "F", "G", "H", "I", "J"):
+        pi_ok = True   # evaluated by reward_engine / flatness check at accept time
+
+    nvars       = rec.get("nvars", 3)
+    matrix_size = rec.get("matrix_size", dim)
 
     entry = {
         "id":                    atlas_id,
-        "name":                  f"Gauge-{agent} {dim}×{dim} [{fp[:8]}]",
+        "name":                  f"Gauge-{agent} {matrix_size}×{matrix_size} [{fp[:8]}]",
         "description":           (
             f"CMF discovered by Gauge-Bootstrap Agent {agent}. "
-            f"Dimension d={dim}, coupling_bucket=B{bucket}, "
+            f"n_vars={nvars}, matrix_size={matrix_size}×{matrix_size}, "
+            f"coupling_bucket=B{bucket}, "
             f"bidir_ratio={bidir:.3f}, score={score:.4f}, delta={delta:.3f}."
         ),
         "dim":                   dim,
-        "n_matrices":            rec.get("n_matrices", dim),
+        "nvars":                 nvars,
+        "n_matrices":            rec.get("n_matrices", nvars),
+        "matrix_size":           matrix_size,
+        "effective_vars":        rec.get("effective_vars", nvars),
         "type":                  "gauge_ldu",
         "agent":                 agent,
         "fingerprint":           fp,
@@ -194,7 +201,7 @@ def save_atlas(atlas: dict, dry_run: bool = False):
 def collect_all_records(b4_only: bool = False) -> list[tuple[dict, str]]:
     """Returns list of (record, source_filename) pairs."""
     records = []
-    for store_path in sorted(HERE.glob("store_[ABC]_*.jsonl")):
+    for store_path in sorted(HERE.glob("store_[A-Z]_*.jsonl")):
         src = store_path.name
         lines = [l for l in store_path.read_text().splitlines() if l.strip()]
         for line in lines:
