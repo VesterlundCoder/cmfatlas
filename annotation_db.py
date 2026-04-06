@@ -254,11 +254,20 @@ def list_protocols() -> list[dict]:
 
 def upsert_annotation(data: dict) -> str:
     """Insert or replace a cmf_annotation record. Returns annotation id."""
-    ann_id = data.get("id") or ("ann_" + secrets.token_hex(10))
     now = datetime.now(timezone.utc).isoformat()
-
     proto = get_active_protocol()
     proto_id = proto["id"] if proto else "proto_v01"
+
+    # Resolve annotation id: explicit > existing by (cmf_id, annotator_id) > new
+    ann_id = data.get("id")
+    if not ann_id:
+        with _conn() as con:
+            existing_row = con.execute(
+                "SELECT id FROM cmf_annotations WHERE cmf_id=? AND annotator_id=? "
+                "ORDER BY updated_at DESC LIMIT 1",
+                (data["cmf_id"], data["annotator_id"]),
+            ).fetchone()
+        ann_id = existing_row[0] if existing_row else ("ann_" + secrets.token_hex(10))
 
     fields = [
         "id", "cmf_id", "annotator_id", "protocol_version_id",

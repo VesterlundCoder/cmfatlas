@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>About — CMF Atlas</title>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Dataset",
+    "name": "CMF Atlas",
+    "description": "An open mathematical research database of Conservative Matrix Fields — 2D and higher-dimensional lattice recurrences with path-independent matrix products.",
+    "url": "https://davidvesterlund.com/cmf-atlas/",
+    "version": "2.3",
+    "creator": {"@type": "Person", "name": "David Vesterlund"},
+    "license": "https://creativecommons.org/licenses/by/4.0/",
+    "keywords": ["Conservative Matrix Field", "CMF", "continued fractions", "hypergeometric series", "zeta function", "Ramanujan"],
+    "distribution": [
+      {"@type": "DataDownload", "encodingFormat": "application/json",
+       "contentUrl": "https://cmfatlas-production.up.railway.app/export/cmfs.json"}
+    ]
+  }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{fontFamily:{sans:['Inter','sans-serif']}}}}</script>
+  <script>window.MathJax={tex:{inlineMath:[['\\(','\\)']],displayMath:[['\\[','\\]']]},options:{skipHtmlTags:['script','noscript','style','textarea']}};</script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+  <style>
+    *{font-family:'Inter',sans-serif}
+    body{background:#fff;color:#101010}
+    .card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+    .nav-link{color:#555;font-size:14px;font-weight:500;transition:color .15s;text-decoration:none}
+    .nav-link:hover,.nav-link.active{color:#0bb4aa}
+    .bibtex{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-family:monospace;font-size:12px;line-height:1.7;white-space:pre;overflow-x:auto;color:#334155}
+    .copy-btn{background:#fff;border:1px solid #e2e8f0;color:#555;padding:4px 12px;border-radius:6px;font-size:11px;cursor:pointer;font-family:inherit;transition:all .15s}
+    .copy-btn:hover{border-color:#0bb4aa;color:#0bb4aa}
+    .api-block{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px;font-family:monospace;font-size:12px}
+    .code-pre{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px;font-family:monospace;font-size:12px;line-height:1.6;color:#334155;overflow-x:auto}
+    h2{font-size:1.15rem;font-weight:700;color:#101010;margin-bottom:0.75rem}
+    h3{font-size:0.95rem;font-weight:600;color:#333;margin-bottom:0.5rem}
+    p{color:#555;line-height:1.75;margin-bottom:0.75rem}
+    a{color:#0bb4aa}a:hover{text-decoration:underline}
+    code{background:#f0fdfc;color:#0bb4aa;padding:1px 6px;border-radius:4px;font-size:0.85em;border:1px solid #b2ede9}
+    .field-row{display:grid;grid-template-columns:180px 1fr;gap:8px;padding:10px 0;border-bottom:1px solid #f1f5f9;font-size:13px}
+    .field-row:last-child{border-bottom:none}
+    .field-row span:first-child{color:#888}
+  </style>
+</head>
+<body class="min-h-screen">
+
+<nav style="background:#fff;border-bottom:1px solid #e2e8f0;position:sticky;top:0;z-index:50">
+  <div class="max-w-7xl mx-auto px-6 flex items-center justify-between" style="height:60px">
+    <a href="index.html" style="font-weight:800;font-size:18px;color:#101010;text-decoration:none;letter-spacing:-0.5px">
+      CMF <span style="color:#0bb4aa">Atlas</span>
+    </a>
+    <div class="flex items-center gap-7">
+      <a href="index.html" class="nav-link">Home</a>
+      <a href="browse.html" class="nav-link">Browse</a>
+      <a href="explorer.html" class="nav-link">Explorer</a>
+      <a href="conservative-test.html" class="nav-link">Flatness Test</a>
+      <a href="guide.html" class="nav-link">Guide</a>
+      <a href="about.html" class="nav-link active">About</a>
+    </div>
+  </div>
+</nav>
+
+<!-- Page header -->
+<div style="background:linear-gradient(135deg,#f0fdfc 0%,#fff 60%);border-bottom:1px solid #e2e8f0;padding:36px 0 28px">
+  <div class="max-w-4xl mx-auto px-6">
+    <h1 style="font-size:1.8rem;font-weight:800;color:#101010;margin-bottom:10px;letter-spacing:-0.5px">About CMF Atlas</h1>
+    <p style="font-size:1rem;color:#555;line-height:1.7;max-width:600px">
+      An open mathematical research database of <strong style="color:#101010">Conservative Matrix Fields</strong> —
+      2D and higher-dimensional lattice recurrences with path-independent matrix products, encoding continued fractions,
+      hypergeometric series, and named constants.
+    </p>
+  </div>
+</div>
+
+<div class="max-w-4xl mx-auto px-6 py-10 space-y-8">
+
+  <!-- Disclaimer & Project Status -->
+  <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:12px;padding:28px">
+    <div class="flex items-center gap-3" style="margin-bottom:16px">
+      <span style="background:#fef3c7;color:#b45309;border:1px solid #fcd34d;padding:3px 12px;border-radius:9999px;font-size:11px;font-weight:700;letter-spacing:.05em">BETA</span>
+      <h2 style="margin-bottom:0;color:#92400e">Disclaimer &amp; Project Status</h2>
+    </div>
+    <h3 style="color:#92400e">Beta Version &amp; Research Goals</h3>
+    <p style="color:#78350f">The CMF Atlas is currently in its beta stage. This platform is designed to facilitate mathematical research by making Conservative Matrix Fields (CMF) more accessible to the global community.</p>
+    <h3 style="color:#92400e;margin-top:16px">Ongoing Development &amp; Verification</h3>
+    <p style="color:#78350f">Please be aware that this is a live, ongoing project. Our current efforts are focused on two primary areas:</p>
+    <ul style="color:#78350f;margin:8px 0 12px 20px;line-height:1.9;list-style:disc">
+      <li><strong>Expansion:</strong> We are actively searching for new CMFs, specifically focusing on sets of three or more path-independent 3×3 matrices and beyond.</li>
+      <li><strong>Verification:</strong> We are in the process of systematically verifying all CMFs currently hosted in the database to ensure mathematical rigor.</li>
+    </ul>
+    <h3 style="color:#92400e;margin-top:16px">Feedback &amp; Corrections</h3>
+    <p style="color:#78350f">As this is a work in progress, errors in data may occur. We highly value community involvement — if you identify any discrepancies or bugs, please let us know via the <a href="https://davidvesterlund.com/contact" target="_blank" style="color:#b45309;font-weight:600">Contact Page</a>.</p>
+    <h3 style="color:#92400e;margin-top:16px">Independent Project &amp; Credits</h3>
+    <p style="color:#78350f">This is an independent project dedicated to highlighting the research conducted by the Ramanujan Machine Team. The structures presented here are built upon their discovery of the Conservative Matrix Field.</p>
+    <p style="color:#78350f;margin-bottom:0">For further technical details, please refer to their official resources:</p>
+    <ul style="color:#78350f;margin:8px 0 0 20px;line-height:1.9;list-style:disc">
+      <li><a href="https://www.ramanujanmachine.com/discovered-conservative-matrix-fields/" target="_blank" style="color:#b45309;font-weight:600">The Ramanujan Machine: Discovered Conservative Matrix Fields</a></li>
+      <li><a href="https://arxiv.org/abs/2303.09318" target="_blank" style="color:#b45309;font-weight:600">Research Paper: &ldquo;The Conservative Matrix Field&rdquo; (arXiv:2303.09318)</a></li>
+    </ul>
+  </div>
+
+  <!-- What is a CMF -->
+  <div class="card p-7">
+    <h2>What is a Conservative Matrix Field?</h2>
+    <p>
+      A Conservative Matrix Field is a pair of matrix-valued functions \(K_1(k,m)\) and \(K_2(k,m)\)
+      on a 2D integer lattice satisfying the <em>flatness condition</em>:
+    </p>
+    <div style="text-align:center;margin:20px 0;font-size:1rem;color:#333">
+      \[K_1(k,m)\cdot K_2(k+1,\,m) = K_2(k,m)\cdot K_1(k,\,m+1)\]
+    </div>
+    <p>
+      This means the matrix product along any lattice path from \((0,0)\) to \((K,M)\) is path-independent.
+      The limiting value — as \(K,M\to\infty\) — converges to constants such as
+      \(\zeta(3)\), \(\pi\), \(\ln 2\), and \(\zeta(5)\).
+    </p>
+    <p>
+      For the telescope family with polynomial form \(f(x,y)\):
+    </p>
+    <div style="text-align:center;margin:16px 0;font-size:0.9rem;color:#333">
+      \[K_1(k,m) = \begin{pmatrix} 0 & 1 \\ b(k{+}1) & a(k,m) \end{pmatrix}, \quad
+        K_2(k,m) = \begin{pmatrix} \bar{g}(k,m) & 1 \\ b(k) & g(k,m) \end{pmatrix}\]
+    </div>
+    <p style="font-size:12px;color:#888">
+      where \(g(k,m)=f(k,m)\), \(\bar{g}(k,m)=\bar{f}(k,m)\), \(b(k)=g(k,0)\cdot\bar{g}(k,0)\),
+      \(a(k,m)=g(k,m)-\bar{g}(k{+}1,m)\).
+    </p>
+  </div>
+
+  <!-- Database contents -->
+  <div class="card p-7">
+    <h2>Database Contents</h2>
+    <p>CMF Atlas v2.3 contains entries from multiple discovery pipelines, including pFq CMFs from
+    <a href="https://github.com/RamanujanMachine/RamanujanTools" target="_blank">RamanujanTools</a>.</p>
+    <div style="margin-top:16px">
+      <div class="field-row"><span>Version</span><span style="color:#101010;font-weight:500">v2.3</span></div>
+      <div class="field-row"><span>Total entries (2D+)</span><span id="total-count" style="color:#0bb4aa;font-weight:600">Loading…</span></div>
+      <div class="field-row"><span>Dimensions</span><span style="color:#101010">2D (~280 entries), 3D (2 entries), 5D+ (pFq, 1 entry)</span></div>
+      <div class="field-row"><span>Sources</span><span style="color:#101010">RamanujanTools (A+), Gauge Transformed, CMF Hunter</span></div>
+      <div class="field-row"><span>Certification levels</span><span style="color:#101010">A_plus (symbolically certified), A_certified (verified), B_verified_numeric (numeric), C_scouting (scouting)</span></div>
+      <div class="field-row"><span>Bulk download</span><span><a href="https://cmfatlas-production.up.railway.app/export/cmfs.json" target="_blank">cmfs.json</a> &nbsp;<span style="font-size:11px;color:#aaa">(JSON, CC BY 4.0)</span></span></div>
+      <div class="field-row"><span>DOI</span><span style="color:#aaa;font-size:12px">Pending registration — cite via BibTeX below in the interim</span></div>
+      <div class="field-row"><span>License</span><span><a href="https://creativecommons.org/licenses/by/4.0/" target="_blank">CC BY 4.0</a></span></div>
+    </div>
+  </div>
+
+  <!-- Schema -->
+  <div class="card p-7">
+    <h2>Data Schema <span style="font-size:12px;font-weight:500;color:#888">v2.3</span></h2>
+    <p style="font-size:13px;color:#888;margin-bottom:16px">All public CMF entries expose the following canonical fields via <code>GET /cmfs/browse</code> and <code>GET /cmfs/{id}/full</code>:</p>
+
+    <h3 style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#0bb4aa;margin-bottom:8px">Core fields</h3>
+    <div style="font-size:13px;margin-bottom:16px">
+      <div class="field-row"><code>id</code><span>Unique integer identifier (stable across releases)</span></div>
+      <div class="field-row"><code>dimension</code><span>Lattice dimension (integer ≥ 2)</span></div>
+      <div class="field-row"><code>f_poly</code><span>SymPy polynomial f(x,y) — present for telescope-polynomial CMFs</span></div>
+      <div class="field-row"><code>fbar_poly</code><span>Conjugate polynomial f̄(x,y)</span></div>
+      <div class="field-row"><code>degree</code><span>Total polynomial degree of f</span></div>
+      <div class="field-row"><code>primary_constant</code><span>Canonical label of the identified limit (e.g. “ζ(3)”, “π”)</span></div>
+      <div class="field-row"><code>identified_constant</code><span>PSLQ-identified exact form, if found</span></div>
+      <div class="field-row"><code>flatness_verified</code><span>Boolean — true if symbolic flatness proof exists</span></div>
+      <div class="field-row"><code>canonical_fingerprint</code><span>Hash-based unique key for the representation</span></div>
+      <div class="field-row"><code>entry_uri</code><span>Canonical URL for the entry page</span></div>
+      <div class="field-row"><code>release_version</code><span>Atlas version in which this entry is included</span></div>
+    </div>
+
+    <h3 style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#0bb4aa;margin-bottom:8px">Enum fields (canonical vocabulary)</h3>
+    <div style="font-size:13px;margin-bottom:16px">
+      <div class="field-row">
+        <code>certification_level</code>
+        <span style="font-size:12px">
+          <span class="badge" style="background:#fef3c7;color:#92400e;border:1px solid #fcd34d">A_plus</span>
+          <span class="badge badge-green" style="margin-left:4px">A_certified</span>
+          <span class="badge badge-teal" style="margin-left:4px">B_verified_numeric</span>
+          <span class="badge badge-amber" style="margin-left:4px">C_scouting</span>
+        </span>
+      </div>
+      <div class="field-row"><code>proof_status</code><span style="font-size:12px"><code>symbolically_certified</code> | <code>verified</code> | <code>numeric_only</code> | <code>unverified</code></span></div>
+      <div class="field-row"><code>identification_status</code><span style="font-size:12px"><code>pslq_identified</code> | <code>matched</code> | <code>unidentified</code></span></div>
+      <div class="field-row"><code>construction_type</code><span style="font-size:12px"><code>telescope_polynomial</code> | <code>hypergeometric_pfq</code> | <code>matrix_explicit</code></span></div>
+      <div class="field-row"><code>source_family</code><span style="font-size:12px"><code>RamanujanTools</code> | <code>Gauge Transformed</code> | <code>CMF Hunter</code> | …</span></div>
+    </div>
+
+    <h3 style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#0bb4aa;margin-bottom:8px">Arithmetic status (constants registry)</h3>
+    <div style="font-size:13px;margin-bottom:8px">
+      <div class="field-row"><code>irrationality_status</code><span style="font-size:12px"><code>proven_transcendental</code> | <code>proven_irrational</code> | <code>open_question</code> | <code>algebraic</code></span></div>
+      <div class="field-row"><code>transcendence_status</code><span style="font-size:12px"><code>proven_transcendental</code> | <code>open_question</code> | <code>algebraic</code></span></div>
+    </div>
+    <p style="font-size:12px;color:#aaa">Full schema: <a href="https://cmfatlas-production.up.railway.app/docs" target="_blank" style="color:#0bb4aa">/docs</a> · Machine-readable release manifest: <a href="https://cmfatlas-production.up.railway.app/release" target="_blank" style="color:#0bb4aa">/release</a></p>
+  </div>
+
+  <!-- Citation -->
+  <div class="card p-7" id="citation">
+    <h2>How to Cite</h2>
+    <p>If you use CMF Atlas in research, please cite it. Data licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank">CC BY 4.0</a>. A DOI is pending registration — use the BibTeX below in the interim.</p>
+
+    <h3 style="margin-top:20px">Project-level citation</h3>
+    <div style="position:relative">
+      <pre class="bibtex" id="bibtex-project">@misc{vesterlund2026cmfatlas,
+  author    = {Vesterlund, David},
+  title     = {{CMF Atlas}: A Database of Conservative Matrix Fields},
+  year      = {2026},
+  url       = {https://davidvesterlund.com/cmf-atlas/},
+  note      = {Version 2.3, open research dataset. DOI pending.},
+  license   = {CC BY 4.0}
+}</pre>
+      <button class="copy-btn" style="position:absolute;top:10px;right:10px" onclick="copyEl('bibtex-project', this)">Copy</button>
+    </div>
+
+    <h3 style="margin-top:20px">Individual entry citation</h3>
+    <div style="position:relative">
+      <pre class="bibtex" id="bibtex-entry">@misc{vesterlund2026cmf1,
+  author    = {Vesterlund, David},
+  title     = {{CMF Atlas} Entry \#1: $f(x,y) = (x+y)^3$},
+  year      = {2026},
+  url       = {https://davidvesterlund.com/cmf-atlas/entry.html?id=1},
+  note      = {CMF Atlas v2.3, limit = $\zeta(3)$},
+  license   = {CC BY 4.0}
+}</pre>
+      <button class="copy-btn" style="position:absolute;top:10px;right:10px" onclick="copyEl('bibtex-entry', this)">Copy</button>
+    </div>
+    <p style="font-size:12px;color:#888;margin-top:10px">Each entry page provides a pre-filled BibTeX block with the correct formula and metadata.</p>
+  </div>
+
+  <!-- API -->
+  <div class="card p-7">
+    <h2>REST API</h2>
+    <p>CMF Atlas is served by a FastAPI backend at <a href="https://cmfatlas-production.up.railway.app" target="_blank">cmfatlas-production.up.railway.app</a>. Interactive Swagger docs: <a href="https://cmfatlas-production.up.railway.app/docs" target="_blank"><code>/docs</code></a>.</p>
+    <p style="font-size:12px;color:#888;margin-top:8px">All endpoints are available at both <code>/endpoint</code> and <code>/api/v1/endpoint</code> (stable versioned alias, redirects 307).</p>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3" style="margin-top:16px">
+      <div class="api-block"><div style="font-size:10px;color:#0bb4aa;font-weight:700;margin-bottom:4px">GET</div><div style="color:#0bb4aa;font-weight:600">/release</div><div style="font-size:11px;color:#888;margin-top:4px">Release manifest &mdash; version, counts, schema</div></div>
+      <div class="api-block"><div style="font-size:10px;color:#0bb4aa;font-weight:700;margin-bottom:4px">GET</div><div style="color:#0bb4aa;font-weight:600">/constants</div><div style="font-size:11px;color:#888;margin-top:4px">Constants registry with entry counts</div></div>
+      <div class="api-block"><div style="font-size:10px;color:#0bb4aa;font-weight:700;margin-bottom:4px">GET</div><div style="color:#0bb4aa;font-weight:600">/cmfs/browse</div><div style="font-size:11px;color:#888;margin-top:4px">Search &amp; filter CMFs</div></div>
+      <div class="api-block"><div style="font-size:10px;color:#0bb4aa;font-weight:700;margin-bottom:4px">GET</div><div style="color:#0bb4aa;font-weight:600">/cmfs/{id}/full</div><div style="font-size:11px;color:#888;margin-top:4px">Full entry with K-matrices</div></div>
+      <div class="api-block"><div style="font-size:10px;color:#0bb4aa;font-weight:700;margin-bottom:4px">GET</div><div style="color:#0bb4aa;font-weight:600">/cmfs/{id}/relations</div><div style="font-size:11px;color:#888;margin-top:4px">Linked constant, source family, related entries</div></div>
+      <div class="api-block"><div style="font-size:10px;color:#0bb4aa;font-weight:700;margin-bottom:4px">GET</div><div style="color:#0bb4aa;font-weight:600">/cmfs/{id}/walk</div><div style="font-size:11px;color:#888;margin-top:4px">Numerical walk / convergence</div></div>
+      <div class="api-block"><div style="font-size:10px;color:#0bb4aa;font-weight:700;margin-bottom:4px">GET</div><div style="color:#0bb4aa;font-weight:600">/cmfs/{id}/conservative-test</div><div style="font-size:11px;color:#888;margin-top:4px">2D flatness residual test</div></div>
+      <div class="api-block"><div style="font-size:10px;color:#0bb4aa;font-weight:700;margin-bottom:4px">GET</div><div style="color:#0bb4aa;font-weight:600">/export/cmfs.json</div><div style="font-size:11px;color:#888;margin-top:4px">Bulk dataset download (CC BY 4.0, JSON)</div></div>
+      <div class="api-block"><div style="font-size:10px;color:#0bb4aa;font-weight:700;margin-bottom:4px">GET</div><div style="color:#0bb4aa;font-weight:600">/stats/detailed</div><div style="font-size:11px;color:#888;margin-top:4px">Dashboard statistics &amp; breakdown</div></div>
+    </div>
+    <p style="font-size:12px;color:#aaa;margin-top:12px">Versioned alias example: <code>GET /api/v1/cmfs/browse?dimension=2</code></p>
+  </div>
+
+  <!-- RamanujanTools -->
+  <div class="card p-7">
+    <h2>RamanujanTools / pFq Integration</h2>
+    <p>CMF Atlas includes CMFs imported directly from the
+    <a href="https://github.com/RamanujanMachine/RamanujanTools" target="_blank">RamanujanTools</a> repository.
+    Currently imported: <code>e</code>, <code>pi</code>, <code>symmetric_pi</code>, <code>zeta3</code>,
+    <code>hypergeometric_derived_2F1</code> (3D), <code>hypergeometric_derived_3F2</code> (5D, at z=½),
+    and five FFbar parametric families. All carry A+ certification.</p>
+    <pre class="code-pre" style="margin-top:14px"># Browse pFq CMFs in the atlas
+GET /cmfs/browse?source_type=pfq
+
+# Individual entry with hypergeometric parameters
+GET /cmfs/{id}/full</pre>
+  </div>
+
+  <!-- License -->
+  <div class="card p-7">
+    <h2>License</h2>
+    <p>The CMF Atlas dataset and documentation are released under
+      <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" style="font-weight:600">Creative Commons Attribution 4.0 (CC BY 4.0)</a>.
+    </p>
+    <p>You are free to share, adapt, and use the data for any purpose including commercial and academic research,
+    provided you give appropriate credit.</p>
+  </div>
+
+</div>
+
+<footer style="border-top:1px solid #e2e8f0;background:#f9fafb;margin-top:20px">
+  <div class="max-w-4xl mx-auto px-6 py-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3" style="font-size:13px;color:#888">
+    <div>CMF Atlas v2.3 &middot; David Vesterlund &middot; 2026</div>
+    <div class="flex gap-5">
+      <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" style="color:#888;text-decoration:none">CC BY 4.0</a>
+      <a href="https://cmfatlas-production.up.railway.app/docs" target="_blank" style="color:#888;text-decoration:none">API Docs</a>
+      <a href="index.html" style="color:#0bb4aa;font-weight:600;text-decoration:none">Home</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+async function loadCount() {
+  try {
+    const res = await fetch('https://cmfatlas-production.up.railway.app/release');
+    const d = await res.json();
+    document.getElementById('total-count').textContent = `${d.total_cmfs?.toLocaleString()} entries (v${d.version})`;
+  } catch(e) {}
+}
+loadCount();
+
+function copyEl(id, btn) {
+  const text = document.getElementById(id).textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = 'Copied!';
+    btn.style.color = '#6ee7b7';
+    setTimeout(() => { btn.textContent = orig; btn.style.color = ''; }, 1500);
+  });
+}
+</script>
+</body>
+</html>

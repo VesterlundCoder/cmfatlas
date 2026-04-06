@@ -124,6 +124,14 @@
         </select>
       </div>
       <div>
+        <label style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:6px">Limit Type</label>
+        <select id="looks_irrational">
+          <option value="">All</option>
+          <option value="true">🔥 Irrational candidates</option>
+          <option value="false">Rational only</option>
+        </select>
+      </div>
+      <div>
         <label style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:6px">Matrix Size</label>
         <select id="matrix_size">
           <option value="">All</option>
@@ -245,6 +253,7 @@ function buildUrl(offset) {
   const hf = document.getElementById('has_formula').value;
   const cat = document.getElementById('category').value;
   const ms = document.getElementById('matrix_size').value;
+  const irr = document.getElementById('looks_irrational').value;
   const lim = document.getElementById('limit').value;
   params.set('offset', offset);
   params.set('limit', lim);
@@ -255,6 +264,7 @@ function buildUrl(offset) {
   if (hf) params.set('has_formula', hf);
   if (cat) params.set('category', cat);
   if (ms) params.set('matrix_size', ms);
+  if (irr) params.set('looks_irrational', irr);
   return `${API}/cmfs/browse?${params}`;
 }
 
@@ -280,6 +290,9 @@ async function search(offset) {
       const fp = item.f_poly
         ? `<span style="font-size:12px;color:#333">\\(${polyToLatex(item.f_poly)}\\)</span>`
         : `<span style="font-size:11px;color:#aaa;font-style:italic">${item.series_name||item.generator_type||'—'}</span>`;
+      const irrBadge = item.looks_irrational
+        ? `<span title="${item.limit_label||''}" style="background:#fff7ed;border:1px solid #fb923c;color:#c2410c;font-weight:700;padding:1px 6px;border-radius:9999px;font-size:11px;margin-left:4px">🔥</span>`
+        : '';
       const ic = item.identified_constant
         ? `<span title="Identified by PSLQ/float-match" style="background:#fef3c7;border:1px solid #fcd34d;color:#92400e;font-weight:600;padding:1px 7px;border-radius:9999px;font-size:11px;white-space:nowrap">&#128273; ${item.identified_constant}</span>`
         : null;
@@ -291,7 +304,7 @@ async function search(offset) {
         : '<span style="color:#ccc;font-size:12px">—</span>';
       return `
         <tr class="entry-row">
-          <td style="padding:11px 14px;font-family:monospace;font-size:12px;color:#0bb4aa;font-weight:700">#${item.id}</td>
+          <td style="padding:11px 14px;font-family:monospace;font-size:12px;color:#0bb4aa;font-weight:700">#${item.id}${irrBadge}</td>
           <td style="padding:11px 14px">${categoryBadge(item.category)}</td>
           <td style="padding:11px 14px">${dimBadge(item.dimension, item.matrix_size)}</td>
           <td style="padding:11px 14px;font-size:12px;color:#888">${item.degree||'—'}</td>
@@ -327,7 +340,7 @@ async function search(offset) {
 }
 
 function clearFilters() {
-  ['q','degree','certification','source_category','has_formula','category','matrix_size'].forEach(id => {
+  ['q','degree','certification','source_category','has_formula','category','matrix_size','looks_irrational'].forEach(id => {
     const el = document.getElementById(id);
     el.value = '';
   });
@@ -341,6 +354,7 @@ if (urlParams.get('certification')) document.getElementById('certification').val
 if (urlParams.get('source_category')) document.getElementById('source_category').value = urlParams.get('source_category');
 if (urlParams.get('matrix_size')) document.getElementById('matrix_size').value = urlParams.get('matrix_size');
 if (urlParams.get('category')) document.getElementById('category').value = urlParams.get('category');
+if (urlParams.get('looks_irrational')) document.getElementById('looks_irrational').value = urlParams.get('looks_irrational');
 
 document.getElementById('q').addEventListener('keyup', e => { if (e.key === 'Enter') search(0); });
 search(0);

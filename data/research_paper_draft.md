@@ -1,7 +1,7 @@
-# Discovering Irrational Limits via Reinforcement-Guided Continued Matrix Fractions
+# Discovering Irrational Limits via Reinforcement-Guided Conservative Matrix Fields
 ## Draft — CMF Atlas Research Paper
 
-**Authors:** [To be filled]  
+**Author:** David Vesterlund 
 **Date:** April 2026  
 **Status:** Draft — Auto-generated from CMF Distiller pipeline
 
@@ -9,7 +9,7 @@
 
 ## Abstract
 
-We present a systematic computational exploration of Continued Matrix Fractions (CMFs) whose limits converge to irrational numbers. By extending the reward signal of a generative reinforcement-learning agent (CMF_Scout) with an *irrationality bonus* — derived from a multi-precision rationality test and PSLQ-based constant identification — we guide the search toward a regime of CMF parameter space previously unexplored. From an initial scouting run of ten independently initialized gauge agents (A through J), we obtain 101 high-quality CMF candidates whose limits, verified at 60 decimal places, are classified as irrational. A subset are algebraically identified as products of rational powers of small primes; the remainder resist identification in an extended basis of 30 fundamental constants at 200 decimal places and are provisionally classified as **UNKNOWN_IRRATIONAL**. After gauge-equivalence clustering, these 101 candidates decompose into distinct mathematical families, each representing a potentially novel algebraic structure. We describe the full pipeline — generation, extreme-precision verification (mp.dps = 1000, depth = 10,000), gauge-invariant clustering, and LaTeX theorem extraction — and release all data, code, and the CMF Atlas as open resources.
+We present a systematic computational exploration of Conservative Matrix Fields (CMFs) whose limits converge to irrational numbers. By extending the reward signal of a generative reinforcement-learning agent (CMF_Scout) with an *irrationality bonus* — derived from a multi-precision rationality test and PSLQ-based constant identification — we guide the search toward a regime of CMF parameter space previously unexplored. From an initial scouting run of ten independently initialized gauge agents (A through J), we obtain 101 high-quality CMF candidates whose limits, verified at 60 decimal places, are classified as irrational. A subset are algebraically identified as products of rational powers of small primes; the remainder resist identification in an extended basis of 30 fundamental constants at 200 decimal places and are provisionally classified as **UNKNOWN_IRRATIONAL**. After gauge-equivalence clustering, these 101 candidates decompose into distinct mathematical families, each representing a potentially novel algebraic structure. We describe the full pipeline — generation, extreme-precision verification (mp.dps = 1000, depth = 10,000), gauge-invariant clustering, and LaTeX theorem extraction — and release all data, code, and the CMF Atlas as open resources.
 
 ---
 

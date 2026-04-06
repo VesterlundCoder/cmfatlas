@@ -998,6 +998,7 @@ def browse_cmfs(
     matrix_size: Optional[int] = None,
     matrix_count: Optional[int] = None,
     parameter_dimension: Optional[int] = None,
+    looks_irrational: Optional[bool] = None,
 ):
     """Browse CMFs with filtering and search."""
     db: Session = next(get_db())
@@ -1058,6 +1059,13 @@ def browse_cmfs(
                 "(c.cmf_payload LIKE :q OR r.canonical_fingerprint LIKE :q OR s.definition LIKE :q)"
             )
             params["q"] = f"%{q}%"
+        if looks_irrational is True:
+            where_clauses.append("json_extract(c.cmf_payload,'$.looks_irrational') = 1")
+        elif looks_irrational is False:
+            where_clauses.append(
+                "(json_extract(c.cmf_payload,'$.looks_irrational') IS NULL "
+                "OR json_extract(c.cmf_payload,'$.looks_irrational') = 0)"
+            )
 
         # Always exclude hidden CMFs from public browse
         where_clauses.append(
@@ -1094,7 +1102,10 @@ def browse_cmfs(
                             json_extract(c.cmf_payload,'$.parameter_dimension'),
                             c.dimension)                                  AS parameter_dimension,
                    COALESCE(json_extract(c.cmf_payload,'$.effective_vars'),
-                            json_extract(c.cmf_payload,'$.effective_dimension'))       AS effective_dimension
+                            json_extract(c.cmf_payload,'$.effective_dimension'))       AS effective_dimension,
+                   json_extract(c.cmf_payload,'$.looks_irrational')   AS looks_irrational,
+                   json_extract(c.cmf_payload,'$.limit_label')         AS limit_label,
+                   json_extract(c.cmf_payload,'$.limit_value')         AS limit_value
             FROM cmf c
             JOIN representation r ON r.id = c.representation_id
             JOIN series s ON s.id = r.series_id
@@ -1158,6 +1169,9 @@ def browse_cmfs(
                 "construction_type":   construction_type,
                 "entry_uri":           f"https://davidvesterlund.com/cmf-atlas/entry.html?id={r[0]}",
                 "release_version":     "2.5",
+                "looks_irrational":    bool(r[21]) if r[21] is not None else False,
+                "limit_label":         r[22] if r[22] is not None else None,
+                "limit_value":         r[23] if r[23] is not None else None,
             })
 
         return {"total": total, "offset": offset, "limit": limit, "items": items}

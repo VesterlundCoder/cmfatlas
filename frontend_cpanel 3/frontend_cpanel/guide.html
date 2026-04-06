@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Guide — CMF Atlas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{fontFamily:{sans:['Inter','sans-serif']}}}}</script>
+  <script>window.MathJax={tex:{inlineMath:[['\\(','\\)']],displayMath:[['\\[','\\]']]},options:{skipHtmlTags:['script','noscript','style','textarea']}};</script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <style>
+    *{font-family:'Inter',sans-serif}
+    body{background:#fff;color:#101010}
+    .nav-link{color:#555;font-size:14px;font-weight:500;transition:color .15s;text-decoration:none}
+    .nav-link:hover,.nav-link.active{color:#0bb4aa}
+    .card{background:#fff;border:1px solid #e2e8f0;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,.05);padding:28px 32px;margin-bottom:28px}
+    .section-tag{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;padding:3px 10px;border-radius:6px;margin-bottom:12px}
+    .cat-ref{background:#f1f5f9;color:#64748b;border:1px solid #cbd5e1}
+    .cat-int{background:#fefce8;color:#b45309;border:1px solid #fde68a}
+    .cat-disc{background:#dcfce7;color:#15803d;border:1px solid #86efac}
+    .badge{display:inline-flex;align-items:center;padding:2px 10px;border-radius:9999px;font-size:11px;font-weight:600}
+    h2{font-size:1.4rem;font-weight:800;color:#101010;letter-spacing:-0.3px;margin-bottom:10px;margin-top:0}
+    h3{font-size:1.05rem;font-weight:700;color:#101010;margin-bottom:8px;margin-top:20px}
+    p{color:#444;font-size:14px;line-height:1.75;margin-bottom:12px}
+    code{background:#f1f5f9;color:#0bb4aa;border-radius:4px;padding:1px 6px;font-size:13px;font-family:monospace}
+    .demo-btn{background:#0bb4aa;color:#fff;font-weight:700;padding:10px 24px;border-radius:9px;font-size:13px;cursor:pointer;border:none;font-family:inherit;transition:background .15s}
+    .demo-btn:hover{background:#099990}
+    .demo-btn:disabled{opacity:.4;cursor:not-allowed}
+    .info-box{border-radius:10px;padding:14px 18px;font-size:13px;line-height:1.65;margin-bottom:16px}
+    .info-blue{background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af}
+    .info-amber{background:#fef9e7;border:1px solid #fcd34d;color:#92400e}
+    .info-green{background:#f0fdf4;border:1px solid #86efac;color:#15803d}
+    .toc-link{color:#0bb4aa;text-decoration:none;font-size:13px;font-weight:500}
+    .toc-link:hover{text-decoration:underline}
+  </style>
+</head>
+<body class="min-h-screen">
+
+<nav style="background:#fff;border-bottom:1px solid #e2e8f0;position:sticky;top:0;z-index:50">
+  <div class="max-w-5xl mx-auto px-6 flex items-center justify-between" style="height:60px">
+    <a href="index.html" style="font-weight:800;font-size:18px;color:#101010;text-decoration:none;letter-spacing:-0.5px">
+      CMF <span style="color:#0bb4aa">Atlas</span>
+    </a>
+    <div class="flex items-center gap-7">
+      <a href="index.html" class="nav-link">Home</a>
+      <a href="browse.html" class="nav-link">Browse</a>
+      <a href="explorer.html" class="nav-link">Explorer</a>
+      <a href="conservative-test.html" class="nav-link">Flatness Test</a>
+      <a href="sources.html" class="nav-link">Sources</a>
+      <a href="constants.html" class="nav-link">Constants</a>
+      <a href="guide.html" class="nav-link active">Guide</a>
+      <a href="about.html" class="nav-link">About</a>
+    </div>
+  </div>
+</nav>
+
+<div style="background:linear-gradient(135deg,#f0fdfc 0%,#fff 60%);border-bottom:1px solid #e2e8f0;padding:40px 0 28px">
+  <div class="max-w-5xl mx-auto px-6">
+    <h1 style="font-size:2rem;font-weight:800;color:#101010;margin-bottom:6px;letter-spacing:-0.5px">CMF Atlas — Guide</h1>
+    <p style="font-size:14px;color:#666;max-width:640px">How the Atlas is organised, what the curation categories mean, how convergence rate (δ) is measured, and how to interpret path-independence evidence for 2D and 3D CMFs.</p>
+  </div>
+</div>
+
+<div class="max-w-5xl mx-auto px-6 py-10">
+
+  <!-- Table of contents -->
+  <div class="card" style="padding:20px 28px;margin-bottom:32px">
+    <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#888;margin-bottom:12px">Contents</div>
+    <div style="display:flex;flex-wrap:wrap;gap:10px 28px">
+      <a class="toc-link" href="#categories">1 · Categories</a>
+      <a class="toc-link" href="#delta">2 · Self-Delta (δ)</a>
+      <a class="toc-link" href="#path-independence">3 · Path-Independence</a>
+      <a class="toc-link" href="#3d-demo">4 · Trajectory-Agreement Demo</a>
+      <a class="toc-link" href="#walk-mechanics">5 · Walk Mechanics</a>
+    </div>
+  </div>
+
+  <!-- Scope note -->
+  <div class="info-blue" style="margin-bottom:28px;line-height:1.7">
+    <strong>Scope of this guide.</strong> This page distinguishes between three kinds of statements:
+    <ol style="margin:8px 0 0 18px;font-size:13px">
+      <li style="margin-bottom:4px"><strong>Mathematical definitions</strong> — describing the exact CMF framework;</li>
+      <li style="margin-bottom:4px"><strong>Numerical diagnostics</strong> — providing empirical evidence about convergence or path-independence;</li>
+      <li><strong>Atlas metadata</strong> — internal classification labels used for browsing and curation.</li>
+    </ol>
+    <p style="margin:8px 0 0;font-size:13px">In particular, numerical agreement between several trajectories is <strong>evidence</strong>, not a formal proof, unless it is supported by an exact cocycle identity or another symbolic certification method.</p>
+  </div>
+
+  <!-- ── 1. Categories ─────────────────────────────────────────────────── -->
+  <div class="card" id="categories">
+    <h2>1 · CMF Categories</h2>
+    <p>The Atlas assigns each entry to one of three <strong>curation categories</strong>. These are <em>editorial metadata</em> used for browsing and prioritisation — they are not mathematical theorems. The classification is based on a combination of dimension, polynomial degree or operator complexity, identification status of the limiting value, and certification level where available.</p>
+    <div class="info-amber" style="margin-bottom:20px">Category labels may change as metadata, proofs, or identifications improve. When a constant is listed, the entry detail page indicates whether the identification is <strong>symbolically certified</strong>, <strong>proved externally</strong>, or <strong>numerically matched only</strong>.</div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin:20px 0">
+
+      <div style="border:1px solid #cbd5e1;border-radius:12px;padding:20px">
+        <span class="section-tag cat-ref">Reference</span>
+        <h3 style="margin-top:8px">Baseline entries</h3>
+        <p style="margin-bottom:8px">Low-complexity entries used as a baseline for testing, calibration, and comparison. Typical examples include small 2D families, rational limits, and simple gauge-equivalent families.</p>
+        <div style="font-size:12px;color:#888;border-top:1px solid #e2e8f0;padding-top:10px;margin-top:10px">
+          <strong>Examples:</strong> linear polynomials f = x+y, f = 2x−y, simple gauge families.
+        </div>
+      </div>
+
+      <div style="border:1px solid #fde68a;border-radius:12px;padding:20px">
+        <span class="section-tag cat-int">Interesting</span>
+        <h3 style="margin-top:8px">Identified or nontrivial limit</h3>
+        <p style="margin-bottom:8px">Entries whose limiting value appears mathematically nontrivial — either because it is identified with a known constant, or because it appears irrational but has not yet been fully identified. These are the core objects in the Atlas.</p>
+        <div style="font-size:12px;color:#888;border-top:1px solid #e2e8f0;padding-top:10px;margin-top:10px">
+          <strong>Examples:</strong> Apéry-like CMFs (ζ(3)), degree-3 families related to ζ(5), digamma families.
+        </div>
+      </div>
+
+      <div style="border:1px solid #86efac;border-radius:12px;padding:20px">
+        <span class="section-tag cat-disc">Discovery</span>
+        <h3 style="margin-top:8px">Higher-dimensional or frontier</h3>
+        <p style="margin-bottom:8px">Higher-dimensional entries, structurally richer families, and entries under active investigation. Intended for objects that may warrant further symbolic analysis, proof attempts, or comparison with known CMF constructions.</p>
+        <div style="font-size:12px;color:#888;border-top:1px solid #e2e8f0;padding-top:10px;margin-top:10px">
+          <strong>Examples:</strong> 3D CMF Hunter entries, 5D RamanujanTools entries, ζ(2)/π² CMFs.
+        </div>
+      </div>
+    </div>
+
+    <div class="info-blue">
+      <strong>Filtering:</strong> Use the <strong>Category</strong> dropdown on the <a href="browse.html" style="color:#1e40af;font-weight:600">Browse</a> page to restrict results to a single category. The category is also shown as a coloured badge on every row.
+    </div>
+  </div>
+
+  <!-- ── 2. Self-Delta ─────────────────────────────────────────────────── -->
+  <div class="card" id="delta">
+    <h2>2 · Self-Delta (δ) — Convergence Rate</h2>
+    <p>The <strong>self-delta</strong> δ is a coarse empirical estimate of convergence speed. It measures the average gain in <em>binary digits of accuracy per step</em>, using the final computed value as a proxy for the limit. It is defined from three points along the walk:</p>
+
+    \[
+      \delta \;=\; \frac{\log_2\!\bigl(|v_{n_1} - v_N|\bigr) \;-\; \log_2\!\bigl(|v_{n_2} - v_N|\bigr)}{n_2 - n_1}
+      \quad \text{bits per step}
+    \]
+
+    <p>where \(n_1 = \lfloor N/3 \rfloor\), \(n_2 = \lfloor 2N/3 \rfloor\), \(v_k\) is the partial convergent at step \(k\), and \(v_N\) is the last value (used as a proxy for the true limit).</p>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:20px 0">
+      <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:12px 16px;text-align:center">
+        <div style="font-size:18px;font-weight:800;color:#15803d">δ ≥ 1.0</div>
+        <div style="font-size:12px;color:#166534;margin-top:3px">🟢 Excellent — error shrinks by ×2 per step</div>
+      </div>
+      <div style="background:#fefce8;border:1px solid #fde68a;border-radius:8px;padding:12px 16px;text-align:center">
+        <div style="font-size:18px;font-weight:800;color:#b45309">δ ≥ 0.3</div>
+        <div style="font-size:12px;color:#92400e;margin-top:3px">🟡 Moderate — ≈1 decimal digit per ~11 steps</div>
+      </div>
+      <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:12px 16px;text-align:center">
+        <div style="font-size:18px;font-weight:800;color:#c2410c">δ ≥ 0.05</div>
+        <div style="font-size:12px;color:#c2410c;margin-top:3px">🟠 Slow — pre-asymptotic or weak convergence</div>
+      </div>
+      <div style="background:#f8f9fa;border:1px solid #dee2e6;border-radius:8px;padding:12px 16px;text-align:center">
+        <div style="font-size:18px;font-weight:800;color:#888">δ &lt; 0.05</div>
+        <div style="font-size:12px;color:#aaa;margin-top:3px">🔴 No visible convergence at tested depth</div>
+      </div>
+    </div>
+
+    <p>δ is displayed in the <strong>Explorer</strong> after every walk, with a quality indicator and a link back to this page.</p>
+
+    <div class="info-amber">
+      <strong>Interpretation note.</strong> δ may be unreliable when convergence is very slow, when the trajectory is still pre-asymptotic, or when \(v_N\) is a poor proxy for the true limit. A separate local convergence-rate estimate (log₁₀ scale per step, computed from the final window of convergents) is also reported by the Explorer; these two diagnostics are related but distinct. Always run depth ≥ 500 for a more reliable estimate on 3D CMFs.
+    </div>
+  </div>
+
+  <!-- ── 3. Path-Independence ───────────────────────────────────────────── -->
+  <div class="card" id="path-independence">
+    <h2>3 · Path-Independence</h2>
+    <p>A <strong>Conservative Matrix Field (CMF)</strong> is called <em>flat</em> or <em>path-independent</em> when its matrix transport depends only on the endpoints, not on the monotone lattice path used between them. In dimension 2, this is encoded by the <strong>local cocycle condition</strong> (also called a zero-curvature condition) on each elementary lattice square:</p>
+
+    \[
+      K_x(k,\,m) \cdot K_y(k+1,\,m) \;=\; K_y(k,\,m) \cdot K_x(k,\,m+1)
+    \]
+
+    <p>When this identity holds at every lattice point, products along different monotone paths between the same lattice points are equal — not merely equal in the limit, but exactly equal at every finite step. Limit-independence of the associated continued fraction is a <em>consequence</em> of this finite structural property.</p>
+
+    <h3>Why “Conservative”?</h3>
+    <p>The terminology is analogous to conservative vector fields in calculus: path-independence means that the line integral depends only on the endpoints. In the CMF setting, the analogous statement is that matrix transport between lattice points depends only on the endpoints when the cocycle condition holds. The finite path-independence of matrix products is the structural property; limit-independence of the associated continued fraction is one of its consequences.</p>
+
+    <h3>2D CMFs — Numerical flatness test</h3>
+    <p>For 2D CMFs with an explicit polynomial form, the <a href="conservative-test.html" style="color:#0bb4aa;font-weight:600">2D Flatness Residual Test</a> page evaluates the residual</p>
+    \[
+      R(k,m) \;=\; K_x(k,m)\,K_y(k{+}1,m) \;-\; K_y(k,m)\,K_x(k,m{+}1)
+    \]
+    <p>at every lattice point in a finite test grid. If the field is exactly flat, this residual vanishes identically. The test reports the maximum Frobenius norm of \(R\) across the grid. Values close to machine precision provide strong numerical evidence of flatness on that grid, but finite-grid numerical testing should not be confused with an exact symbolic proof.</p>
+
+    <h3>Implementation note for current 3D Atlas entries</h3>
+    <div class="info-amber">
+      <strong>Implementation constraint.</strong> In the current Atlas, some 3D entries are stored through a reduced polynomial projection rather than the full operator-level data used to generate their trajectories. For such entries, the 2D residual test on the <a href="conservative-test.html" style="color:#92400e;font-weight:600">2D Flatness Residual Test</a> page should <strong>not</strong> be interpreted as a valid certification procedure for 3D flatness. A non-zero residual may reflect a mismatch between the projected display form and the full internal representation, rather than a genuine failure of path-independence.
+    </div>
+    <p>In dimensions \(d \ge 3\), the rigorous notion is still given by the relevant cocycle identities among the generating matrices or operators. For rigorous certification, the Atlas should eventually expose either the full generating operator data or an exact symbolic identity implying the relevant cocycle relations.</p>
+
+    <h3>Numerical trajectory comparison</h3>
+    <p>A practical numerical test is to observe whether <strong>multiple trajectories with different fixed shifts converge to the same value</strong>. For a flat CMF, Kx walks with different fixed coordinates \(m_0\) should yield the same limit. Observing this numerically at large depth is <strong>empirical evidence</strong> consistent with path-independence. It is not a formal proof unless accompanied by a symbolic verification, and it may be inconclusive when convergence is slow. The demo in Section 4 illustrates this approach.</p>
+  </div>
+
+  <!-- ── 4. Trajectory-Agreement Demo ──────────────────────────────────────────── -->
+  <div class="card" id="3d-demo">
+    <h2>4 · Live 3D Trajectory-Agreement Demo</h2>
+    <p style="margin-bottom:8px">This demo compares three Kx trajectories for the same 3D CMF with <b>m = 0, 1, 2</b> (different fixed rows). Its purpose is to test whether the sampled trajectories appear to approach a common value.</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;font-size:13px">
+      <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:12px">
+        <strong style="color:#15803d">What the demo can show</strong>
+        <ul style="margin:6px 0 0 16px;color:#444;line-height:1.7">
+          <li>whether different shifts produce numerically similar estimates;</li>
+          <li>whether agreement improves as depth increases;</li>
+          <li>whether the spread is consistent with visible convergence.</li>
+        </ul>
+      </div>
+      <div style="background:#fef9e7;border:1px solid #fcd34d;border-radius:8px;padding:12px">
+        <strong style="color:#92400e">What the demo does not prove</strong>
+        <ul style="margin:6px 0 0 16px;color:#444;line-height:1.7">
+          <li>it does <strong>not</strong> by itself prove exact path-independence;</li>
+          <li>it does <strong>not</strong> replace a cocycle identity or symbolic certification;</li>
+          <li>it may be inconclusive when convergence is slow.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:20px">
+      <div>
+        <label style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:6px">CMF</label>
+        <select id="demo-cmf-id" style="background:#fff;border:1px solid #e2e8f0;color:#333;border-radius:8px;padding:8px 12px;font-size:13px;outline:none;min-width:220px">
+          <option value="5594">CMF #5594 — 5D, pFq (RamanujanTools, A+)</option>
+          <option value="1845">CMF #1845 — 3D, CMF Hunter (deg=8, B)</option>
+        </select>
+      </div>
+      <div>
+        <label style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:6px">Depth</label>
+        <select id="demo-depth" style="background:#fff;border:1px solid #e2e8f0;color:#333;border-radius:8px;padding:8px 12px;font-size:13px;outline:none">
+          <option value="500" selected>500 steps</option>
+          <option value="1000">1000 steps</option>
+          <option value="2000">2000 steps</option>
+        </select>
+      </div>
+      <div style="margin-top:18px">
+        <button class="demo-btn" id="demo-run-btn" onclick="runDemo()">▶ Run Demo</button>
+      </div>
+    </div>
+
+    <div id="demo-status" style="font-size:13px;color:#888;margin-bottom:12px">Click <strong>Run Demo</strong> to start.</div>
+
+    <div id="demo-chart-wrap" style="display:none">
+      <canvas id="demo-chart" style="max-height:320px"></canvas>
+    </div>
+
+    <div id="demo-result" style="margin-top:16px"></div>
+  </div>
+
+  <!-- ── 5. Walk Mechanics ─────────────────────────────────────────────────── -->
+  <div class="card" id="walk-mechanics">
+    <h2>5 · Walk Mechanics</h2>
+
+    <h3>5.1  Product along a chosen direction</h3>
+    <p>A trajectory is obtained by multiplying a sequence of \(2\times 2\) matrices along one chosen lattice direction:</p>
+    \[
+      P_N \;=\; K(s_0)\cdot K(s_0+1)\cdots K(s_0+N-1)
+    \]
+    <p>The convergent at step \(N\) is read from the resulting Möbius action as</p>
+    \[
+      v_N \;=\; \frac{P_N[0,1]}{P_N[1,1]}
+    \]
+    <p>whenever the denominator is nonzero. For 2D CMFs, \(K = K_x(k,\, m_\text{fixed})\) or \(K = K_y(k_\text{fixed},\, m)\). For 3D CMFs a third direction \(K_z\) is also available.</p>
+
+    <h3>5.2  Standard \((f,\bar f)\)-construction</h3>
+    <p>For 2D entries arising from a conjugate polynomial pair \((f, \bar f)\), the standard conservative-matrix-field construction defines</p>
+    \[
+      M_X(x,y) \;=\; \begin{pmatrix} 0 & b(x) \\ 1 & a(x,y) \end{pmatrix}, \qquad
+      M_Y(x,y) \;=\; \begin{pmatrix} \bar f(x,y) & b(x) \\ 1 & f(x,y) \end{pmatrix}
+    \]
+    <p>where the coefficient functions are</p>
+    \[
+      a(x,y) \;=\; f(x,y) - \bar f(x+1,y), \qquad
+      b(x) \;=\; f(x,0)\cdot\bar f(x,0).
+    \]
+    <p>In this construction \(b\) depends only on the walk variable \(x\), not on the fixed coordinate \(y\). The horizontal trajectory at fixed \(y = y_0\) uses \(M_X(k, y_0)\); the vertical trajectory at fixed \(x = x_0\) uses \(M_Y(x_0, m)\).</p>
+
+    <h3>5.3  Atlas convention</h3>
+    <div class="info-amber">
+      <strong>Convention note.</strong> The Atlas uses a gauge-equivalent matrix convention that differs from the standard \((f,\bar f)\)-presentation above. Specifically, the Atlas evaluates
+      \[
+        b_\text{Atlas}(k,m) \;=\; f(k,m)\cdot\bar f(k,m), \qquad
+        a_\text{Atlas}(k,m) \;=\; f(k,m+1)\cdot\bar f(k,m) + f(k,m)\cdot\bar f(k,m+1)
+      \]
+      and builds
+      \[
+        K_x(k,m) \;=\; \begin{pmatrix} 0 & 1 \\ b_\text{Atlas}(k+1,\,m) & a_\text{Atlas}(k,\,m) \end{pmatrix}, \qquad
+        K_y(k,m) \;=\; \begin{pmatrix} \bar f(k,m) & 1 \\ b_\text{Atlas}(k,\,m) & f(k,m) \end{pmatrix}.
+      \]
+      Here \(b_\text{Atlas}\) may depend on both \(k\) and \(m\) (unlike the standard \(b(x)\)). For verified flat CMFs this dependence vanishes as a consequence of the conjugacy relation; the resulting trajectories are mathematically equivalent to those of the standard construction up to a Möbius transformation.
+    </div>
+
+    <h3>5.4  Higher-dimensional entries</h3>
+    <p>For higher-dimensional entries (3D CMF Hunter, RamanujanTools), the Atlas may use an operator-level or source-specific internal representation. In those cases the displayed polynomial should be understood as metadata or a projection unless the full generating matrices are explicitly provided. RamanujanTools entries store their matrix expressions directly and the walk evaluates them by symbolic substitution at each step.</p>
+
+    <h3>5.5  Numerical implementation</h3>
+    <p>Precision is maintained at 30 decimal digits (mpmath). The product is normalised by a nonzero scalar every 20 steps to prevent overflow; this does not change the convergent \(v_N\). The self-delta δ is computed from three widely-separated trajectory points; a separate local convergence-rate indicator is computed from the final window of convergents.</p>
+  </div>
+
+</div>
+
+<script>
+const API = 'https://cmfatlas-production.up.railway.app';
+const COLORS = ['#0bb4aa','#f59e0b','#7c3aed'];
+let demoChart = null;
+
+async function runDemo() {
+  const cmfId  = document.getElementById('demo-cmf-id').value;
+  const depth  = document.getElementById('demo-depth').value;
+  const btn    = document.getElementById('demo-run-btn');
+  const status = document.getElementById('demo-status');
+  const wrap   = document.getElementById('demo-chart-wrap');
+  const result = document.getElementById('demo-result');
+
+  btn.disabled = true;
+  btn.textContent = '⏳ Running…';
+  status.innerHTML = '<span style="color:#0bb4aa">Running 3 trajectories (m = 0, 1, 2)…</span>';
+  wrap.style.display = 'none';
+  result.innerHTML = '';
+
+  try {
+    const fetches = [0, 1, 2].map(m => {
+      const p = new URLSearchParams({ depth, direction: 'x', m_fixed: m, n_fixed: 1 });
+      return fetch(`${API}/cmfs/${cmfId}/walk?${p}`).then(r => r.json());
+    });
+    const results = await Promise.all(fetches);
+    const valid = results.filter(r => r && r.sequence);
+
+    if (!valid.length) {
+      status.innerHTML = `<span style="color:#ef4444">All walks failed. This CMF may not support polynomial-form walks.</span>`;
+      return;
+    }
+
+    // Build datasets
+    const datasets = valid.map((d, i) => {
+      const finite = d.sequence.filter(s => s.value !== null);
+      return {
+        label: `Kx, m=${i}`,
+        data: finite.map(s => ({x: s.step, y: s.value})),
+        borderColor: COLORS[i], backgroundColor: COLORS[i]+'20',
+        borderWidth: 2, pointRadius: 0, tension: 0.1, fill: false,
+      };
+    });
+
+    wrap.style.display = '';
+    if (demoChart) demoChart.destroy();
+    demoChart = new Chart(document.getElementById('demo-chart'), {
+      type: 'line',
+      data: { datasets },
+      options: {
+        responsive: true, maintainAspectRatio: true,
+        animation: { duration: 300 },
+        parsing: false,
+        plugins: {
+          legend: { labels: { color:'#555', font:{size:11} } },
+          tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y?.toPrecision(10)}` } }
+        },
+        scales: {
+          x: { type:'linear', ticks:{color:'#888',maxTicksLimit:10}, grid:{color:'#f1f5f9'},
+               title:{display:true,text:'Step k',color:'#888',font:{size:11}} },
+          y: { ticks:{color:'#888'}, grid:{color:'#f1f5f9'},
+               title:{display:true,text:'Convergent P[0,1]/P[1,1]',color:'#888',font:{size:11}} }
+        }
+      }
+    });
+
+    // Summary table
+    const rows = valid.map((d, i) => {
+      const be = d.best_estimate;
+      return `<tr style="border-bottom:1px solid #f1f5f9">
+        <td style="padding:7px 16px 7px 0;color:${COLORS[i]};font-weight:700">Kx, m = ${i}</td>
+        <td style="padding:7px 16px 7px 0;font-family:monospace;font-size:13px">${be != null ? be.toPrecision(14) : '—'}</td>
+        <td style="padding:7px 0;font-size:12px;color:#888">${d.self_delta_bits_per_step != null ? 'δ = '+d.self_delta_bits_per_step.toFixed(4)+' bits/step' : ''}</td>
+      </tr>`;
+    }).join('');
+
+    // Check all converge to same value
+    const ests = valid.map(d => d.best_estimate).filter(v => v != null);
+    const spread = ests.length > 1 ? Math.max(...ests) - Math.min(...ests) : 0;
+    const isFlat = spread < 1e-6;
+    const verdict = isFlat
+      ? `<div class="info-green" style="margin-top:16px"><strong>✓ Trajectories numerically consistent</strong> — all three estimates agree to within spread = ${spread.toExponential(2)} at this depth. This is empirical evidence consistent with path-independence, not a formal proof.</div>`
+      : `<div class="info-amber" style="margin-top:16px"><strong>⚠ Spread = ${spread.toExponential(2)}</strong> — trajectories have not yet agreed to this depth. Try increasing depth; slow convergence is expected for 3D entries.</div>`;
+
+    result.innerHTML = `
+      <table style="width:100%;font-size:13px;border-collapse:collapse;margin-bottom:4px">
+        <thead><tr style="border-bottom:2px solid #e2e8f0;color:#888">
+          <th style="text-align:left;padding:8px 16px 8px 0;font-size:10px;text-transform:uppercase;letter-spacing:.06em">Trajectory</th>
+          <th style="text-align:left;padding:8px 16px 8px 0;font-size:10px;text-transform:uppercase;letter-spacing:.06em">Best estimate (depth=${depth})</th>
+          <th style="text-align:left;padding:8px 0;font-size:10px;text-transform:uppercase;letter-spacing:.06em">Rate</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      ${verdict}
+      ${valid[0]?.primary_constant ? `<div style="font-size:12px;color:#888;margin-top:8px">Certified constant: <strong style="color:#b45309">${valid[0].primary_constant}</strong></div>` : ''}
+    `;
+
+    status.innerHTML = `<span class="badge" style="background:#e6f9f0;color:#059669;border:1px solid #a7f3d0">✓ ${valid.length} walks complete — CMF #${cmfId}</span>`;
+  } catch(e) {
+    status.innerHTML = `<span style="color:#ef4444">Error: ${e.message}</span>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '▶ Run Demo';
+  }
+}
+</script>
+</body>
+</html>

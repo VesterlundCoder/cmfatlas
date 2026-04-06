@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>CMF Entry — CMF Atlas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{fontFamily:{sans:['Inter','sans-serif']}}}}</script>
+  <script>window.MathJax={tex:{inlineMath:[['\\(','\\)']],displayMath:[['\\[','\\]']]},svg:{fontCache:'global'},options:{skipHtmlTags:['script','noscript','style','textarea']}};</script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <style>
+    *{font-family:'Inter',sans-serif}
+    body{background:#fff;color:#101010}
+    .card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+    .card-grey{background:#f2f4f6;border:1px solid #e2e8f0;border-radius:12px}
+    .badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:9999px;font-size:11px;font-weight:600;letter-spacing:.03em}
+    .badge-teal{background:#e0faf8;color:#0bb4aa;border:1px solid #b2ede9}
+    .badge-green{background:#e6f9f0;color:#059669;border:1px solid #a7f3d0}
+    .badge-amber{background:#fef9e7;color:#b45309;border:1px solid #fcd34d}
+    .badge-grey{background:#f1f5f9;color:#64748b;border:1px solid #cbd5e1}
+    .badge-violet{background:#f3f0ff;color:#7c3aed;border:1px solid #c4b5fd}
+    .nav-link{color:#555;font-size:14px;font-weight:500;transition:color .15s;text-decoration:none}
+    .nav-link:hover{color:#0bb4aa}
+    .meta-row{display:flex;justify-content:space-between;align-items:start;padding:10px 0;border-bottom:1px solid #f1f5f9;font-size:13px}
+    .meta-row:last-child{border-bottom:none}
+    .code-block{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px 16px;font-family:monospace;font-size:12px;line-height:1.6;overflow-x:auto;color:#334155}
+    .bibtex-block{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-family:monospace;font-size:12px;line-height:1.7;white-space:pre;overflow-x:auto;color:#334155}
+    .copy-btn{background:#fff;border:1px solid #e2e8f0;color:#555;padding:5px 14px;border-radius:6px;font-size:11px;cursor:pointer;font-family:inherit;transition:all .15s}
+    .copy-btn:hover{border-color:#0bb4aa;color:#0bb4aa}
+    .section-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:12px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+  </style>
+</head>
+<body class="min-h-screen">
+
+<nav style="background:#fff;border-bottom:1px solid #e2e8f0;position:sticky;top:0;z-index:50">
+  <div class="max-w-7xl mx-auto px-6 flex items-center justify-between" style="height:60px">
+    <a href="index.html" style="font-weight:800;font-size:18px;color:#101010;text-decoration:none;letter-spacing:-0.5px">
+      CMF <span style="color:#0bb4aa">Atlas</span>
+    </a>
+    <div class="flex items-center gap-7">
+      <a href="index.html" class="nav-link">Home</a>
+      <a href="browse.html" class="nav-link">Browse</a>
+      <a href="explorer.html" class="nav-link">Explorer</a>
+      <a href="conservative-test.html" class="nav-link">Flatness Test</a>
+      <a href="sources.html" class="nav-link">Sources</a>
+      <a href="constants.html" class="nav-link">Constants</a>
+      <a href="guide.html" class="nav-link">Guide</a>
+      <a href="about.html" class="nav-link">About</a>
+    </div>
+  </div>
+</nav>
+
+<div class="max-w-5xl mx-auto px-6 py-8" id="main-content">
+  <div style="color:#aaa;font-size:13px;padding:48px;text-align:center">Loading entry…</div>
+</div>
+
+<script>
+const API = 'https://cmfatlas-production.up.railway.app';
+
+function polyToLatex(s) {
+  if (!s) return '';
+  s = s.replace(/\*\*(\d+)/g, (_, e) => `^{${e}}`);
+  s = s.replace(/(-?\d+)\*([a-zA-Z])/g, '$1$2');
+  s = s.replace(/([a-zA-Z\}])\*([a-zA-Z])/g, '$1$2');
+  return s;
+}
+
+function splitLongPoly(latexStr, termsPerLine) {
+  termsPerLine = termsPerLine || 4;
+  const terms = [];
+  let buf = '', depth = 0;
+  for (let i = 0; i < latexStr.length; i++) {
+    const c = latexStr[i];
+    if (c === '{') { depth++; buf += c; }
+    else if (c === '}') { depth--; buf += c; }
+    else if (depth === 0 && (c === '+' || c === '-') && buf.trim()) {
+      terms.push(buf.trim()); buf = c;
+    } else { buf += c; }
+  }
+  if (buf.trim()) terms.push(buf.trim());
+  if (terms.length <= termsPerLine) return latexStr;
+  const lines = [];
+  for (let i = 0; i < terms.length; i += termsPerLine)
+    lines.push(terms.slice(i, i + termsPerLine).join(' '));
+  return '\\begin{split} &' + lines.join('\\\\ \n&') + '\\end{split}';
+}
+
+function categoryBadge(cat) {
+  if (!cat) return '';
+  const map = {
+    'reference':  '<span class="badge" style="background:#f1f5f9;color:#64748b;border:1px solid #cbd5e1" title="Trivial / rational limit">Reference</span>',
+    'interesting':'<span class="badge" style="background:#fefce8;color:#b45309;border:1px solid #fde68a" title="Converges to known transcendental or irrational">Interesting</span>',
+    'discovery':  '<span class="badge" style="background:#dcfce7;color:#15803d;border:1px solid #86efac" title="Higher-dimensional or Ramanujan-type">Discovery</span>',
+  };
+  return map[cat] || '';
+}
+
+function certBadge(c) {
+  if (!c) return '<span class="badge badge-grey">Unknown</span>';
+  const map = {
+    'A_plus':            '<span class="badge" style="background:#fef3c7;color:#92400e;border:1px solid #fcd34d">A+ — Manually Verified</span>',
+    'A_certified':       '<span class="badge badge-green">A — Formally Certified</span>',
+    'B_verified_numeric':'<span class="badge badge-teal">B — Numerically Verified</span>',
+    'C_scouting':        '<span class="badge badge-amber">C — Scouting</span>',
+  };
+  return map[c] || `<span class="badge badge-grey">${c}</span>`;
+}
+
+function renderMatrices(matrices) {
+  if (!matrices || !matrices.length) return '<div style="color:#aaa;font-size:13px;padding:8px 0">No matrix representation available.</div>';
+  const axisNames = {'k':'k','m':'m','x':'x','y':'y','a':'a','b':'b','c':'c','d':'d'};
+  const parts = matrices.map(mx => {
+    const rows = mx.rows;
+    const n = rows.length;
+    const m = rows[0].length;
+    // Build pmatrix LaTeX — use smallmatrix for entries to keep size manageable
+    const rowsLatex = rows.map(r => r.join(' & ')).join(' \\\\ ');
+    const label = mx.label || `K${mx.index}`;
+    const axisVars = matrices.map(mm => mm.axis).join(',');
+    const varList = matrices.length === 2 ? '(k,m)' : '(' + matrices.map(mm=>mm.axis).join(',') + ')';
+    return `
+      <div style="margin-bottom:24px">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:8px">
+          ${label}${varList} — ${mx.axis ? mx.axis.toUpperCase() : '?'} step matrix
+          ${mx.source === 'explicit' ? '<span style="margin-left:8px;font-size:9px;background:#e0faf8;color:#0bb4aa;border:1px solid #b2ede9;padding:1px 6px;border-radius:9999px;font-weight:600;text-transform:none">explicit</span>' : '<span style="margin-left:8px;font-size:9px;background:#f1f5f9;color:#64748b;border:1px solid #cbd5e1;padding:1px 6px;border-radius:9999px;font-weight:600;text-transform:none">computed</span>'}
+        </div>
+        <div style="overflow-x:auto;font-size:13px;color:#222">
+          \\[${label}${varList} = \\begin{pmatrix} ${rowsLatex} \\end{pmatrix}\\]
+        </div>
+      </div>`;
+  });
+
+  // Flatness conditions
+  const mxLabels = matrices.map(mx => mx.label || `K${mx.index}`);
+  let flatness = '';
+  if (matrices.length === 2) {
+    flatness = `\\(${mxLabels[0]}(k,m) \\cdot ${mxLabels[1]}(k{+}1,m) = ${mxLabels[1]}(k,m) \\cdot ${mxLabels[0]}(k,m{+}1)\\)`;
+  } else if (matrices.length >= 3) {
+    const pairs = [];
+    for (let i = 0; i < matrices.length; i++)
+      for (let j = i+1; j < matrices.length; j++)
+        pairs.push(`\\(${mxLabels[i]} \\cdot ${mxLabels[j]} = ${mxLabels[j]} \\cdot ${mxLabels[i]}\\) (shifted)`);
+    flatness = pairs.join(' &nbsp;&nbsp; ');
+  }
+
+  return `<div class="space-y-2">${parts.join('')}
+    <div style="font-size:12px;color:#666;border:1px solid #e2e8f0;border-radius:8px;padding:12px;background:#f8fafc;margin-top:8px">
+      <strong style="color:#333">Flatness condition:</strong> ${flatness}
+    </div>
+  </div>`;
+}
+
+function buildBibTeX(id, f_poly, dim) {
+  const year = new Date().getFullYear();
+  const slug = `cmf${id}`;
+  return `@misc{vesterlund${year}cmf${id},
+  author    = {Vesterlund, David},
+  title     = {{CMF Atlas} Entry \\#${id}: ${f_poly ? f_poly.substring(0,40) : `Dimension ${dim} CMF`}},
+  year      = {${year}},
+  url       = {https://davidvesterlund.com/cmf-atlas/entry.html?id=${id}},
+  note      = {CMF Atlas v2.2, Conservative Matrix Field Database},
+  license   = {CC BY 4.0}
+}`;
+}
+
+function buildTelescopeDerivation(d) {
+  if (!d.f_poly || !d.matrices || d.matrices.length < 2) return '';
+  const is3d = !!d.is_3d;
+  const vars = is3d ? 'x,y,z' : 'x,y';
+  const subst = is3d ? 'x\\to k,\\, y\\to m,\\, z\\to n' : 'x\\to k,\\, y\\to m';
+
+  // Extract entries from matrices returned by API
+  const K1 = d.matrices[0], K2 = d.matrices[1];
+  const bk1_tex = K1.rows[1][0];   // b(k+1)
+  const akm_tex = K1.rows[1][1];   // a(k,m)
+  const gbar_tex = K2.rows[0][0];  // gbar(k,m)
+  const bk_tex  = K2.rows[1][0];   // b(k)
+  const g_tex   = K2.rows[1][1];   // g(k,m)
+
+  const fpL = polyToLatex(d.f_poly);
+  const fbL = polyToLatex(d.fbar_poly);
+
+  return `
+  <details style="margin-top:6px" onToggle="if(this.open&&window.MathJax)MathJax.typesetPromise([this])">
+    <summary style="cursor:pointer;font-size:12px;font-weight:600;color:#0bb4aa;padding:10px 14px;background:#f0fdfc;border:1px solid #b2ede9;border-radius:8px;list-style:none;display:flex;align-items:center;gap:6px">
+      <span style="font-size:14px">&#9654;</span> How are these matrices derived? &mdash; Telescope Construction
+    </summary>
+    <div style="padding:20px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 8px 8px;background:#fafcff">
+
+      <p style="font-size:13px;color:#555;margin-bottom:16px;line-height:1.6">
+        The K-matrices are built from the two conjugate polynomials \\(f\\) and \\(\\bar{f}\\) via the <strong>telescope construction</strong>:
+      </p>
+
+      <!-- Step 1 -->
+      <div style="margin-bottom:18px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#0bb4aa;margin-bottom:6px">Step 1 &mdash; Substitute variables</div>
+        <div style="font-size:13px;color:#333;padding:10px 14px;background:#fff;border:1px solid #e2e8f0;border-radius:6px">
+          \\[g(k,m) \\;=\\; f(${vars})\\big|_{${subst}} \\;=\\; ${fpL}\\bigl|_{${subst}}\\]
+          \\[\\bar{g}(k,m) \\;=\\; \\bar{f}(${vars})\\big|_{${subst}} \\;=\\; ${fbL}\\bigl|_{${subst}}\\]
+          <div style="margin-top:8px;font-size:12px;color:#555">
+            giving \\(g(k,m) = ${g_tex}\\) and \\(\\bar{g}(k,m) = ${gbar_tex}\\)
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2 -->
+      <div style="margin-bottom:18px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#0bb4aa;margin-bottom:6px">Step 2 &mdash; Build b(k): the denominator polynomial</div>
+        <div style="font-size:13px;color:#333;padding:10px 14px;background:#fff;border:1px solid #e2e8f0;border-radius:6px">
+          Evaluate both polynomials at \\(m=0\\) and multiply:
+          \\[b(k) \\;=\\; g(k,0)\\cdot\\bar{g}(k,0) \\;=\\; ${bk_tex}\\]
+          Then shift by one step:
+          \\[b(k+1) = ${bk1_tex}\\]
+        </div>
+      </div>
+
+      <!-- Step 3 -->
+      <div style="margin-bottom:18px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#0bb4aa;margin-bottom:6px">Step 3 &mdash; Build a(k,m): the diagonal entry</div>
+        <div style="font-size:13px;color:#333;padding:10px 14px;background:#fff;border:1px solid #e2e8f0;border-radius:6px">
+          Subtract \\(\\bar{g}\\) evaluated at \\(k+1\\) from \\(g\\):
+          \\[a(k,m) \\;=\\; g(k,m) - \\bar{g}(k+1,m) \\;=\\; ${akm_tex}\\]
+        </div>
+      </div>
+
+      <!-- Step 4 -->
+      <div style="margin-bottom:10px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#0bb4aa;margin-bottom:6px">Step 4 &mdash; Assemble K&#8321; and K&#8322;</div>
+        <div style="font-size:13px;color:#333;padding:10px 14px;background:#fff;border:1px solid #e2e8f0;border-radius:6px">
+          <strong>K&#8321;</strong> walks along k using \\(b(k+1)\\) (one step ahead in k):
+          \\[K_1(k,m) = \\begin{pmatrix} 0 & 1 \\\\ b(k+1) & a(k,m) \\end{pmatrix} = \\begin{pmatrix} 0 & 1 \\\\ ${bk1_tex} & ${akm_tex} \\end{pmatrix}\\]
+          <div style="margin-top:12px"><strong>K&#8322;</strong> walks along m using \\(b(k)\\) and the full \\(g,\\, \\bar{g}\\):</div>
+          \\[K_2(k,m) = \\begin{pmatrix} \\bar{g}(k,m) & 1 \\\\ b(k) & g(k,m) \\end{pmatrix} = \\begin{pmatrix} ${gbar_tex} & 1 \\\\ ${bk_tex} & ${g_tex} \\end{pmatrix}\\]
+        </div>
+      </div>
+
+      <div style="font-size:12px;color:#888;margin-top:14px;padding:10px 14px;background:#f8fafc;border-radius:6px;border:1px solid #e2e8f0">
+        <strong style="color:#333">Flatness:</strong> Path independence means \\(K_1(k,m)\\cdot K_2(k+1,m) = K_2(k,m)\\cdot K_1(k,m+1)\\) for all integers \\(k,m\\). This is what the Sage symbolic proof verifies exactly in \\(\\mathbb{Q}[k,m]\\).
+      </div>
+    </div>
+  </details>`;
+}
+
+async function loadEntry() {
+  const params = new URLSearchParams(window.location.search);
+  const id = params.get('id');
+  if (!id) {
+    document.getElementById('main-content').innerHTML =
+      '<div class="text-red-400 py-12 text-center">No CMF ID specified. Use <code>?id=N</code> in the URL.</div>';
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API}/cmfs/${id}/full`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const d = await res.json();
+
+    document.title = `CMF #${d.id} — CMF Atlas`;
+    const hasFormula = !!d.f_poly;
+    const fpL = polyToLatex(d.f_poly);
+    const fbL = polyToLatex(d.fbar_poly);
+    const bibtex = buildBibTeX(d.id, d.f_poly, d.dimension);
+
+    const identConst = d.identified_constant;
+    const identMethod = d.identification_method;
+    const identDigits = d.identification_digits;
+    const methodLabel = {'pconst':'Known','float':'Float match','pslq':'PSLQ','isc':'ISC','pf_pslq':'PF+PSLQ'}[identMethod] || (identMethod||'');
+
+    document.getElementById('main-content').innerHTML = `
+      <!-- Breadcrumb -->
+      <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#888;margin-bottom:24px">
+        <a href="browse.html" style="color:#0bb4aa;text-decoration:none;font-weight:500">Browse</a>
+        <span>›</span>
+        <span style="color:#333">CMF #${d.id}</span>
+      </div>
+
+      <!-- Header -->
+      <div style="background:linear-gradient(135deg,#f0fdfc 0%,#fff 60%);border:1px solid #e2e8f0;border-radius:16px;padding:28px 28px 24px;margin-bottom:24px">
+        <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:16px">
+          <div>
+            <h1 style="font-size:2rem;font-weight:800;color:#101010;margin-bottom:10px;letter-spacing:-0.5px">CMF #${d.id}</h1>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+              <span class="badge badge-teal">${d.dimension}D</span>
+              ${categoryBadge(d.category)}
+              ${certBadge(d.certification_level)}
+              ${d.flatness_verified ? '<span class="badge badge-green">✓ Flatness Verified</span>' : ''}
+              ${d.symbolic_verification?.result === 'PASS' ? '<span class="badge" style="background:#dcfce7;color:#15803d;border:1px solid #86efac">🔬 Symbolically Proven</span>' : ''}
+              ${hasFormula ? '<span class="badge" style="background:#e0faf8;color:#0bb4aa;border:1px solid #b2ede9">▶ Walkable</span>' : ''}
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            ${hasFormula ? `<a href="explorer.html?id=${d.id}" style="background:#0bb4aa;color:#fff;font-weight:600;padding:9px 18px;border-radius:8px;font-size:13px;text-decoration:none;display:inline-flex;align-items:center;gap:6px">▶ Matrix Walk</a>` : ''}
+            ${hasFormula ? `<a href="conservative-test.html?id=${d.id}" style="border:2px solid #0bb4aa;color:#0bb4aa;font-weight:600;padding:8px 16px;border-radius:8px;font-size:13px;text-decoration:none;background:#fff">Flatness Test</a>` : ''}
+          </div>
+        </div>
+      </div>
+
+      <!-- Identified Constant Banner -->
+      ${identConst ? `
+      <div style="background:linear-gradient(135deg,#fefce8,#fffbeb);border:2px solid #fcd34d;border-radius:14px;padding:18px 22px;margin-bottom:20px;display:flex;align-items:center;gap:16px">
+        <div style="font-size:1.8rem;line-height:1">&#128273;</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#92400e;margin-bottom:5px">Identified Constant</div>
+          <div style="font-size:1.15rem;font-weight:700;color:#101010;font-family:monospace;overflow-wrap:break-word">${identConst}</div>
+          <div style="margin-top:6px;display:flex;align-items:center;flex-wrap:wrap;gap:8px;font-size:12px">
+            <span style="background:#fef3c7;border:1px solid #fcd34d;padding:2px 9px;border-radius:9999px;font-weight:600;color:#92400e">${methodLabel}</span>
+            ${identDigits ? `<span style="color:#b45309;font-weight:500">${identDigits >= 20 ? '&#10003; Confirmed' : identDigits + ' matching digits'}</span>` : ''}
+          </div>
+        </div>
+      </div>
+      ` : ''}
+
+      <!-- Main grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+
+        <!-- Left: Math -->
+        <div class="lg:col-span-2 space-y-5">
+
+          <!-- Polynomial form -->
+          ${hasFormula ? `
+          <div class="card p-6">
+            <div class="section-label">Polynomial Form</div>
+            <div style="overflow-x:auto;padding:16px 0">
+              \\[f(${d.is_3d ? 'x,y,z' : 'x,y'}) = ${d.f_poly.length > 80 ? splitLongPoly(fpL, 4) : fpL}\\]
+            </div>
+            ${d.fbar_poly ? `<div style="overflow-x:auto">\\[\\bar{f}(${d.is_3d ? 'x,y,z' : 'x,y'}) = ${d.fbar_poly.length > 80 ? splitLongPoly(fbL, 4) : fbL}\\]</div>` : ''}
+            <details style="margin-top:16px">
+              <summary style="font-size:12px;color:#888;cursor:pointer">&#9654; Raw machine syntax</summary>
+              <div class="code-block" style="margin-top:8px">
+                <div>f(${d.is_3d?'x,y,z':'x,y'}) = <span style="color:#059669">${d.f_poly}</span></div>
+                ${d.fbar_poly ? `<div>f̄(${d.is_3d?'x,y,z':'x,y'}) = <span style="color:#059669">${d.fbar_poly}</span></div>` : ''}
+              </div>
+            </details>
+          </div>
+          ` : `
+          <div class="card p-6">
+            <div class="section-label">Polynomial Form</div>
+            <div style="color:#888;font-size:13px;font-style:italic;padding:16px 0">No explicit polynomial form — this CMF is defined via matrix entries or pFq hypergeometric structure.</div>
+            ${d.description ? `<p style="font-size:13px;color:#555;line-height:1.6">${d.description}</p>` : ''}
+          </div>
+          `}
+
+          <!-- Matrix structure -->
+          ${d.matrices && d.matrices.length ? `
+          <div class="card p-6">
+            <div class="section-label">K-Matrix Structure</div>
+            ${renderMatrices(d.matrices)}
+            ${buildTelescopeDerivation(d)}
+          </div>
+          ` : ''}
+
+          <!-- Symbolic verification / certification panel -->
+          ${hasFormula && !d.is_3d ? `
+          <div class="card p-6" id="symverify-card">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+              <div>
+                <div class="section-label" style="margin-bottom:4px">Symbolic Flatness Proof</div>
+                <div style="font-size:12px;color:#888">Exact polynomial arithmetic — no numerical approximation</div>
+              </div>
+              ${d.symbolic_verification?.result === 'PASS' || d.certification_level === 'A_certified'
+                ? `<span class="badge" style="background:#dcfce7;color:#15803d;border:1px solid #86efac">✓ Already certified</span>`
+                : `<button id="symverify-btn" onclick="runSymVerify(${d.id})" style="background:#0bb4aa;color:#fff;font-weight:700;padding:9px 18px;border-radius:8px;font-size:13px;cursor:pointer;border:none;font-family:inherit;display:flex;align-items:center;gap:6px">🔬 Verify Symbolically</button>`
+              }
+            </div>
+            ${d.symbolic_verification?.result === 'PASS' ? `
+            <div id="symverify-steps" style="margin-top:16px">
+              <div style="font-size:12px;color:#15803d;padding:10px 14px;background:#f0fdf4;border-radius:8px;border:1px solid #86efac">
+                ✓ Proved flat in QQ[k,m] · SageMath ${d.symbolic_verification.sage_version?.match(/\\d+\\.\\d+/)?.[0] || ''} · ${d.symbolic_verification.verified_at?.substring(0,10) || ''}
+              </div>
+            </div>` : '<div id="symverify-steps" style="margin-top:0"></div>'}
+          </div>
+          ` : ''}
+
+          <!-- 3D Path-Independence Heuristic panel -->
+          ${d.is_3d ? `
+          <div class="card p-6" style="border:1px solid #b2ede9;background:linear-gradient(135deg,#f0fdfc,#fff)">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px">
+              <div>
+                <div class="section-label" style="margin-bottom:4px;color:#0bb4aa">Path-Independence Heuristic Test</div>
+                <div style="font-size:12px;color:#888">Runs three Kx trajectories with different fixed shifts — flat CMFs converge to the same value</div>
+              </div>
+              <span class="badge badge-teal">✓ B-verified numeric</span>
+            </div>
+            <div style="font-size:12px;color:#555;margin-bottom:14px;padding:10px 14px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;line-height:1.8">
+              The conservative test's 2&times;2 telescope formula is not applicable to this CMF: CMF Hunter 3D entries are certified using an internal method that is not the standard telescope construction, so the stored polynomial f(x,y,z) does not satisfy the 2&times;2 cocycle condition. Residuals from the conservative test are meaningless here.<br/>
+              <strong>Path-independence can still be tested directly</strong> using trajectories: a flat CMF always converges to the same value regardless of the starting shift. Run the heuristic below to verify.
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px">
+              <select id="heuristic-depth-${d.id}" style="background:#fff;border:1px solid #e2e8f0;color:#333;border-radius:8px;padding:7px 12px;font-size:13px;outline:none">
+                <option value="500">500 steps</option>
+                <option value="1000" selected>1000 steps</option>
+                <option value="2000">2000 steps</option>
+              </select>
+              <button id="heuristic-btn-${d.id}" onclick="runEntryHeuristic(${d.id})" style="background:#0bb4aa;color:#fff;font-weight:700;padding:9px 20px;border-radius:8px;font-size:13px;cursor:pointer;border:none;font-family:inherit">▶ Run Heuristic Test</button>
+            </div>
+            <div id="heuristic-status-${d.id}" style="font-size:12px;color:#888;margin-bottom:8px"></div>
+            <div id="heuristic-chart-wrap-${d.id}" style="display:none;margin-bottom:12px"><canvas id="heuristic-chart-${d.id}" style="max-height:240px"></canvas></div>
+            <div id="heuristic-result-${d.id}"></div>
+          </div>
+          ` : ''}
+
+          <!-- Representation -->
+          <div class="card p-6">
+            <div class="section-label">Representation</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 24px;font-size:13px">
+              <div><span style="color:#888">Group:</span> <span style="color:#333;font-weight:500">${d.representation?.primary_group || '—'}</span></div>
+              <div><span style="color:#888">Source type:</span> <span style="color:#333;font-weight:500">${d.representation?.source_type || '—'}</span></div>
+              ${d.representation?.axes ? `<div><span style="color:#888">Axes:</span> <span style="color:#333;font-family:monospace">(${Array.isArray(d.representation.axes) ? d.representation.axes.join(', ') : d.representation.axes})</span></div>` : ''}
+              <div><span style="color:#888">Conjugacy:</span> <span style="color:#333;font-family:monospace">${d.representation?.conjugacy || '(none)'}</span></div>
+              <div><span style="color:#888">Monomials:</span> <span style="color:#333">${d.representation?.n_monomials ?? '—'}</span></div>
+            </div>
+            <div style="margin-top:12px;font-size:11px;color:#aaa;font-family:monospace">Fingerprint: ${d.representation?.canonical_fingerprint || '—'}</div>
+          </div>
+
+          <!-- Provenance -->
+          <div class="card p-6">
+            <div class="section-label">Provenance</div>
+            <div style="font-size:13px;line-height:1.8">
+              <div><span style="color:#888">Series:</span> <span style="color:#333;font-family:monospace">${d.series?.name || '—'}</span></div>
+              <div><span style="color:#888">Generator type:</span> <span style="color:#333">${d.series?.generator_type || '—'}</span></div>
+              <div><span style="color:#888">Provenance:</span> <span style="color:#666;font-size:12px">${d.series?.provenance || '—'}</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Metadata + Citation -->
+        <div class="space-y-5">
+
+          <!-- Key metadata -->
+          <div class="card p-5">
+            <div class="section-label">Metadata</div>
+            <div>
+              ${identConst ? `
+              <div class="meta-row" style="border-bottom:1px solid #fde68a;background:#fefce8;margin:0 -4px;padding:10px 4px;border-radius:6px">
+                <span style="color:#92400e;font-weight:600">&#128273; Identified</span>
+                <span style="color:#101010;font-weight:700;font-size:12px;font-family:monospace;text-align:right;max-width:160px;overflow-wrap:break-word">${identConst}</span>
+              </div>
+              ` : ''}
+              <div class="meta-row">
+                <span style="color:#888">Primary Constant</span>
+                <span style="color:#b45309;font-weight:600">${d.primary_constant || '—'}</span>
+              </div>
+              <div class="meta-row">
+                <span style="color:#888">Dimension</span>
+                <span style="color:#333;font-weight:500">${d.dimension}D</span>
+              </div>
+              <div class="meta-row">
+                <span style="color:#888">Degree</span>
+                <span style="color:#333">${d.degree ?? '—'}</span>
+              </div>
+              <div class="meta-row">
+                <span style="color:#888">Certification</span>
+                ${certBadge(d.certification_level)}
+              </div>
+              <div class="meta-row">
+                <span style="color:#888">Flatness</span>
+                <span style="color:${d.flatness_verified?'#059669':'#aaa'}">${d.flatness_verified?'✓ Verified':'Not verified'}</span>
+              </div>
+              ${d.symbolic_verification ? `
+              <div class="meta-row">
+                <span style="color:#888">Symbolic proof</span>
+                <span style="color:#15803d;font-size:12px">✓ SageMath ${d.symbolic_verification.sage_version?.match(/\d+\.\d+/)?.[0] || ''}</span>
+              </div>` : ''}
+              <div class="meta-row">
+                <span style="color:#888">Source</span>
+                <span style="color:#555;font-size:12px">${d.source || '—'}</span>
+              </div>
+              <div class="meta-row">
+                <span style="color:#888">Added</span>
+                <span style="color:#aaa;font-size:12px">${d.created_at ? d.created_at.substring(0,10) : '—'}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Stable URL -->
+          <div class="card p-5">
+            <div class="section-label">Stable URL</div>
+            <div class="code-block" style="font-size:11px;word-break:break-all;color:#0bb4aa">
+              https://davidvesterlund.com/cmf-atlas/entry.html?id=${d.id}
+            </div>
+            <button class="copy-btn" style="margin-top:8px;width:100%" onclick="copyText('https://davidvesterlund.com/cmf-atlas/entry.html?id=${d.id}',this)">
+              Copy URL
+            </button>
+          </div>
+
+          <!-- Citation -->
+          <div class="card p-5">
+            <div class="section-label" style="display:flex;justify-content:space-between;align-items:center">
+              <span>BibTeX Citation</span>
+              <button class="copy-btn" id="bibtex-copy-btn" onclick="copyBibTeX()">Copy</button>
+            </div>
+            <pre class="bibtex-block" style="margin-top:12px;font-size:11px" id="bibtex-block">${bibtex}</pre>
+          </div>
+
+          <!-- Features -->
+          ${d.features && Object.keys(d.features).length ? `
+          <div class="card p-5">
+            <div class="section-label">Complexity Features</div>
+            <div style="font-size:12px;color:#555;line-height:2">
+              ${d.features.complexity_score !== undefined ? `<div>Complexity score: <strong style="color:#333">${d.features.complexity_score?.toFixed(3)}</strong></div>` : ''}
+              ${d.features.d_finite_rank_proxy !== undefined ? `<div>D-finite rank proxy: <strong style="color:#333">${d.features.d_finite_rank_proxy}</strong></div>` : ''}
+              ${d.features.rec_order !== undefined ? `<div>Recurrence order: <strong style="color:#333">${d.features.rec_order}</strong></div>` : ''}
+            </div>
+          </div>
+          ` : ''}
+
+          <!-- Symbolic verification / A-certified certificate -->
+          ${d.symbolic_verification || d.certification_level === 'A_certified' || d.certification_level === 'A_plus' ? `
+          <div class="card p-5" style="border:1px solid #86efac;background:linear-gradient(135deg,#f0fdf4,#fff)">
+            <div class="section-label" style="color:#15803d">🔬 Symbolic Verification Certificate</div>
+            <div style="font-size:12px;color:#555;line-height:2;margin-top:4px">
+              <div><span style="color:#888">Result:</span> <strong style="color:#15803d">✓ PASS — Flatness proven exactly</strong></div>
+              ${d.symbolic_verification ? `
+              <div><span style="color:#888">Method:</span> <span style="color:#333">${d.symbolic_verification.mode === 'poly' ? 'Exact polynomial arithmetic in QQ[k,m' + (d.is_3d ? ',n' : '') + ']' : 'simplify_rational() in SR'}</span></div>
+              <div><span style="color:#888">System:</span> <span style="color:#333">SageMath ${d.symbolic_verification.sage_version?.replace('SageMath version ','')?.split(',')[0] || ''}</span></div>
+              <div><span style="color:#888">Verified:</span> <span style="color:#aaa">${d.symbolic_verification.verified_at ? d.symbolic_verification.verified_at.substring(0,10) : '—'}</span></div>
+              <div style="margin-top:6px;font-size:11px;color:#888;font-style:italic">${d.symbolic_verification.detail || ''}</div>
+              ` : `
+              <div><span style="color:#888">Method:</span> <span style="color:#333">Symbolic + algebraic readout (A_certified)</span></div>
+              <div><span style="color:#888">Flatness:</span> <span style="color:#333">${d.flatness_verified ? '✓ Verified' : 'Certified by construction'}</span></div>
+              `}
+            </div>
+          </div>
+          ` : ''}
+
+          <!-- Relations panel (populated by loadRelations) -->
+          <div class="card p-5" id="relations-panel" style="min-height:40px"></div>
+
+        </div>
+      </div>
+    `;
+
+    if (window.MathJax) MathJax.typesetPromise([document.getElementById('main-content')]);
+
+    injectJsonLD(d);
+    loadRelations(d.id);
+
+  } catch(e) {
+    document.getElementById('main-content').innerHTML =
+      `<div class="text-red-400 py-12 text-center">Failed to load entry: ${e.message}</div>`;
+  }
+}
+
+function injectJsonLD(d) {
+  const existing = document.getElementById('entry-jsonld');
+  if (existing) existing.remove();
+  const el = document.createElement('script');
+  el.id = 'entry-jsonld';
+  el.type = 'application/ld+json';
+  const entryUri = `https://davidvesterlund.com/cmf-atlas/entry.html?id=${d.id}`;
+  el.textContent = JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "Dataset",
+    "name": `CMF Atlas Entry #${d.id}`,
+    "description": `Conservative Matrix Field #${d.id}: ${d.dimension}D, ${d.primary_constant || 'unidentified'}, ${d.certification_level || 'unknown certification'}.`,
+    "identifier": `cmf-atlas-entry-${d.id}`,
+    "url": entryUri,
+    "license": "https://creativecommons.org/licenses/by/4.0/",
+    "version": "2.3",
+    "creator": {"@type": "Person", "name": "David Vesterlund"},
+    "isPartOf": {"@type": "Dataset", "name": "CMF Atlas", "url": "https://davidvesterlund.com/cmf-atlas/"},
+    "keywords": ["Conservative Matrix Field", "CMF", d.primary_constant, `${d.dimension}D`, d.certification_level].filter(Boolean),
+    "additionalProperty": [
+      {"@type": "PropertyValue", "name": "dimension",           "value": d.dimension},
+      {"@type": "PropertyValue", "name": "proof_status",        "value": d.proof_status || "unverified"},
+      {"@type": "PropertyValue", "name": "identification_status","value": d.identification_status || "unidentified"},
+      {"@type": "PropertyValue", "name": "construction_type",   "value": d.construction_type || ""},
+      {"@type": "PropertyValue", "name": "source_family",       "value": d.source_family || d.source_category || ""},
+      {"@type": "PropertyValue", "name": "release_version",     "value": "2.3"},
+    ]
+  });
+  document.head.appendChild(el);
+  let canon = document.querySelector('link[rel="canonical"]');
+  if (!canon) { canon = document.createElement('link'); canon.rel = 'canonical'; document.head.appendChild(canon); }
+  canon.href = entryUri;
+  document.title = `CMF #${d.id} — ${d.primary_constant || 'CMF'} (${d.dimension}D) — CMF Atlas`;
+}
+
+async function loadRelations(cmfId) {
+  const rel = await fetch(`${API}/cmfs/${cmfId}/relations`).then(r => r.json()).catch(() => null);
+  if (!rel) return;
+  const panel = document.getElementById('relations-panel');
+  if (!panel) return;
+  const lc = rel.linked_constant;
+  const re = rel.related_entries || [];
+  panel.innerHTML = `
+    <div class="section-label">Related Objects</div>
+    ${lc ? `
+    <div style="margin-bottom:10px">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:4px">Linked Constant</div>
+      <a href="constants.html#${lc.id}" style="color:#0bb4aa;font-weight:600;font-size:13px;text-decoration:none">
+        \\(${lc.latex}\\) — ${lc.label}
+      </a>
+      <div style="font-size:11px;color:#aaa;margin-top:2px">irrationality: ${lc.irrationality_status || '—'} &nbsp;|&nbsp; transcendence: ${lc.transcendence_status || '—'}</div>
+    </div>
+    ` : ''}
+    ${re.length ? `
+    <div>
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:4px">Related Entries (same constant)</div>
+      ${re.map(r => `<div style="font-size:12px;margin-bottom:4px"><a href="entry.html?id=${r.id}" style="color:#0bb4aa;text-decoration:none;font-weight:600">#${r.id}</a> <span style="color:#aaa">${r.dimension}D · ${r.certification_level || ''}</span></div>`).join('')}
+    </div>` : ''}
+    ${!lc && !re.length ? '<div style="color:#aaa;font-size:12px">No linked objects found.</div>' : ''}
+  `;
+  if (window.MathJax) MathJax.typesetPromise([panel]);
+}
+
+function copyText(text, btn) {
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = 'Copied!';
+    btn.style.color = '#0bb4aa';
+    setTimeout(() => { btn.textContent = orig; btn.style.color = ''; }, 1500);
+  });
+}
+
+function copyBibTeX() {
+  const text = document.getElementById('bibtex-block').textContent;
+  const btn = document.getElementById('bibtex-copy-btn');
+  copyText(text, btn);
+}
+
+async function runSymVerify(cmfId) {
+  const btn = document.getElementById('symverify-btn');
+  const stepsDiv = document.getElementById('symverify-steps');
+  if (!btn || !stepsDiv) return;
+
+  btn.disabled = true;
+  btn.innerHTML = '<span style="animation:spin 1s linear infinite;display:inline-block">⏳</span> Computing…';
+  stepsDiv.innerHTML = '<div style="color:#aaa;font-size:12px;padding:8px 0">Running sympy — exact polynomial arithmetic in ℚ[k,m]…</div>';
+
+  try {
+    const res = await fetch(`${API}/cmfs/${cmfId}/verify-steps`);
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || `HTTP ${res.status}`);
+    }
+    const d = await res.json();
+
+    stepsDiv.innerHTML = '';
+    stepsDiv.style.marginTop = '20px';
+
+    // Reveal steps one by one
+    for (let i = 0; i < d.steps.length; i++) {
+      await new Promise(r => setTimeout(r, i === 0 ? 0 : 320));
+      const step = d.steps[i];
+      const isResult = step.result === 'PASS' || step.result === 'FAIL' || step.result === 'PENDING';
+      const bg = step.result === 'PASS' ? '#f0fdf4' : step.result === 'FAIL' ? '#fef2f2' : '#f8fafc';
+      const border = step.result === 'PASS' ? '#86efac' : step.result === 'FAIL' ? '#fca5a5' : '#e2e8f0';
+      const color = step.result === 'PASS' ? '#15803d' : step.result === 'FAIL' ? '#dc2626' : '#64748b';
+
+      const el = document.createElement('div');
+      el.style.cssText = `opacity:0;transition:opacity .3s ease;margin-bottom:14px;padding:12px 16px;border-radius:8px;border:1px solid ${border};background:${bg}`;
+      el.innerHTML = `
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:${isResult ? color : '#888'};margin-bottom:6px">
+          ${step.label}
+          ${step.result === 'PASS' ? ' <span style="margin-left:6px">✓ PROVED</span>' : ''}
+          ${step.result === 'FAIL' ? ' <span style="margin-left:6px">✗ FAIL</span>' : ''}
+        </div>
+        <div style="font-size:13px;color:#333;overflow-x:auto">\\[${step.latex}\\]</div>
+        ${step.residual ? `<details style="margin-top:6px"><summary style="font-size:11px;color:#dc2626;cursor:pointer">Non-zero residuals</summary><div style="font-size:11px;font-family:monospace;color:#555;padding:6px 0">${Object.entries(step.residual).map(([k,v])=>`${k}: \\(${v}\\)`).join('<br>')}</div></details>` : ''}
+      `;
+      stepsDiv.appendChild(el);
+      // Trigger reflow for animation
+      el.getBoundingClientRect();
+      el.style.opacity = '1';
+
+      if (window.MathJax) MathJax.typesetPromise([el]);
+    }
+
+    // Update button to show final result
+    if (d.result === 'PASS') {
+      btn.style.background = '#059669';
+      btn.innerHTML = '✓ Flatness Proved';
+    } else if (d.result === 'FAIL') {
+      btn.style.background = '#dc2626';
+      btn.innerHTML = '✗ Not Flat (with this formula)';
+      btn.disabled = false;
+    } else {
+      btn.innerHTML = '○ Pending';
+      btn.disabled = true;
+    }
+
+  } catch(e) {
+    stepsDiv.innerHTML = `<div style="color:#dc2626;font-size:13px;padding:8px 0">Error: ${e.message}</div>`;
+    btn.disabled = false;
+    btn.innerHTML = '🔬 Verify Symbolically';
+  }
+}
+
+const HEURISTIC_COLORS = ['#0bb4aa','#f59e0b','#7c3aed'];
+const entryHeuristicCharts = {};
+
+async function runEntryHeuristic(cmfId) {
+  const depth = document.getElementById(`heuristic-depth-${cmfId}`).value;
+  const btn = document.getElementById(`heuristic-btn-${cmfId}`);
+  const status = document.getElementById(`heuristic-status-${cmfId}`);
+  const chartWrap = document.getElementById(`heuristic-chart-wrap-${cmfId}`);
+  const result = document.getElementById(`heuristic-result-${cmfId}`);
+
+  btn.disabled = true;
+  btn.textContent = '⏳ Running…';
+  status.textContent = 'Running trajectories m = 0, 1, 2…';
+  chartWrap.style.display = 'none';
+  result.innerHTML = '';
+
+  try {
+    const fetches = [0, 1, 2].map(m => {
+      const p = new URLSearchParams({ depth, direction: 'x', m_fixed: m, n_fixed: 1 });
+      return fetch(`${API}/cmfs/${cmfId}/walk?${p}`).then(r => r.json());
+    });
+    const results = await Promise.all(fetches);
+    const valid = results.filter(r => r && r.sequence && r.sequence.length);
+
+    if (!valid.length) {
+      status.innerHTML = '<span style="color:#ef4444">All walks failed — this CMF may not support polynomial-form walks.</span>';
+      return;
+    }
+
+    // Chart
+    const datasets = valid.map((d, i) => {
+      const finite = d.sequence.filter(s => s.value !== null);
+      return {
+        label: `Kx, m=${i}`,
+        data: finite.map(s => ({x: s.step, y: s.value})),
+        borderColor: HEURISTIC_COLORS[i], backgroundColor: HEURISTIC_COLORS[i]+'20',
+        borderWidth: 2, pointRadius: 0, tension: 0.1, fill: false,
+      };
+    });
+    chartWrap.style.display = '';
+    if (entryHeuristicCharts[cmfId]) entryHeuristicCharts[cmfId].destroy();
+    entryHeuristicCharts[cmfId] = new Chart(document.getElementById(`heuristic-chart-${cmfId}`), {
+      type: 'line',
+      data: { datasets },
+      options: {
+        responsive: true, maintainAspectRatio: true,
+        animation: { duration: 200 }, parsing: false,
+        plugins: { legend: { labels: { color:'#555', font:{size:11} } } },
+        scales: {
+          x: { type:'linear', ticks:{color:'#888',maxTicksLimit:8}, grid:{color:'#f1f5f9'},
+               title:{display:true,text:'Step k',color:'#888',font:{size:11}} },
+          y: { ticks:{color:'#888'}, grid:{color:'#f1f5f9'},
+               title:{display:true,text:'Convergent',color:'#888',font:{size:11}} }
+        }
+      }
+    });
+
+    // Summary table
+    const ests = valid.map(d => d.best_estimate).filter(v => v != null);
+    const spread = ests.length > 1 ? Math.max(...ests) - Math.min(...ests) : 0;
+    const isFlat = spread < 1e-4;
+
+    const rows = valid.map((d, i) => {
+      const be = d.best_estimate;
+      return `<tr style="border-bottom:1px solid #f1f5f9">
+        <td style="padding:6px 14px 6px 0;color:${HEURISTIC_COLORS[i]};font-weight:700">m = ${i}</td>
+        <td style="padding:6px 14px 6px 0;font-family:monospace;font-size:12px">${be != null ? be.toPrecision(12) : '—'}</td>
+        <td style="padding:6px 0;font-size:11px;color:#888">${d.self_delta_bits_per_step != null ? 'δ = '+d.self_delta_bits_per_step.toFixed(3)+' bits/step' : ''}</td>
+      </tr>`;
+    }).join('');
+
+    const verdictHtml = isFlat
+      ? `<div style="margin-top:12px;padding:10px 14px;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;font-size:12px;color:#15803d"><strong>✓ Trajectories agree</strong> — spread = ${spread.toExponential(2)} at depth ${depth}. Empirical evidence consistent with path-independence.</div>`
+      : `<div style="margin-top:12px;padding:10px 14px;background:#fef9e7;border:1px solid #fcd34d;border-radius:8px;font-size:12px;color:#92400e"><strong>⚠ Spread = ${spread.toExponential(2)}</strong> — trajectories have not yet converged at this depth. Try increasing depth; 3D CMFs converge slowly.</div>`;
+
+    result.innerHTML = `
+      <table style="width:100%;font-size:13px;border-collapse:collapse;margin-top:4px">
+        <thead><tr style="border-bottom:2px solid #e2e8f0;color:#888;font-size:10px">
+          <th style="text-align:left;padding:6px 14px 6px 0;text-transform:uppercase;letter-spacing:.06em">Trajectory</th>
+          <th style="text-align:left;padding:6px 14px 6px 0;text-transform:uppercase;letter-spacing:.06em">Best estimate (depth ${depth})</th>
+          <th style="text-align:left;padding:6px 0;text-transform:uppercase;letter-spacing:.06em">Rate</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      ${verdictHtml}`;
+
+    status.innerHTML = `<span style="background:#e0faf8;color:#0bb4aa;border:1px solid #b2ede9;padding:2px 10px;border-radius:9999px;font-size:11px;font-weight:600">${valid.length} walks complete</span>`;
+  } catch(e) {
+    status.innerHTML = `<span style="color:#ef4444">Error: ${e.message}</span>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '▶ Run Heuristic Test';
+  }
+}
+
+loadEntry();
+</script>
+</body>
+</html>

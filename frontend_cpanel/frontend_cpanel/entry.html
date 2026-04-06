@@ -136,21 +136,38 @@ function renderMatrices(matrices, d) {
     }
     return '<div style="color:#aaa;font-size:13px;padding:8px 0">No matrix representation available.</div>';
   }
-  const axisNames = {'k':'k','m':'m','x':'x','y':'y','a':'a','b':'b','c':'c','d':'d'};
+  const isLDU = matrices.some(mx => (mx.source||'').startsWith('ldu_'));
+
+  // LDU factorization view
+  if (isLDU) {
+    const lduParts = matrices.map(mx => {
+      const rows = mx.rows;
+      const rowsLatex = rows.map(r => r.join(' & ')).join(' \\\\ ');
+      const lbl = mx.label || `K${mx.index}`;
+      return `<div style="margin-bottom:20px">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:6px">${lbl}</div>
+        <div style="overflow-x:auto;font-size:13px;color:#222">\\[${lbl} = \\begin{pmatrix}${rowsLatex}\\end{pmatrix}\\]</div>
+      </div>`;
+    });
+    return `<div>
+      <div style="font-size:12px;color:#64748b;padding:10px 14px;background:#f0fdfc;border:1px solid #b2ede9;border-radius:8px;margin-bottom:16px;line-height:1.7">
+        <strong style="color:#0bb4aa">LDU Gauge Construction</strong> — \\(G(n) = L \\cdot D(n) \\cdot U\\) &nbsp; where \\(D(n)\\) is diagonal-linear in \\((${matrices[1]?.rows?.map((_,i)=>['x','y','z','w','v'][i]||`n_${i}`).join(',') || 'n'}))\\)<br/>
+        \\(K_i(n) = G(n{+}e_i)\\;\\cdot\\;\\Delta_i(n_i)\\;\\cdot\\;G(n)^{-1}\\)  &nbsp; — path-independent by LDU gauge theorem
+      </div>
+      ${lduParts.join('')}
+    </div>`;
+  }
+
   const parts = matrices.map(mx => {
     const rows = mx.rows;
-    const n = rows.length;
-    const m = rows[0].length;
-    // Build pmatrix LaTeX — use smallmatrix for entries to keep size manageable
     const rowsLatex = rows.map(r => r.join(' & ')).join(' \\\\ ');
     const label = mx.label || `K${mx.index}`;
-    const axisVars = matrices.map(mm => mm.axis).join(',');
     const varList = matrices.length === 2 ? '(k,m)' : '(' + matrices.map(mm=>mm.axis).join(',') + ')';
     return `
       <div style="margin-bottom:24px">
         <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:8px">
           ${label}${varList} — ${mx.axis.toUpperCase()} step matrix
-          ${mx.source === 'explicit' ? '<span style="margin-left:8px;font-size:9px;background:#e0faf8;color:#0bb4aa;border:1px solid #b2ede9;padding:1px 6px;border-radius:9999px;font-weight:600;text-transform:none">explicit</span>' : '<span style="margin-left:8px;font-size:9px;background:#f1f5f9;color:#64748b;border:1px solid #cbd5e1;padding:1px 6px;border-radius:9999px;font-weight:600;text-transform:none">computed</span>'}
+          ${mx.source === 'explicit' || mx.source === 'symbolic' ? '<span style="margin-left:8px;font-size:9px;background:#e0faf8;color:#0bb4aa;border:1px solid #b2ede9;padding:1px 6px;border-radius:9999px;font-weight:600;text-transform:none">symbolic</span>' : '<span style="margin-left:8px;font-size:9px;background:#f1f5f9;color:#64748b;border:1px solid #cbd5e1;padding:1px 6px;border-radius:9999px;font-weight:600;text-transform:none">computed</span>'}
         </div>
         <div style="overflow-x:auto;font-size:13px;color:#222">
           \\[${label}${varList} = \\begin{pmatrix} ${rowsLatex} \\end{pmatrix}\\]
@@ -158,7 +175,6 @@ function renderMatrices(matrices, d) {
       </div>`;
   });
 
-  // Flatness conditions
   const mxLabels = matrices.map(mx => mx.label || `K${mx.index}`);
   let flatness = '';
   if (matrices.length === 2) {
