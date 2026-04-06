@@ -171,6 +171,7 @@ def get_queue(
     matrix_size: Optional[int] = Query(None),
     status_filter: Optional[str] = Query(None, description="unlabeled|draft|submitted|reviewed"),
     irrational_only: bool = Query(True, description="If true, only return CMFs marked looks_irrational"),
+    batch_filter: Optional[str] = Query(None, description="Scout batch tag, e.g. v2_anti_hack"),
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
     request: Request = None,
@@ -200,6 +201,9 @@ def get_queue(
 
             if irrational_only:
                 clauses.append("json_extract(c.cmf_payload,'$.looks_irrational') = 1")
+            if batch_filter:
+                clauses.append("json_extract(c.cmf_payload,'$.scout_batch') = :batch")
+                params["batch"] = batch_filter
             if matrix_size is not None:
                 clauses.append("CAST(json_extract(c.cmf_payload,'$.matrix_size') AS INTEGER) = :ms")
                 params["ms"] = matrix_size

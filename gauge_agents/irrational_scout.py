@@ -232,12 +232,14 @@ def write_enriched_record(agent: str, dim: int, params: dict,
         "bidir_ratio":                round(br, 4),
         "params":                     _serialise_params(params),
         "timestamp":                  time.time(),
+        "scout_batch":                "v2_anti_hack",
         # Irrational identification
         "limit_value":                limit_info.get("value_str"),
         "limit_identified":           limit_info.get("identified"),
         "limit_label":                limit_info.get("label"),
         "looks_irrational":           limit_info.get("looks_irrational", False),
         "irrational_type":            limit_info.get("irrational_type"),
+        "gate_result":                limit_info.get("gate_result"),
     }
     # Add symbolic matrices if available
     rec.update(sym_matrices)

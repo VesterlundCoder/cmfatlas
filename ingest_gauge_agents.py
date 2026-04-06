@@ -109,19 +109,43 @@ def build_payload(rec: dict, cmf_id: str, analysis: dict) -> dict:
         "proof_status":      "verified" if primary_const else "numeric_only",
         "identification_status": "pslq_identified" if primary_const else "unidentified",
         "source_family":     f"gauge_agent_{agent.lower()}_{dim}x{dim}",
+        "looks_irrational":  bool(rec.get("looks_irrational", False)),
+        "irrational_type":   rec.get("irrational_type"),
+        "limit_label":       rec.get("limit_label"),
+        "limit_value":       rec.get("limit_value"),
+        "scout_batch":       rec.get("scout_batch"),
     }
 
 # ── Build canonical_payload for representation ────────────────────────────────
 def build_canon_payload(rec: dict, fp: str) -> dict:
     agent = rec.get("agent", "A")
     dim   = int(rec.get("dim", 3))
+
+    _axis_labels  = ["x", "y", "z", "w", "v"]
+    _k_labels     = ["Kx", "Ky", "Kz", "Kw", "Kv"]
+    matrices = []
+    for i, key in enumerate(["X0", "X1", "X2", "X3", "X4"]):
+        rows = rec.get(key)
+        if rows is None:
+            break
+        matrices.append({
+            "label":  _k_labels[i],
+            "axis":   _axis_labels[i],
+            "index":  i,
+            "source": "explicit",
+            "rows":   rows,
+        })
+
+    n_axes = len(matrices) if matrices else 3
+
     return {
         "fingerprint":   fp,
         "matrix_size":   dim,
-        "axes":          3,
+        "axes":          _axis_labels[:n_axes],
         "source_type":   "gauge_agent",
         "agent_type":    agent,
         "dim":           f"{dim}x{dim}",
+        "matrices":      matrices,
     }
 
 # ── Main ingest ────────────────────────────────────────────────────────────────
