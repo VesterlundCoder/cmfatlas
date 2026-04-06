@@ -7,8 +7,11 @@ publication-ready, deduplicated mathematical structures.
 
 STAGE 1 — verify_transcendence
     • mp.dps = 1000 walks at depth 10 000
-    • Extended PSLQ basis: π, e, log(2), ζ(2)–ζ(7), Catalan, γ
-    • Residual threshold: 10^{-500} (below → PROVEN_UNKNOWN_IRRATIONAL)
+    • 4-Gate strict filter (same as reward_engine.classify_limit_strict):
+        G1: Zero/Divergence/±1 trap → FATAL
+        G2: Algebraic purge (prime power roots) → FATAL
+        G3: PSLQ coefficient cap > 50 → FATAL
+        G4: True transcendental PSLQ residual < 1e-50 → MASSIVE BONUS
 
 STAGE 2 — cluster_families
     • Eigenvalue + Tr-of-product structural fingerprint (gauge-invariant)
@@ -50,16 +53,13 @@ STAGE3_OUT_TEX  = HERE / "data" / "distiller_theorems.tex"
 
 sys.path.insert(0, str(GAUGE))
 from run_all_agents import build_eval_fns, AGENT_CONFIGS
+from reward_engine import classify_limit_strict
 
 # ─────────────────────────────────────────────────────────────────────────────
 # STAGE 1 CONSTANTS
 # ─────────────────────────────────────────────────────────────────────────────
 DPS_HIGH        = 1000   # decimal places for deep verification
 WALK_DEPTH      = 10_000 # lattice walk depth
-PSLQ_DPS        = 200    # precision for PSLQ (much less than DPS_HIGH, still very high)
-PSLQ_RESIDUAL_THRESHOLD = -500   # log10 residual — below this → UNKNOWN_IRRATIONAL
-PSLQ_MAXCOEFF   = 1000
-RATIONAL_DENOM  = 10_000  # denominator limit for rationality check
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -114,52 +114,6 @@ def _rebuild_fns(rec: dict):
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# PSLQ BASIS
-# ══════════════════════════════════════════════════════════════════════════════
-
-def _build_extended_basis(dps: int) -> tuple[list[str], list]:
-    mpmath.mp.dps = dps + 20
-    names, vals = [], []
-
-    def add(n, v):
-        names.append(n); vals.append(v)
-
-    add("1",            mpmath.mpf(1))
-    add("pi",           mpmath.pi)
-    add("pi^2",         mpmath.pi ** 2)
-    add("pi^3",         mpmath.pi ** 3)
-    add("pi^4",         mpmath.pi ** 4)
-    add("e",            mpmath.e)
-    add("e^2",          mpmath.e ** 2)
-    add("log2",         mpmath.log(2))
-    add("log3",         mpmath.log(3))
-    add("log5",         mpmath.log(5))
-    add("log7",         mpmath.log(7))
-    add("log2^2",       mpmath.log(2) ** 2)
-    add("sqrt2",        mpmath.sqrt(2))
-    add("sqrt3",        mpmath.sqrt(3))
-    add("sqrt5",        mpmath.sqrt(5))
-    add("sqrt6",        mpmath.sqrt(6))
-    add("phi",          (1 + mpmath.sqrt(5)) / 2)
-    add("zeta2",        mpmath.zeta(2))       # pi^2/6
-    add("zeta3",        mpmath.zeta(3))       # Apéry
-    add("zeta4",        mpmath.zeta(4))
-    add("zeta5",        mpmath.zeta(5))
-    add("zeta6",        mpmath.zeta(6))
-    add("zeta7",        mpmath.zeta(7))
-    add("Catalan",      mpmath.catalan)
-    add("gamma_em",     mpmath.euler)         # Euler-Mascheroni
-    add("1/pi",         1 / mpmath.pi)
-    add("pi/sqrt3",     mpmath.pi / mpmath.sqrt(3))
-    add("pi/sqrt5",     mpmath.pi / mpmath.sqrt(5))
-    add("pi*log2",      mpmath.pi * mpmath.log(2))
-    add("pi*gamma_em",  mpmath.pi * mpmath.euler)
-    add("log2*log3",    mpmath.log(2) * mpmath.log(3))
-
-    return names, vals
-
-
-# ══════════════════════════════════════════════════════════════════════════════
 # STAGE 1 — verify_transcendence
 # ══════════════════════════════════════════════════════════════════════════════
 
@@ -199,66 +153,12 @@ def _is_rational(val: mpmath.mpf, dps: int) -> tuple[bool, str | None]:
     return False, None
 
 
-def _pslq_extended(val: mpmath.mpf, dps: int) -> dict:
-    """Run PSLQ against extended constant basis. Returns classification dict."""
-    mpmath.mp.dps = dps + 20
-    names, basis_vals = _build_extended_basis(dps)
-
-    # Augment basis with the value and its square
-    v = mpmath.mpf(str(val))
-    full_basis  = [v] + basis_vals
-    full_labels = ["L"] + names
-
-    result = {
-        "identified":   False,
-        "relation":     None,
-        "residual_log10": None,
-        "classification": "UNKNOWN_IRRATIONAL",
-    }
-
-    # Try mpmath.identify first (fast)
-    try:
-        rel = mpmath.identify(v, tol=mpmath.power(10, -(dps // 4)))
-        if rel:
-            result["identified"]  = True
-            result["relation"]    = rel
-            result["classification"] = "IDENTIFIED_KNOWN"
-            result["residual_log10"] = -(dps // 4)
-            return result
-    except Exception:
-        pass
-
-    # PSLQ degree 1
-    try:
-        coeffs = mpmath.pslq(full_basis, tol=mpmath.power(10, -(dps // 5)),
-                             maxcoeff=PSLQ_MAXCOEFF)
-        if coeffs is not None:
-            # Check residual
-            residual = abs(sum(c * b for c, b in zip(coeffs, full_basis)))
-            res_log  = float(mpmath.log10(residual + mpmath.power(10, -1200)))
-            result["residual_log10"] = round(res_log, 1)
-            if res_log < PSLQ_RESIDUAL_THRESHOLD:
-                terms = [f"({c})*{l}" for c, l in zip(coeffs, full_labels) if c != 0]
-                result["identified"]  = True
-                result["relation"]    = " + ".join(terms) + " = 0"
-                result["classification"] = "IDENTIFIED_KNOWN" if res_log < -600 else "LIKELY_KNOWN"
-            else:
-                result["classification"] = "WEAK_RELATION_FOUND"
-        else:
-            result["residual_log10"] = 0
-            result["classification"] = "UNKNOWN_IRRATIONAL"
-    except Exception as ex:
-        result["pslq_error"] = str(ex)
-
-    return result
-
-
 def verify_transcendence(candidates: list[dict], store_idx: dict,
                          resume_fps: set[str]) -> list[dict]:
-    """Stage 1: Re-verify all candidates at 1000 dps, classify via PSLQ."""
+    """Stage 1: Re-verify all candidates at 1000 dps, classify via 4-gate system."""
     print("\n" + "═" * 70)
     print("  STAGE 1 — Extreme-Precision Transcendence Verification")
-    print(f"  mp.dps={DPS_HIGH}, depth={WALK_DEPTH:,}, PSLQ_DPS={PSLQ_DPS}")
+    print(f"  mp.dps={DPS_HIGH}, depth={WALK_DEPTH:,}")
     print("═" * 70)
 
     results = []
@@ -304,35 +204,38 @@ def verify_transcendence(candidates: list[dict], store_idx: dict,
         hp_str = mpmath.nstr(hp_val, 50)
         print(f"      ✓ Walk done ({elapsed_walk:.1f}s)  L≈{hp_str[:40]}", flush=True)
 
-        # ── Rational check ────────────────────────────────────────────────
-        is_rat, rat_form = _is_rational(hp_val, DPS_HIGH)
-        if is_rat:
-            print(f"      → RATIONAL at precision {DPS_HIGH}dps: {rat_form}")
-            results.append({**cand, "stage1": {
-                "walk_ok": True, "hp_value": hp_str,
-                "classification": "RATIONAL", "rational_form": rat_form}})
-            continue
-
-        # ── Extended PSLQ ─────────────────────────────────────────────────
-        print(f"      Running PSLQ at dps={PSLQ_DPS} …", flush=True)
+        # ── 4-Gate strict classification ───────────────────────────────────────────────
+        print(f"      Running 4-gate strict classifier …", flush=True)
         t1 = time.time()
-        pslq = _pslq_extended(hp_val, PSLQ_DPS)
-        elapsed_pslq = time.time() - t1
+        hp_float = float(mpmath.nstr(hp_val, 30))
+        gate = classify_limit_strict(hp_float, hp_val=hp_val, verbose=True)
+        elapsed_gate = time.time() - t1
 
-        classif = pslq["classification"]
-        print(f"      → {classif}  residual={pslq.get('residual_log10')}  "
-              f"({elapsed_pslq:.1f}s)")
-        if pslq.get("relation"):
-            print(f"      relation: {pslq['relation'][:80]}")
+        classif = gate["label"]
+        print(f"      → {classif}  ({elapsed_gate:.1f}s)")
+
+        # Map to stage1 classification names expected by Stage 2/3
+        if gate["label"].startswith("FATAL"):
+            s1_class = gate["label"]        # e.g. FATAL_ALGEBRAIC_ESCAPE
+        elif gate["label"] == "TRUE_TRANSCENDENTAL":
+            s1_class = "IDENTIFIED_KNOWN"
+        else:
+            s1_class = "UNKNOWN_IRRATIONAL"
 
         stage1 = {
             "walk_ok":        True,
             "hp_value":       hp_str,
-            "classification": classif,
-            "relation":       pslq.get("relation"),
-            "residual_log10": pslq.get("residual_log10"),
+            "classification": s1_class,
+            "relation":       gate.get("reason"),
+            "residual_log10": (
+                round(math.log10(gate["pslq_residual"]), 1)
+                if gate.get("pslq_residual") and gate["pslq_residual"] > 0
+                else None
+            ),
+            "gate_label":     gate["label"],
+            "gate_passed":    gate["gate_passed"],
             "walk_time_s":    round(elapsed_walk, 1),
-            "pslq_time_s":    round(elapsed_pslq, 1),
+            "gate_time_s":    round(elapsed_gate, 1),
         }
         results.append({**cand, "stage1": stage1})
 
