@@ -22,7 +22,10 @@ experiments_gen2/
 *.log
 deploy/
 
-# gauge_agents — large derived/pipeline files (regenerable from store_*.jsonl)
+# gauge_agents — store files (large, regenerable from agents)
+gauge_agents/store_*.jsonl
+
+# gauge_agents — large derived/pipeline files
 gauge_agents/classified_bucket*.jsonl
 gauge_agents/coupling_summary.json
 gauge_agents/coupling_report.md
