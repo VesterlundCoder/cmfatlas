@@ -126,7 +126,7 @@ function renderMatrices(matrices) {
     return `
       <div style="margin-bottom:24px">
         <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:8px">
-          ${label}${varList} — ${mx.axis.toUpperCase()} step matrix
+          ${label}${varList} — ${mx.axis ? mx.axis.toUpperCase() : '?'} step matrix
           ${mx.source === 'explicit' ? '<span style="margin-left:8px;font-size:9px;background:#e0faf8;color:#0bb4aa;border:1px solid #b2ede9;padding:1px 6px;border-radius:9999px;font-weight:600;text-transform:none">explicit</span>' : '<span style="margin-left:8px;font-size:9px;background:#f1f5f9;color:#64748b;border:1px solid #cbd5e1;padding:1px 6px;border-radius:9999px;font-weight:600;text-transform:none">computed</span>'}
         </div>
         <div style="overflow-x:auto;font-size:13px;color:#222">
