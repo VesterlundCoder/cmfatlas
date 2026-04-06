@@ -43,15 +43,22 @@ def load_analysis(cmf_harvester_root: Path) -> dict:
     return result
 
 # ── Determine certification level ─────────────────────────────────────────────
-def cert_level(cmf_id: str, score: float, analysis: dict) -> str:
+def cert_level(cmf_id: str, score: float, analysis: dict, rec: dict | None = None) -> str:
     if cmf_id in IDENTIFIED_LIMITS:
         return "A_plus"
     row = analysis.get(cmf_id, {})
-    ts = float(row.get("total_score", score) or score)
-    if ts >= 0.75:
-        return "A_certified"
-    if ts >= 0.50:
-        return "B_verified_numeric"
+    if row:
+        ts = float(row.get("total_score", score) or score)
+        if ts >= 0.75:
+            return "A_certified"
+        if ts >= 0.50:
+            return "B_verified_numeric"
+        return "C_scouting"
+    # No CSV entry — derive from the store record's own fields
+    if rec and (rec.get("flatness_verified") or rec.get("path_independence_verified")):
+        delta = float(rec.get("best_delta") or 0)
+        if delta >= 2.0:
+            return "B_verified_numeric"
     return "C_scouting"
 
 # ── Build compact cmf_payload ──────────────────────────────────────────────────
@@ -67,7 +74,7 @@ def build_payload(rec: dict, cmf_id: str, analysis: dict) -> dict:
         except: return None
 
     primary_const = IDENTIFIED_LIMITS.get(cmf_id)
-    cert          = cert_level(cmf_id, score, analysis)
+    cert          = cert_level(cmf_id, score, analysis, rec=rec)
     src_cat       = f"Gauge Agent {agent}"
 
     return {
@@ -92,7 +99,9 @@ def build_payload(rec: dict, cmf_id: str, analysis: dict) -> dict:
         "source_category":   src_cat,
         "primary_constant":  primary_const,
         "identified_constant": primary_const,
-        "flatness_verified": row.get("symbolic_flat", "False") == "True",
+        "flatness_verified": (row.get("symbolic_flat", "False") == "True")
+                             or bool(rec.get("flatness_verified"))
+                             or bool(rec.get("path_independence_verified")),
         "symbolic_flat":     row.get("symbolic_flat", "False") == "True",
         "degree":            0,
         "hidden":            False,

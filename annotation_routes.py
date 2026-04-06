@@ -74,6 +74,7 @@ class AnnotationRequest(BaseModel):
     highest_visible_exponent: Optional[int] = None
     highest_numerator_total_degree: Optional[int] = None
     highest_denominator_total_degree: Optional[int] = None
+    system_symmetry_badge: Optional[str] = None
     notes: Optional[str] = None
     confidence: Optional[int] = None
     status: str = "draft"

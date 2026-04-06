@@ -57,7 +57,6 @@
       <a href="constants.html" class="nav-link">Constants</a>
       <a href="guide.html" class="nav-link">Guide</a>
       <a href="about.html" class="nav-link">About</a>
-      <a href="annotate_login.html" class="nav-link" style="color:#0bb4aa;font-weight:700;border:1px solid #b2ede9;border-radius:20px;padding:4px 14px;background:#f0fdfc">Annotate</a>
     </div>
   </div>
 </nav>
@@ -112,7 +111,7 @@
   <div class="max-w-7xl mx-auto px-6">
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <div class="card p-6">
-        <h2 style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:16px">CMFs by Matrix Size</h2>
+        <h2 style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:16px">CMFs by Dimension (2D+)</h2>
         <canvas id="dimChart" height="160"></canvas>
       </div>
       <div class="card p-6">
@@ -246,31 +245,28 @@ async function loadStats() {
   try {
     const res = await fetch(`${API}/stats/detailed`);
     const d = await res.json();
-    const byMs  = d.by_matrix_size || {};
+    const byDim = d.by_dimension || {};
     const byCert = d.by_certification || {};
-    const total  = d.total_cmfs || 0;
-    const noMs   = total - Object.values(byMs).reduce((s,v)=>s+v, 0);
-    const gauge6plus = Object.entries(byMs).filter(([k])=>parseInt(k)>=6).reduce((s,[,v])=>s+v, 0);
-    const certified  = (byCert['A_plus']||0) + (byCert['A_certified']||0);
+    // Count 2D+ only
+    const total2plus = Object.entries(byDim).filter(([k])=>parseInt(k)>=2).reduce((s,[,v])=>s+v,0);
 
     document.getElementById('stat-cards').innerHTML = `
-      <div class="stat-card"><div class="stat-number">${total.toLocaleString()}</div><div style="font-size:11px;color:#888;margin-top:6px;text-transform:uppercase;letter-spacing:.05em">Total CMFs</div></div>
-      <div class="stat-card"><div class="stat-number">${noMs.toLocaleString()}</div><div style="font-size:11px;color:#888;margin-top:6px;text-transform:uppercase;letter-spacing:.05em">Classic 2D / pFq</div></div>
-      <div class="stat-card"><div class="stat-number">${(byMs['3']||0).toLocaleString()}</div><div style="font-size:11px;color:#888;margin-top:6px;text-transform:uppercase;letter-spacing:.05em">Gauge 3×3</div></div>
-      <div class="stat-card"><div class="stat-number">${(byMs['4']||0).toLocaleString()}</div><div style="font-size:11px;color:#888;margin-top:6px;text-transform:uppercase;letter-spacing:.05em">Gauge 4×4</div></div>
-      <div class="stat-card"><div class="stat-number">${(byMs['5']||0).toLocaleString()}</div><div style="font-size:11px;color:#888;margin-top:6px;text-transform:uppercase;letter-spacing:.05em">Gauge 5×5</div></div>
-      <div class="stat-card"><div class="stat-number">${certified.toLocaleString()}</div><div style="font-size:11px;color:#888;margin-top:6px;text-transform:uppercase;letter-spacing:.05em">A / A+ Certified</div></div>
+      <div class="stat-card"><div class="stat-number">${total2plus.toLocaleString()}</div><div style="font-size:11px;color:#888;margin-top:6px;text-transform:uppercase;letter-spacing:.05em">Total CMFs (2D+)</div></div>
+      <div class="stat-card"><div class="stat-number">${(byDim['2']||0).toLocaleString()}</div><div style="font-size:11px;color:#888;margin-top:6px;text-transform:uppercase;letter-spacing:.05em">2D Entries</div></div>
+      <div class="stat-card"><div class="stat-number">${(byDim['3']||0).toLocaleString()}</div><div style="font-size:11px;color:#888;margin-top:6px;text-transform:uppercase;letter-spacing:.05em">3D Entries</div></div>
+      <div class="stat-card"><div class="stat-number" style="font-size:1.8rem">${((byDim['4']||0)+(byDim['5']||0)+(byDim['7']||0)+(byDim['9']||0)+(byDim['11']||0)).toLocaleString()}</div><div style="font-size:11px;color:#888;margin-top:6px;text-transform:uppercase;letter-spacing:.05em">4D+ / pFq</div></div>
+      <div class="stat-card"><div class="stat-number">${((byCert['A_plus']||0)+(byCert['A_certified']||0)).toLocaleString()}</div><div style="font-size:11px;color:#888;margin-top:6px;text-transform:uppercase;letter-spacing:.05em">A / A+ Certified</div></div>
+      <div class="stat-card"><div class="stat-number">${(d.walkable_cmfs||0).toLocaleString()}</div><div style="font-size:11px;color:#888;margin-top:6px;text-transform:uppercase;letter-spacing:.05em">Walkable f(x,y)</div></div>
     `;
 
-    // Matrix size chart
-    const msLabels = ['Classic', ...Object.keys(byMs).map(k=>`${k}\u00d7${k}`)];
-    const msData   = [noMs, ...Object.values(byMs)];
+    // Dimension chart (2D+)
+    const filtDim = Object.fromEntries(Object.entries(byDim).filter(([k])=>parseInt(k)>=2));
     new Chart(document.getElementById('dimChart'), {
       type: 'bar',
       data: {
-        labels: msLabels,
-        datasets: [{ data: msData,
-          backgroundColor: ['#7c3aed','#0bb4aa','#099990','#087c74','#056b63','#3dd9d0','#70e8e1','#a8f2ef'],
+        labels: Object.keys(filtDim).map(k=>`${k}D`),
+        datasets: [{ data: Object.values(filtDim),
+          backgroundColor: ['#0bb4aa','#099990','#087c74','#056b63','#3dd9d0','#70e8e1','#a8f2ef'],
           borderRadius: 6, borderSkipped: false }]
       },
       options: { responsive:true, maintainAspectRatio:true,

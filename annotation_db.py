@@ -64,6 +64,7 @@ CREATE TABLE IF NOT EXISTS cmf_annotations (
     matrix_count                    INTEGER,
     matrix_size_signature           TEXT,
 
+    system_symmetry_badge           TEXT,
     notes                           TEXT,
     confidence                      INTEGER CHECK (confidence BETWEEN 1 AND 5),
     status                          TEXT NOT NULL DEFAULT 'draft',
@@ -155,11 +156,21 @@ def _conn() -> sqlite3.Connection:
     return con
 
 
+MIGRATIONS = [
+    "ALTER TABLE cmf_annotations ADD COLUMN system_symmetry_badge TEXT",
+]
+
+
 def init_db():
-    """Create tables and seed default data."""
+    """Create tables, seed default data, and run migrations."""
     with _conn() as con:
         con.executescript(SCHEMA_SQL)
         con.executescript(SEED_SQL)
+        for sql in MIGRATIONS:
+            try:
+                con.execute(sql)
+            except Exception:
+                pass
 
 
 # ---------------------------------------------------------------------------
@@ -255,7 +266,7 @@ def upsert_annotation(data: dict) -> str:
         "has_denominator", "has_variable_in_denominator",
         "highest_visible_exponent", "highest_numerator_total_degree",
         "highest_denominator_total_degree", "matrix_count", "matrix_size_signature",
-        "notes", "confidence", "status", "updated_at",
+        "system_symmetry_badge", "notes", "confidence", "status", "updated_at",
     ]
     vals = (
         ann_id,
@@ -271,6 +282,7 @@ def upsert_annotation(data: dict) -> str:
         data.get("highest_denominator_total_degree"),
         data.get("matrix_count"),
         data.get("matrix_size_signature"),
+        data.get("system_symmetry_badge"),
         data.get("notes"),
         data.get("confidence"),
         data.get("status", "draft"),
