@@ -42,6 +42,14 @@ import numpy as np
 
 HERE = Path(__file__).parent
 
+# ── Diagnostic and enhanced walk modules (optional — graceful degradation) ───
+try:
+    from eval import EvalConfig, run_t3 as _eval_run_t3
+    from matrix_walk import t1_pole_and_det_check
+    _HAS_DIAGNOSTICS = True
+except ImportError:
+    _HAS_DIAGNOSTICS = False
+
 # ── Config ────────────────────────────────────────────────────────────────────
 START_DIM      = 6
 MAX_DIM        = 50
@@ -54,6 +62,16 @@ DELTA_FULL_MIN = 2.5       # T3: mpmath delta threshold (at least 1 axis)
 DPS_FULL       = 50        # mpmath dps for full check
 N_POLE_SAMPLES = 30        # T1: test points for pole check
 STORE_CAPACITY = 200       # max records per dim store file
+
+# ── Collapse-detection heuristics ────────────────────────────────────────────
+# When dim crosses HIGH_DIM_THRESHOLD, the failure mode changes character:
+#   dim ≤ 8 : numerical black holes dominate (fixable with higher mpmath dps)
+#   dim ≥ 9 : analytic/determinant collapse dominates (need new constraints)
+HIGH_DIM_THRESHOLD  = 8
+DPS_HIGH_DIM         = 100    # mpmath dps for dim > HIGH_DIM_THRESHOLD
+DET_MIN_SOFT         = 0.05   # reject if mean|det(X_i)| < this (see T1b)
+# After this many consecutive T2/T3 failures at one dim, run full diagnostics:
+DIAG_TRIGGER_AFTER   = 200
 
 # ── Gaussian noise choices for LDU off-diagonals ─────────────────────────────
 _OFFDIAG_VALS = [-0.5, -0.25, 0.25, 0.5]
@@ -406,6 +424,56 @@ def count_stored(dim: int) -> int:
 # 5.  Main agent loop
 # ══════════════════════════════════════════════════════════════════════════════
 
+# ══════════════════════════════════════════════════════════════════════════════
+# 6.  Collapse diagnostic helper
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _run_collapse_diagnostic(fns: list, dim: int) -> None:
+    """
+    Trigger the full structural diagnostic suite when repeated T3 failures
+    are detected at a given dimension.
+
+    WHY WE RUN THIS AUTOMATICALLY:
+    --------------------------------
+    When Agent C hits DIAG_TRIGGER_AFTER consecutive T3 failures at dim=d,
+    we know the phase transition has been reached.  At this point, random
+    parameter search is statistically unlikely to produce a valid CMF.
+
+    Instead of wasting thousands more trials, we run the diagnostic suite
+    to identify the *specific* failure mode so the researcher knows:
+      (a) Is this a numerical black hole? → increase mpmath dps
+      (b) Is this analytic decay? → change search strategy
+      (c) Is this a det collapse? → add det constraint
+
+    Output is printed to console and saved to diagnostics_report_{dim}.json.
+    """
+    if not _HAS_DIAGNOSTICS:
+        print(f"  [DIAG] diagnostics.py not available — skipping.", flush=True)
+        return
+
+    try:
+        from diagnostics import run_full_diagnostic
+        import json
+        report = run_full_diagnostic(
+            fns, dim,
+            label=f"agent_c_dim{dim}_auto_diag",
+            walk_depth=min(400, 1200 // max(1, dim // 2)),
+            n_samples=40,
+            run_tying=False,
+        )
+        # Save report to file for later analysis
+        out_path = HERE / f"diagnostics_report_dim{dim}.json"
+        # Strip non-serialisable WalkResult objects before saving
+        safe_report = {
+            k: v for k, v in report.items()
+            if isinstance(v, (str, int, float, bool, list, dict, type(None)))
+        }
+        out_path.write_text(json.dumps(safe_report, indent=2, default=str))
+        print(f"  [DIAG] Report saved to {out_path.name}", flush=True)
+    except Exception as e:
+        print(f"  [DIAG] Diagnostic failed: {e}", flush=True)
+
+
 def run_agent():
     sentinel = HERE / "STOP_AGENTS"
     rng = np.random.default_rng(int(time.time()) % (2**31))
@@ -472,7 +540,14 @@ def _run_once(rng, sentinel, run_idx: int):
             # ── Sample params ──────────────────────────────────────────────
             params = sample_params(dim, rng)
 
-            # ── T1: quick pole check ───────────────────────────────────────
+            # ── T1: quick pole check + determinant volume gate ─────────────
+            #
+            # WHY THE DET GATE (new for dim > HIGH_DIM_THRESHOLD):
+            # For d >= 9, the random search finds near-zero matrices as the
+            # 'trivial' solution to the C(d,2) = d*(d-1)/2 path-independence
+            # conditions (the Compatibility Trap). mean|det(X_i)| < DET_MIN_SOFT
+            # means the walk product decays as DET_MIN_SOFT^N → 0 in N steps.
+            # Rejecting these at T1 (~0.1ms) saves wasted T2/T3 time.
             try:
                 fns = build_eval_fns(params)
             except Exception:
@@ -480,6 +555,17 @@ def _run_once(rng, sentinel, run_idx: int):
 
             if not _t1_pole_check(fns, dim, rng):
                 continue
+
+            # Enhanced det gate for high-dimensional systems
+            if dim > HIGH_DIM_THRESHOLD and _HAS_DIAGNOSTICS:
+                t1_ok, t1_reason = t1_pole_and_det_check(
+                    fns, dim,
+                    n_samples=N_POLE_SAMPLES,
+                    det_min=DET_MIN_SOFT,
+                    hard_det_zero=1e-12,
+                )
+                if not t1_ok:
+                    continue  # Determinant collapse — skip silently
 
             # ── T2: fast numpy convergence ─────────────────────────────────
             t2_ok, delta_fast = _t2_fast_convergence(fns, dim)
@@ -491,9 +577,37 @@ def _run_once(rng, sentinel, run_idx: int):
                 continue
 
             # ── T3: thorough mpmath check — ALL d axes ────────────────────
-            t3_ok, deltas = _t3_thorough_check(fns, dim)
-            if not t3_ok:
-                continue
+            #
+            # For dim > HIGH_DIM_THRESHOLD: use higher mpmath precision and
+            # the enhanced collapse-aware walk (auto-escalates from float64
+            # to mpmath when a numerical black hole is detected).
+            if dim > HIGH_DIM_THRESHOLD and _HAS_DIAGNOSTICS:
+                # Collapse-aware T3 with higher mpmath precision for dim > 8
+                _cfg = EvalConfig()
+                _cfg.dps_t3        = DPS_HIGH_DIM
+                _cfg.dps_high_dim  = DPS_HIGH_DIM
+                _cfg.auto_escalate = True
+                t3_ok, deltas, _t3_detail = _eval_run_t3(
+                    fns, dim, _cfg, verbose=False,
+                    run_diagnostic_on_collapse=False,
+                )
+                # Track consecutive failures — trigger diagnostics after threshold
+                _fail_streak = dim_stats.get(dim, {}).get('fail_streak', 0)
+                if not t3_ok:
+                    _fail_streak += 1
+                    dim_stats.setdefault(dim, {})['fail_streak'] = _fail_streak
+                    if _fail_streak == DIAG_TRIGGER_AFTER:
+                        print(f"\n  [Agent C] {DIAG_TRIGGER_AFTER} consecutive T3 "
+                              f"failures at dim={dim} — running structural diagnostics...",
+                              flush=True)
+                        _run_collapse_diagnostic(fns, dim)
+                    continue
+                else:
+                    dim_stats.setdefault(dim, {})['fail_streak'] = 0
+            else:
+                t3_ok, deltas = _t3_thorough_check(fns, dim)
+                if not t3_ok:
+                    continue
 
             # ── T4: path independence — all C(d,2) pairs ─────────────────
             pi_ok, pi_max_err = _check_path_independence_nd(fns, dim)
