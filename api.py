@@ -725,11 +725,18 @@ def stats_detailed():
         )).fetchall()
         by_ms = {str(int(ms)): c for ms, c in matrix_sizes if ms is not None}
 
+        param_dims = db.execute(text(
+            "SELECT CAST(COALESCE(json_extract(cmf_payload,'$.parameter_dimension'), dimension) AS INTEGER), COUNT(*) "
+            "FROM cmf GROUP BY 1 ORDER BY 1"
+        )).fetchall()
+        by_pd = {str(pd): c for pd, c in param_dims if pd is not None}
+
         const_sorted = dict(sorted(constants.items(), key=lambda x: -x[1])[:20])
         return {
             "total_cmfs": sum(v for _, v in dims),
             "by_dimension": {str(d): c for d, c in dims},
             "by_matrix_size": by_ms,
+            "by_parameter_dimension": by_pd,
             "by_certification": certs,
             "by_source": dict(sorted(sources.items(), key=lambda x: -x[1])[:15]),
             "by_degree": dict(sorted(degrees.items(), key=lambda x: int(x[0]) if x[0] not in (None, "None") else -1)),

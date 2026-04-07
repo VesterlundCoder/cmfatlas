@@ -116,8 +116,8 @@
         <canvas id="dimChart" height="160"></canvas>
       </div>
       <div class="card p-6">
-        <h2 style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:16px">Source / Family</h2>
-        <canvas id="srcChart" height="160"></canvas>
+        <h2 style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:16px">CMFs by Parameter Dimension</h2>
+        <canvas id="paramDimChart" height="160"></canvas>
       </div>
     </div>
   </div>
@@ -289,20 +289,32 @@ async function loadStats() {
       }
     });
 
-    // Source chart
-    const srcData = d.by_source || {};
-    const srcKeys = Object.keys(srcData).filter(k=>k!=='unknown').slice(0,4);
-    new Chart(document.getElementById('srcChart'), {
+    // Parameter Dimension chart
+    const pdData = d.by_parameter_dimension || {};
+    const pdLabels = Object.keys(pdData).sort((a,b)=>parseInt(a)-parseInt(b)).map(k => `${k}D`);
+    const pdValues = Object.keys(pdData).sort((a,b)=>parseInt(a)-parseInt(b)).map(k => pdData[k]);
+    const pdColors = ['#7c3aed','#0bb4aa','#099990','#087c74','#056b63','#3dd9d0','#70e8e1','#a8f2ef','#b45309','#d97706'];
+    new Chart(document.getElementById('paramDimChart'), {
       type: 'bar',
       data: {
-        labels: srcKeys.map(l=>l.replace(/_/g,' ')),
-        datasets: [{ data: srcKeys.map(k=>srcData[k]),
-          backgroundColor: '#0bb4aa', hoverBackgroundColor: '#087c74',
+        labels: pdLabels,
+        datasets: [{ data: pdValues,
+          backgroundColor: pdColors.slice(0, pdLabels.length),
           borderRadius: 6, borderSkipped: false }]
       },
-      options: { indexAxis:'y', responsive:true, maintainAspectRatio:true,
-        plugins:{legend:{display:false}},
-        scales:{ x:{ticks:{color:'#888'},grid:{color:'#ececec'}}, y:{ticks:{color:'#555',font:{size:11}},grid:{color:'#ececec'}} }
+      options: { responsive:true, maintainAspectRatio:true,
+        plugins:{
+          legend:{display:false},
+          tooltip:{ callbacks:{ label: ctx => ` ${ctx.raw.toLocaleString()} CMFs` } }
+        },
+        scales:{
+          x:{ticks:{color:'#888'},grid:{color:'#ececec'}},
+          y:{
+            type:'logarithmic',
+            ticks:{color:'#888', callback: v => Number.isInteger(Math.log10(v)) ? v.toLocaleString() : ''},
+            grid:{color:'#ececec'}
+          }
+        }
       }
     });
   } catch(e) {
