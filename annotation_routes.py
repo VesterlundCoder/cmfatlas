@@ -105,6 +105,23 @@ class ComparisonRequest(BaseModel):
 # Auth endpoints
 # ---------------------------------------------------------------------------
 
+@router.post("/setup", summary="Bootstrap: create first admin (only works when no admins exist)")
+def setup_admin(req: LoginRequest):
+    """One-time admin setup. Fails if any admin user already exists."""
+    import sqlite3 as _sq, os as _os
+    con = _sq.connect(str(db.ANNOTATION_DB))
+    con.row_factory = _sq.Row
+    existing = con.execute("SELECT COUNT(*) FROM users WHERE role='admin'").fetchone()[0]
+    con.close()
+    if existing > 0:
+        raise HTTPException(status_code=403, detail="Admin already exists — use /annotate/login")
+    user = db.create_user(req.email, req.email.split("@")[0], req.password, role="admin")
+    token = db.create_session(user["id"])
+    resp = JSONResponse({"ok": True, "user": user, "token": token, "message": "Admin created"})
+    resp.set_cookie("token", token, max_age=86400 * 30, httponly=True, samesite="lax")
+    return resp
+
+
 @router.post("/login")
 def login(req: LoginRequest):
     user = db.authenticate(req.email, req.password)
