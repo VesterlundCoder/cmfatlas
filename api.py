@@ -37,6 +37,25 @@ if not _default_db.exists():
     _default_db = Path(__file__).parent / "data" / "atlas.db"
 DB_PATH = Path(os.getenv("CMF_ATLAS_DB", _default_db))
 
+# Seed from /app/data_seed if DB is missing (fallback for volume-mount scenarios)
+if not DB_PATH.exists():
+    _seed_gz  = Path("/app/data_seed/atlas_2d.db.gz")
+    _seed_db  = Path("/app/data_seed/atlas.db")
+    _data_dir = DB_PATH.parent
+    _data_dir.mkdir(parents=True, exist_ok=True)
+    if _seed_gz.exists():
+        import gzip as _gz, shutil as _sh
+        print(f"[api] Seeding {DB_PATH} from {_seed_gz}…", flush=True)
+        with _gz.open(_seed_gz, "rb") as _f_in, open(_data_dir / "atlas_2d.db", "wb") as _f_out:
+            _sh.copyfileobj(_f_in, _f_out)
+        _default_db = _data_dir / "atlas_2d.db"
+        DB_PATH = _default_db
+        print(f"[api] Seed done — {DB_PATH.stat().st_size // 1_000_000} MB", flush=True)
+    elif _seed_db.exists():
+        import shutil as _sh
+        _sh.copy(_seed_db, _data_dir / "atlas.db")
+        DB_PATH = _data_dir / "atlas.db"
+
 engine = create_engine(
     f"sqlite:///{DB_PATH}",
     connect_args={"check_same_thread": False},
@@ -347,7 +366,15 @@ def _build_matrix_walk_from_stored(matrices_dict: dict, axes: list, direction: s
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     if not DB_PATH.exists():
-        raise RuntimeError(f"Database not found at {DB_PATH}")
+        import os as _os
+        data_dir = DB_PATH.parent
+        contents = list(data_dir.iterdir()) if data_dir.exists() else []
+        seed_contents = list(Path("/app/data_seed").iterdir()) if Path("/app/data_seed").exists() else []
+        raise RuntimeError(
+            f"Database not found at {DB_PATH}\n"
+            f"  data/ contents: {[f.name for f in contents]}\n"
+            f"  data_seed/ contents: {[f.name for f in seed_contents]}"
+        )
     # Ensure category column exists (idempotent migration for Railway)
     import sqlite3 as _sq, json as _js, re as _re
     _TRANS_RE = _re.compile(
