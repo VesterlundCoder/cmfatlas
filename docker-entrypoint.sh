@@ -16,9 +16,15 @@ if [ ! -f "$DATA_DIR/atlas_2d.db" ] && [ ! -f "$DATA_DIR/atlas.db" ]; then
         echo "[startup] Done: $(du -sh $DATA_DIR/atlas_2d.db)"
 
     elif [ -n "$DB_DOWNLOAD_URL" ]; then
-        # Fallback: download from a URL set as Railway env var
-        echo "[startup] Downloading atlas_2d.db.gz from \$DB_DOWNLOAD_URL..."
-        curl -fsSL "$DB_DOWNLOAD_URL" -o /tmp/atlas_2d.db.gz
+        # Fallback: download from a URL set as Railway env var (use Python, curl not in slim image)
+        echo "[startup] Downloading atlas_2d.db.gz from DB_DOWNLOAD_URL..."
+        python3 -c "
+import urllib.request, os, sys
+url = os.environ['DB_DOWNLOAD_URL']
+print(f'  URL: {url}', flush=True)
+urllib.request.urlretrieve(url, '/tmp/atlas_2d.db.gz')
+print('  Download complete.', flush=True)
+"
         echo "[startup] Decompressing..."
         gzip -dc /tmp/atlas_2d.db.gz > "$DATA_DIR/atlas_2d.db"
         rm -f /tmp/atlas_2d.db.gz
