@@ -227,7 +227,12 @@ def _compare_constants(value: float) -> list:
 
 def _poly_has_z(f_poly_str: str) -> bool:
     """Return True if f_poly_str contains the variable z."""
-    return 'z' in str(_sympify(f_poly_str).free_symbols)
+    if not f_poly_str or not f_poly_str.strip():
+        return False
+    try:
+        return 'z' in str(_sympify(f_poly_str).free_symbols)
+    except Exception:
+        return False
 
 
 def _build_walk_fns(f_poly_str: str, fbar_poly_str: str):
