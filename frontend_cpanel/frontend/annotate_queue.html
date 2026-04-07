@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Queue — CMF Annotator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    *{font-family:'Inter',sans-serif}
+    body{background:#f8fafc;color:#101010}
+    .nav-link{color:#555;font-size:14px;font-weight:500;transition:color .15s;text-decoration:none}
+    .nav-link:hover,.nav-link.active{color:#0bb4aa}
+    .card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.05)}
+    .badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:9999px;font-size:10px;font-weight:700;letter-spacing:.03em}
+    .badge-unlabeled{background:#f1f5f9;color:#64748b;border:1px solid #cbd5e1}
+    .badge-draft{background:#fef9e7;color:#b45309;border:1px solid #fcd34d}
+    .badge-submitted{background:#e0faf8;color:#0bb4aa;border:1px solid #b2ede9}
+    .badge-reviewed{background:#e6f9f0;color:#059669;border:1px solid #a7f3d0}
+    .filter-btn{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid #e2e8f0;background:#fff;color:#555;font-family:inherit;transition:all .15s}
+    .filter-btn.active{background:#0bb4aa;color:#fff;border-color:#0bb4aa}
+    .filter-btn:hover:not(.active){border-color:#0bb4aa;color:#0bb4aa}
+    .row-item{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid #f1f5f9;cursor:pointer;transition:background .1s;text-decoration:none;color:#101010}
+    .row-item:hover{background:#f0fdfc}
+    .row-item:last-child{border-bottom:none}
+    select{border:1px solid #e2e8f0;border-radius:8px;padding:7px 10px;font-size:13px;outline:none;font-family:inherit;background:#fff;cursor:pointer}
+    select:focus{border-color:#0bb4aa}
+    .stat-box{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:16px 20px;text-align:center}
+    .stat-num{font-size:24px;font-weight:800;color:#101010}
+    .stat-label{font-size:11px;color:#94a3b8;margin-top:2px;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+  </style>
+</head>
+<body class="min-h-screen">
+
+<nav style="background:#fff;border-bottom:1px solid #e2e8f0;position:sticky;top:0;z-index:50">
+  <div class="max-w-6xl mx-auto px-6 flex items-center justify-between" style="height:60px">
+    <a href="index.html" style="font-weight:800;font-size:18px;color:#101010;text-decoration:none;letter-spacing:-0.5px">
+      CMF <span style="color:#0bb4aa">Atlas</span>
+      <span style="color:#94a3b8;font-size:13px;font-weight:400;margin-left:8px">/ Annotator</span>
+    </a>
+    <div class="flex items-center gap-6">
+      <a href="annotate_queue.html" class="nav-link active">Queue</a>
+      <a href="annotate_review.html" class="nav-link">Review</a>
+      <a href="annotate_compare.html" class="nav-link">Compare</a>
+      <a href="annotate_protocol.html" class="nav-link">Protocol</a>
+      <span id="user-name" style="font-size:13px;color:#0bb4aa;font-weight:600"></span>
+      <button id="logout-btn" style="font-size:13px;color:#94a3b8;background:none;border:none;cursor:pointer;font-family:inherit">Sign out</button>
+    </div>
+  </div>
+</nav>
+
+<div class="max-w-6xl mx-auto px-6 py-8">
+  <!-- Stats row -->
+  <div class="grid grid-cols-4 gap-4 mb-8" id="stats-row">
+    <div class="stat-box"><div class="stat-num" id="s-total">—</div><div class="stat-label">annotated</div></div>
+    <div class="stat-box"><div class="stat-num" id="s-draft">—</div><div class="stat-label">draft</div></div>
+    <div class="stat-box"><div class="stat-num" id="s-submitted">—</div><div class="stat-label">submitted</div></div>
+    <div class="stat-box"><div class="stat-num" id="s-comparisons">—</div><div class="stat-label">comparisons</div></div>
+  </div>
+
+  <!-- Irrational banner -->
+  <div style="background:linear-gradient(135deg,#fff7ed,#fffbeb);border:1px solid #fb923c;border-radius:10px;padding:12px 18px;margin-bottom:16px;display:flex;align-items:center;gap:12px">
+    <span style="font-size:20px">🔥</span>
+    <div>
+      <div style="font-size:13px;font-weight:800;color:#c2410c">Irrational CMF Annotation Queue</div>
+      <div style="font-size:12px;color:#9a3412;margin-top:2px">Showing only CMFs with potentially irrational limits — classify &amp; compare to build the paper.</div>
+    </div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:16px">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;font-weight:600;color:#c2410c">
+        <input type="checkbox" id="irr-toggle" checked style="accent-color:#c2410c;width:16px;height:16px"/>
+        Irrational only
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;font-weight:600;color:#7c3aed">
+        <input type="checkbox" id="v2-toggle" style="accent-color:#7c3aed;width:16px;height:16px"/>
+        <span style="background:#ede9fe;border:1px solid #7c3aed;color:#7c3aed;padding:1px 7px;border-radius:9999px;font-size:10px;font-weight:800">v2</span>
+        New (anti-hack) only
+      </label>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="flex items-center gap-3 flex-wrap mb-5">
+    <span style="font-size:12px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em">Status</span>
+    <button class="filter-btn active" data-status="all">All</button>
+    <button class="filter-btn" data-status="unlabeled">Unlabeled</button>
+    <button class="filter-btn" data-status="draft">Draft</button>
+    <button class="filter-btn" data-status="submitted">Submitted</button>
+    <button class="filter-btn" data-status="reviewed">Reviewed</button>
+    <span style="margin-left:16px;font-size:12px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em">Size</span>
+    <select id="size-filter">
+      <option value="">Any size</option>
+      <option value="3">3×3</option>
+      <option value="4">4×4</option>
+      <option value="5">5×5</option>
+      <option value="6">6×6</option>
+      <option value="7">7×7</option>
+      <option value="10">10×10</option>
+    </select>
+  </div>
+
+  <!-- Table -->
+  <div class="card">
+    <div style="padding:14px 16px;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:13px;font-weight:600" id="result-count">Loading…</span>
+      <div class="flex items-center gap-2">
+        <button id="prev-btn" class="filter-btn" style="padding:5px 12px">← Prev</button>
+        <span id="page-label" style="font-size:12px;color:#94a3b8">Page 1</span>
+        <button id="next-btn" class="filter-btn" style="padding:5px 12px">Next →</button>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:70px 60px 60px 60px 1fr 180px 80px 100px;gap:0;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em;padding:8px 16px;border-bottom:1px solid #f1f5f9;background:#f8fafc">
+      <span>CMF ID</span><span>Agent</span><span>Size</span><span>Δ</span><span>Limit Classification</span><span>Source / Constant</span><span>Cert.</span><span>Status</span>
+    </div>
+    <div id="queue-list"></div>
+  </div>
+</div>
+
+<script>
+const API = 'https://cmfatlas-production.up.railway.app';
+const PAGE_SIZE = 50;
+let page = 0;
+let statusFilter = 'all';
+let sizeFilter = '';
+let irrationalOnly = true;
+let v2Only = false;
+
+const user = JSON.parse(localStorage.getItem('annotator_user') || '{}');
+if (user.display_name) document.getElementById('user-name').textContent = user.display_name;
+
+function statusBadge(s) {
+  const cls = {unlabeled:'badge-unlabeled',draft:'badge-draft',submitted:'badge-submitted',reviewed:'badge-reviewed'}[s] || 'badge-unlabeled';
+  return `<span class="badge ${cls}">${s}</span>`;
+}
+
+async function loadStats() {
+  try {
+    const r = await fetch(API+'/annotate/stats', {credentials:'include', headers:{'X-Token': localStorage.getItem('annotator_token')||''}});
+    if (!r.ok) return;
+    const d = await r.json();
+    document.getElementById('s-total').textContent = d.total;
+    document.getElementById('s-draft').textContent = d.draft;
+    document.getElementById('s-submitted').textContent = d.submitted;
+    document.getElementById('s-comparisons').textContent = d.comparisons;
+  } catch {}
+}
+
+async function loadQueue() {
+  const list = document.getElementById('queue-list');
+  list.innerHTML = '<div style="padding:32px;text-align:center;color:#94a3b8;font-size:13px">Loading…</div>';
+  const params = new URLSearchParams({
+    offset: page * PAGE_SIZE,
+    limit: PAGE_SIZE,
+    irrational_only: irrationalOnly ? 'true' : 'false',
+  });
+  if (v2Only) params.set('batch_filter', 'v2_anti_hack');
+  if (sizeFilter) params.set('matrix_size', sizeFilter);
+  if (statusFilter !== 'all') params.set('status_filter', statusFilter);
+
+  try {
+    const r = await fetch(API+'/annotate/queue?'+params, {
+      credentials:'include',
+      headers:{'X-Token': localStorage.getItem('annotator_token')||''}
+    });
+    if (r.status === 401) { window.location.href='annotate_login.html'; return; }
+    const d = await r.json();
+    if (d.error) { list.innerHTML = `<div style="padding:24px;color:#dc2626;font-size:13px">${d.error}</div>`; return; }
+
+    document.getElementById('result-count').textContent = `${d.total.toLocaleString()} CMFs`;
+    document.getElementById('page-label').textContent = `Page ${page+1} of ${Math.ceil(d.total/PAGE_SIZE)}`;
+    document.getElementById('prev-btn').disabled = page === 0;
+    document.getElementById('next-btn').disabled = d.items.length < PAGE_SIZE;
+
+    if (!d.items.length) {
+      list.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;font-size:13px">No CMFs match this filter.</div>';
+      return;
+    }
+
+    list.innerHTML = d.items.map(item => {
+      const irrBadge = item.looks_irrational
+        ? `<span style="background:#fff7ed;border:1px solid #fb923c;color:#c2410c;font-weight:700;padding:0px 5px;border-radius:9999px;font-size:10px;margin-right:4px">🔥</span>`
+        : '';
+      const limitLabel = item.limit_label
+        ? `<span style="font-size:11px;color:#92400e;font-family:monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%" title="${item.limit_label}">${item.limit_label.length>55?item.limit_label.slice(0,55)+'…':item.limit_label}</span>`
+        : `<span style="color:#94a3b8;font-size:11px">${item.primary_constant||'—'}</span>`;
+      const delta = item.best_delta ? parseFloat(item.best_delta).toFixed(1) : '—';
+      return `
+      <a href="annotate_cmf.html?id=${item.id}" class="row-item" style="display:grid;grid-template-columns:70px 60px 60px 60px 1fr 180px 80px 100px;align-items:center;gap:0">
+        <span style="font-size:12px;font-weight:700;color:#0bb4aa">${irrBadge}#${item.id}</span>
+        <span style="font-size:11px;color:#64748b;font-weight:600">${item.agent_type||'—'}</span>
+        <span style="font-size:12px">${item.matrix_size ? item.matrix_size+'×'+item.matrix_size : '—'}</span>
+        <span style="font-size:11px;color:#0bb4aa;font-weight:700">${delta}</span>
+        <span style="font-size:12px;overflow:hidden;padding-right:8px">${limitLabel}</span>
+        <span style="font-size:11px;color:#475569;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${item.source_category||'—'}</span>
+        <span style="font-size:11px;color:#94a3b8">${item.cert_level||'—'}</span>
+        <span>${statusBadge(item.annotation_status)}</span>
+      </a>`;
+    }).join('');
+  } catch (e) {
+    list.innerHTML = `<div style="padding:24px;color:#dc2626;font-size:13px">${e.message}</div>`;
+  }
+}
+
+// Filter buttons
+document.querySelectorAll('.filter-btn[data-status]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn[data-status]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    statusFilter = btn.dataset.status;
+    page = 0;
+    loadQueue();
+  });
+});
+document.getElementById('size-filter').addEventListener('change', e => {
+  sizeFilter = e.target.value;
+  page = 0;
+  loadQueue();
+});
+document.getElementById('irr-toggle').addEventListener('change', e => {
+  irrationalOnly = e.target.checked;
+  page = 0;
+  loadQueue();
+});
+document.getElementById('v2-toggle').addEventListener('change', e => {
+  v2Only = e.target.checked;
+  page = 0;
+  loadQueue();
+});
+document.getElementById('prev-btn').addEventListener('click', () => { if (page > 0) { page--; loadQueue(); } });
+document.getElementById('next-btn').addEventListener('click', () => { page++; loadQueue(); });
+
+document.getElementById('logout-btn').addEventListener('click', async () => {
+  await fetch(API+'/annotate/logout', {method:'POST', credentials:'include'});
+  localStorage.clear();
+  window.location.href='annotate_login.html';
+});
+
+(async () => {
+  const token = localStorage.getItem('annotator_token');
+  if (!token) { window.location.href='annotate_login.html'; return; }
+  await Promise.all([loadStats(), loadQueue()]);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+# gauge_agents — not needed by the web server (201MB saved)
+gauge_agents/
+
+# frontend_cpanel — Railway serves from frontend/ only
+frontend_cpanel/
+
+# Data backup and derived files (not needed at runtime)
+data/atlas_2d.db.pre_*
+data/atlas_2d.db.bak*
+data/atlas_2d.db-shm
+data/atlas_2d.db-wal
+data/pslq_hits.db
+data/pslq_golden_hits.jsonl
+data/targeted_results.json
+data/irrational_candidates*.json
+data/distiller_stage2.json
+data/gap_fill_results.json
+data/ablation_table.tex
+data/research_paper_draft.md
+
+# Pipeline scripts not needed by the API
+run_smart_gap_fill.py
+run_gap_filling.py
+cmf_deep_identify_v2.py
+cmf_distiller.py
+cmf_path3_pslq.py
+ingest_gauge_agents.py
+run_flatness_parallel.py
+ablation_study.py
+verify_truly_2d.py
+
+# Results and logs
+ablation_results*.json
+*.log
+*.zip
+*.jsonl
+identification_summary.jsonl
+walk_identify_hunter.jsonl
+
+# Dev artifacts
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
+*.swp
