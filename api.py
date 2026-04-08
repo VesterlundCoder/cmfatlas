@@ -347,6 +347,11 @@ def _build_matrix_walk_from_stored(matrices_dict: dict, axes: list, direction: s
     def K_fn(step_val, fixed_vals: dict):
         ns = {ax: float(v) for ax, v in fixed_vals.items()}
         ns[step_axis] = float(step_val)
+        # n{i} aliases: backfill_matrices.py rebuilds expressions using n0,n1,...
+        # while axis labels are 'x','y',... — add both so either name resolves.
+        for _i, _ax in enumerate(axes):
+            if _ax in ns:
+                ns[f"n{_i}"] = ns[_ax]
         mat = mpmath.zeros(size)
         for i in range(size):
             for j in range(len(compiled[i])):
@@ -1739,12 +1744,21 @@ def walk_cmf(
                 canon = _safe_json(rep_row[0]) or {}
                 mats  = canon.get("matrices", {})
                 axes  = canon.get("axes", [])
-                # Normalise list-format (backfill_matrices.py) → dict for walk
+                # Normalise list-format (backfill_matrices.py) → dict for walk.
+                # backfill_matrices.py stores {"axis": "x", "rows": [[...],...]}
+                # per matrix but does NOT write a top-level "axes" key, so we
+                # must reconstruct axes from the per-entry "axis" fields.
                 if isinstance(mats, list):
+                    _mats_list = mats
+                    if not axes:
+                        axes = [
+                            mx["axis"] for mx in _mats_list
+                            if isinstance(mx, dict) and mx.get("axis")
+                        ]
                     mats = {
                         mx["axis"]: str(mx["rows"])
-                        for mx in mats
-                        if isinstance(mx, dict) and "axis" in mx and "rows" in mx
+                        for mx in _mats_list
+                        if isinstance(mx, dict) and mx.get("axis") and mx.get("rows") is not None
                     }
                 if mats and axes:
                     stored_axes = axes
