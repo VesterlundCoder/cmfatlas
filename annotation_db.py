@@ -10,6 +10,7 @@ Tables:
   cmf_annotations, matrix_annotations,
   cmf_comparisons, family_hypotheses
 """
+from __future__ import annotations
 
 import hashlib
 import os

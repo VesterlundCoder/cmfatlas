@@ -1360,6 +1360,33 @@ def get_cmf(cmf_id: int):
 def _compute_matrices(f_poly: str, fbar_poly: str, canonical_payload: dict) -> list:
     """Return list of K-matrix dicts with LaTeX entries."""
     explicit = canonical_payload.get("matrices")
+
+    # List format — written by backfill_matrices.py (gauge-agent CMFs)
+    if explicit and isinstance(explicit, list):
+        result = []
+        for mx in explicit:
+            if not isinstance(mx, dict):
+                continue
+            raw_rows = mx.get("rows") or []
+            latex_rows = []
+            for row in raw_rows:
+                latex_row = []
+                for cell in row:
+                    try:
+                        latex_row.append(_sp.latex(_sp.sympify(str(cell))))
+                    except Exception:
+                        latex_row.append(str(cell))
+                latex_rows.append(latex_row)
+            result.append({
+                "index":  mx.get("index", len(result) + 1),
+                "label":  mx.get("label", f"K{len(result)+1}"),
+                "axis":   mx.get("axis", ""),
+                "source": mx.get("source", "symbolic"),
+                "rows":   latex_rows,
+            })
+        if result:
+            return result
+
     if explicit and isinstance(explicit, dict):
         result = []
         subs_k = ["₁","₂","₃","₄","₅","₆","₇","₈","₉","₁₀","₁₁"]
