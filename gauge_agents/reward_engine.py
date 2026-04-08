@@ -15,8 +15,9 @@ import sympy as sp
 from sympy import symbols, det, Rational, Poly, degree, cancel, factor
 
 # ── Weights ───────────────────────────────────────────────────────────────────
-W = dict(conv_rate=0.25, ray_stability=0.15, identifiability=0.15,
-         simplicity=0.10, proofability=0.05, pole_penalty=1000.0,
+W = dict(conv_rate=0.22, ray_stability=0.12, identifiability=0.12,
+         simplicity=0.08, proofability=0.04, positive_structure=0.10,
+         pole_penalty=1000.0,
          irrationality_bonus=3.0, trivial_rational_penalty=0.05,
          massive_irrational_bonus=5.0, fatal_penalty=0.02)
 
@@ -369,6 +370,41 @@ def score_simplicity(sympy_matrices: list) -> float:
     return max(0.0, 1.0 - penalty / 5.0)
 
 
+def score_positive_structure(params: Optional[dict]) -> float:
+    """
+    Reward all-positive D_params slopes and half-integer shift values.
+
+    Mathematical basis:
+      * Positive slopes a_k > 0  →  no sign oscillation along any walk axis.
+      * Half-integer shifts b_k ∈ {±½, ±3/2, …}  →  products involve
+        Γ(n+½) / Γ(n+3/2) etc., which carry √π factors and can produce
+        transcendental (irrational) limits via Γ-function ratios.
+
+    Returns: 1.0  — all positive slopes AND all half-integer shifts
+             0.6  — all positive slopes only
+             0.2  — any negative slope (oscillation risk)
+    """
+    if params is None:
+        return 0.3
+    d_params = params.get("D_params", [])
+    if not d_params:
+        return 0.3
+
+    slopes = [a for a, b in d_params]
+    shifts = [b for a, b in d_params]
+
+    all_positive = all(a > 0 for a in slopes)
+    _is_half_int = lambda b: abs((abs(b) % 1.0) - 0.5) < 1e-9
+    all_half_int = all(_is_half_int(b) for b in shifts)
+
+    if all_positive and all_half_int:
+        return 1.0
+    elif all_positive:
+        return 0.6
+    else:
+        return 0.2
+
+
 def score_proofability(sympy_matrices: list) -> float:
     """
     Heuristic: reward Pochhammer-looking entries (linear factors in numerator/denominator),
@@ -441,6 +477,7 @@ def fingerprint(matrices_fn, dim: int, probe_points: int = 12) -> str:
 
 def evaluate(matrices_fn, dim: int,
              sympy_matrices: Optional[list] = None,
+             params: Optional[dict] = None,
              n_rays: int = 6, dps: int = 50) -> dict:
     """
     Main entry point.
@@ -476,13 +513,15 @@ def evaluate(matrices_fn, dim: int,
     s_ident  = score_identifiability(ratios, dps=dps)
     s_simp   = score_simplicity(sympy_matrices) if sympy_matrices else 0.5
     s_proof  = score_proofability(sympy_matrices) if sympy_matrices else 0.3
+    s_pos    = score_positive_structure(params)
     s_irrat, is_fatal, gate_result = score_irrationality(ratios)
 
-    base = (W["conv_rate"]      * s_conv   +
-            W["ray_stability"]  * s_ray    +
-            W["identifiability"]* s_ident  +
-            W["simplicity"]     * s_simp   +
-            W["proofability"]   * s_proof)
+    base = (W["conv_rate"]         * s_conv   +
+            W["ray_stability"]     * s_ray    +
+            W["identifiability"]   * s_ident  +
+            W["simplicity"]        * s_simp   +
+            W["proofability"]      * s_proof  +
+            W["positive_structure"]* s_pos)
 
     # Apply 4-gate multiplier — only if CMF actually converges
     irrat_label = gate_result["label"]
@@ -503,6 +542,7 @@ def evaluate(matrices_fn, dim: int,
         "irrationality_score":  round(s_irrat, 4),
         "irrationality_label":  irrat_label,
         "is_trivial_rational":  is_fatal,
+        "positive_structure":   round(s_pos, 4),
         "gate_result":          gate_result,
         "deltas":  [round(d, 3) for d in deltas],
         "ratios":  [round(r, 8) for r in ratios[:4]],

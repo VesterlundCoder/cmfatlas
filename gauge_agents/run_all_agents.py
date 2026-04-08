@@ -117,6 +117,22 @@ AGENT_CONFIGS: dict[str, dict] = {
               off_vals=[-1,-0.5,0.5,1],
               slope_vals=[-2,-1,1,2],
               shift_vals=list(range(-2, 3))),
+    # ── Irrational-targeted agents (K/L/M) ────────────────────────────────────
+    # All-positive slopes   → no sign-oscillation in D_params
+    # Half-integer shifts   → Γ(n+½), Γ(n+3/2) … → √π factors in products
+    # n_vars == dim         → each dimension fully independent (max mixing)
+    "K": dict(dims=[3], n_vars=3,
+              off_vals=[-1, -0.5, -1/3, 1/3, 0.5, 1],
+              slope_vals=[0.5, 1.0, 1.5, 2.0],
+              shift_vals=[-0.5, 0.5, 1.5, 2.5, 3.5]),
+    "L": dict(dims=[4], n_vars=4,
+              off_vals=[-1, -0.5, -1/3, 1/3, 0.5, 1],
+              slope_vals=[0.5, 1.0, 1.5, 2.0],
+              shift_vals=[-0.5, 0.5, 1.5, 2.5, 3.5]),
+    "M": dict(dims=[5], n_vars=5,
+              off_vals=[-1, -0.5, -1/3, 1/3, 0.5, 1],
+              slope_vals=[0.5, 1.0, 1.5, 2.0],
+              shift_vals=[-0.5, 0.5, 1.5, 2.5, 3.5]),
 }
 
 

@@ -136,6 +136,56 @@ def get_limit_value(fn, dim: int, n_vars: int,
     return v[0] / v[dim - 1]
 
 
+# ══════════════════════════════════════════════════════════════════════════════
+# Gate 5 — Cross-Ray Consistency
+# ══════════════════════════════════════════════════════════════════════════════
+
+GATE5_REL_TOL = 1e-3   # rays must agree to 0.1% relative
+
+def _gate5_cross_ray(fns: list, dim: int, n_vars: int,
+                    primary_val: mp.mpf,
+                    dps: int = ID_DPS,
+                    depth: int = 600) -> tuple[bool, list[float]]:
+    """
+    Walk along axes 1, 2 (if available) and verify limits agree with axis 0.
+    Returns (consistent: bool, all_limits: list[float]).
+    A spread > GATE5_REL_TOL * |primary| means FATAL_INCONSISTENT_RAYS.
+    """
+    mp.mp.dps = dps + 5
+    primary_f = float(primary_val)
+    limits = [primary_f]
+
+    for ax in range(1, min(n_vars, 3)):
+        pos = [2] * n_vars
+        v   = mp.zeros(dim, 1)
+        v[0] = mp.mpf(1)
+        fn  = fns[ax % len(fns)]
+        ok  = True
+        for _ in range(depth):
+            pos[ax % n_vars] += 1
+            try:
+                raw = np.asarray(fn(*pos), dtype=float)
+                M   = mp.matrix([[mp.mpf(str(raw[r][c]))
+                                   for c in range(dim)] for r in range(dim)])
+                v = M * v
+            except Exception:
+                ok = False; break
+            scale = max(abs(v[i]) for i in range(dim))
+            if scale > mp.power(10, 40):
+                v /= scale
+            elif scale < mp.power(10, -40):
+                ok = False; break
+        if ok and abs(v[dim - 1]) >= mp.power(10, -(dps - 5)):
+            limits.append(float(v[0] / v[dim - 1]))
+
+    if len(limits) < 2:
+        return True, limits   # single-axis CMF — can't falsify
+
+    spread = max(abs(a - b) for a in limits for b in limits)
+    ref    = abs(primary_f) + 1e-30
+    return (spread / ref) < GATE5_REL_TOL, limits
+
+
 # Gate label sets
 _GATE_IRRATIONAL_LABELS = {"IRRATIONAL_UNKNOWN", "TRUE_TRANSCENDENTAL"}
 _GATE_FATAL_LABELS = {
@@ -343,8 +393,27 @@ def scout_agent(agent: str, target: int) -> list[dict]:
                           "label": "WALK_FAILED", "looks_irrational": False,
                           "irrational_type": None}
 
-        label = limit_info["label"]
+        label  = limit_info["label"]
         is_irr = limit_info.get("looks_irrational", False)
+
+        # ── Gate 5: cross-ray consistency ─────────────────────────────────
+        if is_irr and limit_val is not None:
+            g5_ok, ray_limits = _gate5_cross_ray(fns, dim, n_vars, limit_val)
+            if not g5_ok:
+                spread = max(abs(a - b) for a in ray_limits for b in ray_limits)
+                print(f"      [Gate5] REJECTED: inconsistent rays  "
+                      f"spread={spread:.2e}  limits={[round(x,6) for x in ray_limits]}",
+                      flush=True)
+                limit_info["label"]          = "FATAL_INCONSISTENT_RAYS"
+                limit_info["looks_irrational"] = False
+                limit_info["gate5_ray_limits"] = ray_limits
+                is_irr = False
+                label  = "FATAL_INCONSISTENT_RAYS"
+            else:
+                print(f"      [Gate5] PASS  ({len(ray_limits)} rays consistent, "
+                      f"limits={[round(x,6) for x in ray_limits]})", flush=True)
+                limit_info["gate5_ray_limits"] = ray_limits
+
         if is_irr:
             found_irrational += 1
         marker = "🔥" if is_irr else "·"

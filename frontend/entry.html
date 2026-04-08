@@ -137,10 +137,78 @@ function renderMatrices(matrices, d) {
     return '<div style="color:#aaa;font-size:13px;padding:8px 0">No matrix representation available.</div>';
   }
   const isLDU = matrices.some(mx => (mx.source||'').startsWith('ldu_'));
+  const lduMats  = matrices.filter(mx => (mx.source||'').startsWith('ldu_'));
+  const stepMats = matrices.filter(mx => (mx.source||'') === 'explicit' || (mx.source||'') === 'symbolic');
 
-  // LDU factorization view
+  // If we have computed step matrices, show them as primary + LDU as collapsible
+  if (stepMats.length > 0) {
+    const stepParts = stepMats.map(mx => {
+      const rows = mx.rows;
+      const rowsLatex = rows.map(r => r.join(' & ')).join(' \\\\ ');
+      const label = mx.label || `K${mx.index}`;
+      const varList = '(' + stepMats.map(mm => mm.axis || '?').join(',') + ')';
+      return `
+        <div style="margin-bottom:24px">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:8px">
+            ${label}${varList} — ${mx.axis ? mx.axis.toUpperCase() : '?'} step matrix
+            <span style="margin-left:8px;font-size:9px;background:#e0faf8;color:#0bb4aa;border:1px solid #b2ede9;padding:1px 6px;border-radius:9999px;font-weight:600;text-transform:none">symbolic</span>
+          </div>
+          <div style="overflow-x:auto;font-size:13px;color:#222">
+            \\[${label}${varList} = \\begin{pmatrix} ${rowsLatex} \\end{pmatrix}\\]
+          </div>
+        </div>`;
+    });
+
+    const mxLabels = stepMats.map(mx => mx.label || `K${mx.index}`);
+    let flatness = '';
+    if (stepMats.length === 2) {
+      flatness = `\\(${mxLabels[0]} \\cdot ${mxLabels[1]}(\\text{shifted}) = ${mxLabels[1]} \\cdot ${mxLabels[0]}(\\text{shifted})\\)`;
+    } else if (stepMats.length >= 3) {
+      const pairs = [];
+      for (let i = 0; i < stepMats.length; i++)
+        for (let j = i+1; j < stepMats.length; j++)
+          pairs.push(`\\(${mxLabels[i]} \\cdot ${mxLabels[j]} = ${mxLabels[j]} \\cdot ${mxLabels[i]}\\) (shifted)`);
+      flatness = pairs.join(' &nbsp;&nbsp; ');
+    }
+
+    // LDU collapsible (if present)
+    let lduSection = '';
+    if (lduMats.length > 0) {
+      const lduParts = lduMats.map(mx => {
+        const rows = mx.rows;
+        const rowsLatex = rows.map(r => r.join(' & ')).join(' \\\\ ');
+        const lbl = mx.label || `K${mx.index}`;
+        return `<div style="margin-bottom:14px">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:6px">${lbl}</div>
+          <div style="overflow-x:auto;font-size:13px;color:#222">\\[${lbl} = \\begin{pmatrix}${rowsLatex}\\end{pmatrix}\\]</div>
+        </div>`;
+      });
+      lduSection = `
+        <details style="margin-top:16px">
+          <summary style="cursor:pointer;font-size:11px;font-weight:700;color:#64748b;letter-spacing:.05em;text-transform:uppercase;padding:8px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;list-style:none">
+            ▸ LDU Gauge Factors — G(n) = L · D(n) · U
+          </summary>
+          <div style="padding:12px 0 4px 0">
+            <div style="font-size:12px;color:#64748b;padding:8px 12px;background:#f0fdfc;border:1px solid #b2ede9;border-radius:6px;margin-bottom:12px;line-height:1.7">
+              \\(K_i(n) = G(n{+}e_i)\\;\\cdot\\;\\Delta_i(n_i)\\;\\cdot\\;G(n)^{-1}\\)
+            </div>
+            ${lduParts.join('')}
+          </div>
+        </details>`;
+    }
+
+    return `<div>
+      ${stepParts.join('')}
+      <div style="font-size:12px;color:#666;border:1px solid #e2e8f0;border-radius:8px;padding:12px;background:#f8fafc;margin-top:4px">
+        <strong style="color:#333">Flatness condition:</strong> ${flatness}
+      </div>
+      ${lduSection}
+    </div>`;
+  }
+
+  // LDU-only factorization view (no step matrices computed yet)
   if (isLDU) {
-    const lduParts = matrices.map(mx => {
+    const lduParts = lduMats.map(mx => {
       const rows = mx.rows;
       const rowsLatex = rows.map(r => r.join(' & ')).join(' \\\\ ');
       const lbl = mx.label || `K${mx.index}`;
@@ -151,8 +219,9 @@ function renderMatrices(matrices, d) {
     });
     return `<div>
       <div style="font-size:12px;color:#64748b;padding:10px 14px;background:#f0fdfc;border:1px solid #b2ede9;border-radius:8px;margin-bottom:16px;line-height:1.7">
-        <strong style="color:#0bb4aa">LDU Gauge Construction</strong> — \\(G(n) = L \\cdot D(n) \\cdot U\\) &nbsp; where \\(D(n)\\) is diagonal-linear in \\((${matrices[1]?.rows?.map((_,i)=>['x','y','z','w','v'][i]||`n_${i}`).join(',') || 'n'}))\\)<br/>
-        \\(K_i(n) = G(n{+}e_i)\\;\\cdot\\;\\Delta_i(n_i)\\;\\cdot\\;G(n)^{-1}\\)  &nbsp; — path-independent by LDU gauge theorem
+        <strong style="color:#0bb4aa">LDU Gauge Construction</strong> — \\(G(n) = L \\cdot D(n) \\cdot U\\) &nbsp; where \\(D(n)\\) is diagonal-linear in \\((${lduMats[1]?.rows?.map((_,i)=>['x','y','z','w','v'][i]||`n_${i}`).join(',') || 'n'}))\\)<br/>
+        \\(K_i(n) = G(n{+}e_i)\\;\\cdot\\;\\Delta_i(n_i)\\;\\cdot\\;G(n)^{-1}\\)  &nbsp; — path-independent by LDU gauge theorem<br/>
+        <span style="color:#f59e0b;font-size:11px">⏳ Step matrices not yet computed — run backfill to add K-matrices.</span>
       </div>
       ${lduParts.join('')}
     </div>`;
