@@ -425,9 +425,9 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "*",
         "https://davidvesterlund.com",
         "https://www.davidvesterlund.com",
+        "https://cmfatlas-production.up.railway.app",
     ],
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
@@ -1739,6 +1739,13 @@ def walk_cmf(
                 canon = _safe_json(rep_row[0]) or {}
                 mats  = canon.get("matrices", {})
                 axes  = canon.get("axes", [])
+                # Normalise list-format (backfill_matrices.py) → dict for walk
+                if isinstance(mats, list):
+                    mats = {
+                        mx["axis"]: str(mx["rows"])
+                        for mx in mats
+                        if isinstance(mx, dict) and "axis" in mx and "rows" in mx
+                    }
                 if mats and axes:
                     stored_axes = axes
                     result = _build_matrix_walk_from_stored(mats, axes, dir_clean)
