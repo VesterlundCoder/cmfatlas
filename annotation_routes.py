@@ -118,7 +118,7 @@ def setup_admin(req: LoginRequest):
     user = db.create_user(req.email, req.email.split("@")[0], req.password, role="admin")
     token = db.create_session(user["id"])
     resp = JSONResponse({"ok": True, "user": user, "token": token, "message": "Admin created"})
-    resp.set_cookie("token", token, max_age=86400 * 30, httponly=True, samesite="lax")
+    resp.set_cookie("token", token, max_age=86400 * 30, httponly=True, samesite="none", secure=True)
     return resp
 
 
@@ -129,16 +129,20 @@ def login(req: LoginRequest):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     token = db.create_session(user["id"])
     resp = JSONResponse({"ok": True, "user": user, "token": token})
-    resp.set_cookie("token", token, max_age=86400 * 30, httponly=True, samesite="lax")
+    resp.set_cookie("token", token, max_age=86400 * 30, httponly=True, samesite="none", secure=True)
     return resp
 
 
 @router.post("/logout")
-def logout(token: Optional[str] = Cookie(None)):
-    if token:
-        db.delete_session(token)
+def logout(
+    token: Optional[str] = Cookie(None),
+    x_token: Optional[str] = Header(None, alias="x-token"),
+):
+    t = token or x_token
+    if t:
+        db.delete_session(t)
     resp = JSONResponse({"ok": True})
-    resp.delete_cookie("token")
+    resp.delete_cookie("token", samesite="none", secure=True)
     return resp
 
 
